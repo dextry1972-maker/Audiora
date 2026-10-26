@@ -25,6 +25,22 @@ public static class WindowsIntegration
         }
     }
 
+    private static bool PointsToThisApp(string lnkPath)
+    {
+        if (!File.Exists(lnkPath) || Type.GetTypeFromProgID("WScript.Shell") is not { } shellType) return false;
+        dynamic shell = Activator.CreateInstance(shellType)!;
+        try
+        {
+            string target = shell.CreateShortcut(lnkPath).TargetPath;
+            return string.Equals(Path.GetFullPath(target), Path.GetFullPath(AppPaths.ExePath), StringComparison.OrdinalIgnoreCase);
+        }
+        catch (ArgumentException) { return false; } // empty or malformed target
+        finally
+        {
+            System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell);
+        }
+    }
+
     public static bool IsInstalledCopy =>
         AppPaths.ExePath.StartsWith(AppPaths.InstallDir, StringComparison.OrdinalIgnoreCase);
 
@@ -37,13 +53,12 @@ public static class WindowsIntegration
         StartsWithWindows = false;
         Registry.CurrentUser.DeleteSubKeyTree(UninstallKey, throwOnMissingSubKey: false);
 
-        foreach (var lnk in new[]
-                 {
-                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Sonos Flow.lnk"),
-                     Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Sonos Flow.lnk"),
-                 })
+        // Current name and the pre-rename one; only shortcuts that launch this app are removed.
+        foreach (var folder in new[] { Environment.SpecialFolder.DesktopDirectory, Environment.SpecialFolder.Programs })
+        foreach (var name in new[] { "Audiora.lnk", "Sonos Flow.lnk" })
         {
-            try { File.Delete(lnk); } catch (IOException) { }
+            var lnk = Path.Combine(Environment.GetFolderPath(folder), name);
+            try { if (PointsToThisApp(lnk)) File.Delete(lnk); } catch (IOException) { }
         }
 
         if (IsInstalledCopy)

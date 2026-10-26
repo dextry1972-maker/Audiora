@@ -31,7 +31,7 @@ public sealed record StreamStats(
 /// </summary>
 public sealed class StreamingSession : IAsyncDisposable
 {
-    private const string StreamTitle = "Sonos Flow — audio del PC";
+    private const string StreamTitle = "Audiora — audio del PC";
 
     private readonly SonosDevice _target;
     private readonly IReadOnlyCollection<IPAddress> _allowedPeers;

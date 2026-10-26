@@ -24,7 +24,9 @@ public sealed class InstallOptions
 public static class Installer
 {
     public const string ExeName = "SonosFlow.exe";
-    private const string ShortcutName = "Sonos Flow.lnk";
+    private const string ShortcutName = "Audiora.lnk";
+    /// <summary>Name used before the rename to Audiora; replaced on install if it points to this app.</summary>
+    private const string LegacyShortcutName = "Sonos Flow.lnk";
     private const string UninstallKey = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\SonosFlow";
 
     public static bool HasPayload => typeof(Installer).Assembly.GetManifestResourceNames().Contains("payload.zip");
@@ -78,10 +80,18 @@ public static class Installer
         if (!File.Exists(exe)) throw new FileNotFoundException("El paquete no contiene SonosFlow.exe.", exe);
 
         progress.Report((92, "Creando accesos directos…"));
+        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        var programs = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
         if (o.DesktopShortcut)
-            CreateShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), ShortcutName), exe);
+        {
+            CreateShortcut(Path.Combine(desktop, ShortcutName), exe);
+            RemoveLegacyShortcut(Path.Combine(desktop, LegacyShortcutName), exe);
+        }
         if (o.StartMenuShortcut)
-            CreateShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), ShortcutName), exe);
+        {
+            CreateShortcut(Path.Combine(programs, ShortcutName), exe);
+            RemoveLegacyShortcut(Path.Combine(programs, LegacyShortcutName), exe);
+        }
 
         if (o.Register)
         {
@@ -89,6 +99,28 @@ public static class Installer
             Register(o, exe);
         }
         progress.Report((100, "Instalación completada"));
+    }
+
+    /// <summary>Deletes an old "Sonos Flow" shortcut only if it launches this same exe (never a user's own shortcut).</summary>
+    private static void RemoveLegacyShortcut(string lnkPath, string exe)
+    {
+        if (!File.Exists(lnkPath)) return;
+        var shellType = Type.GetTypeFromProgID("WScript.Shell");
+        if (shellType is null) return;
+        dynamic shell = Activator.CreateInstance(shellType)!;
+        string target;
+        try
+        {
+            dynamic lnk = shell.CreateShortcut(lnkPath);
+            target = (string)lnk.TargetPath;
+            Marshal.FinalReleaseComObject(lnk);
+        }
+        finally
+        {
+            Marshal.FinalReleaseComObject(shell);
+        }
+        if (string.Equals(Path.GetFullPath(target), Path.GetFullPath(exe), StringComparison.OrdinalIgnoreCase))
+            File.Delete(lnkPath);
     }
 
     private static void CreateShortcut(string lnkPath, string exe)
