@@ -1,0 +1,9 @@
+Fecha: 2026-10-26 02:56:31
+Destino: Bedroom (Sonos Five) — 192.168.137.158
+Micrófono: Headset Microphone (CORSAIR HS80 MAX WIRELESS Gaming Headset)
+Pitidos enviados: 1; detectados en loopback: 0; emparejados en micrófono: 0
+No se emparejó ningún pitido: el micrófono no oyó el Sonos (distancia/volumen) o la detección falló.
+Diagnóstico:
+beeper: lecturas=2514 muestrasPitido=1440
+loopback: ventanas=5022 rmsMáx=0.0610 (tonalidad 0.00) tonalidadMáx≥nivel=0.01 detecciones=0
+mic (48000 Hz, 32 bit, IeeeFloat, 1 can.): ventanas=5020 rmsMáx=0.0000 (tonalidad 0.00) tonalidadMáx≥nivel=0.00 detecciones=0

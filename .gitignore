@@ -1,0 +1,31 @@
+# Build output (regenerable with `dotnet build` / build.ps1)
+bin/
+obj/
+artifacts/
+TestResults/
+
+# IDE / user-specific
+.vs/
+.vscode/
+*.user
+*.suo
+*.DotSettings.user
+
+# Secrets — never commit (none exist today; see README "Copias de seguridad")
+.env
+.env.*
+*.pfx
+*.p12
+*.pem
+*.key
+*.snk
+secrets.json
+
+# OS noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Python cache from tools/
+__pycache__/
+*.pyc
