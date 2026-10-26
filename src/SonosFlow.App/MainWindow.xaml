@@ -7,7 +7,7 @@
         xmlns:ctl="clr-namespace:SonosFlow.App.Controls"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:MainViewModel}"
-        Title="Sonos Flow" Width="1280" Height="840" MinWidth="1080" MinHeight="720"
+        Title="Audiora" Width="1280" Height="840" MinWidth="1080" MinHeight="720"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource B.Bg0}"
         Foreground="{StaticResource B.Text}"
@@ -159,7 +159,7 @@
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,6,0,26">
                         <Image Source="/Assets/SonosFlow.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality" />
                         <StackPanel Margin="11,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="Sonos Flow" Style="{StaticResource T.Section}" FontSize="17" />
+                            <TextBlock Text="Audiora" Style="{StaticResource T.Section}" FontSize="17" />
                             <TextBlock Text="Tu PC, en tu Sonos" Style="{StaticResource T.Dim}" FontSize="11.5" />
                         </StackPanel>
                     </StackPanel>
@@ -724,7 +724,7 @@
                                         </StackPanel>
                                     </Grid>
                                     <TextBlock Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,12"
-                                               Text="Copias del código fuente de Sonos Flow con fecha y hora, verificadas con SHA-256. Nunca se sobrescriben ni se borran. Restaurar crea antes una copia del estado actual y no elimina archivos." />
+                                               Text="Copias del código fuente de Audiora con fecha y hora, verificadas con SHA-256. Nunca se sobrescriben ni se borran. Restaurar crea antes una copia del estado actual y no elimina archivos." />
                                     <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="90" />
@@ -819,7 +819,7 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                         <Image Source="/Assets/SonosFlow.png" Width="40" Height="40" RenderOptions.BitmapScalingMode="HighQuality" />
                                         <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock Text="Sonos Flow" Style="{StaticResource T.Section}" />
+                                            <TextBlock Text="Audiora" Style="{StaticResource T.Section}" />
                                             <TextBlock Text="{Binding Version}" Style="{StaticResource T.Dim}" FontSize="12" />
                                         </StackPanel>
                                     </StackPanel>

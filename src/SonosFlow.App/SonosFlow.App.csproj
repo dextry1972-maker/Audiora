@@ -12,7 +12,8 @@
     <ApplicationIcon>Assets\SonosFlow.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>1.0.0</Version>
-    <Product>Sonos Flow</Product>
+    <Product>Audiora</Product>
+    <AssemblyTitle>Audiora</AssemblyTitle>
     <Description>Transmite el audio del PC a un altavoz Sonos por Wi-Fi.</Description>
     <Copyright>Proyecto personal. No afiliado a Sonos, Inc.</Copyright>
   </PropertyGroup>

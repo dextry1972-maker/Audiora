@@ -14,7 +14,7 @@ public sealed class TrayIcon : IDisposable
         var iconStream = Application.GetResourceStream(new Uri("pack://application:,,,/Assets/SonosFlow.ico"))!.Stream;
         _toggle = new Forms.ToolStripMenuItem("Iniciar transmisión", null, (_, _) => toggleStream());
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add(new Forms.ToolStripMenuItem("Abrir Sonos Flow", null, (_, _) => open()));
+        menu.Items.Add(new Forms.ToolStripMenuItem("Abrir Audiora", null, (_, _) => open()));
         menu.Items.Add(_toggle);
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add(new Forms.ToolStripMenuItem("Salir", null, (_, _) => quit()));
@@ -22,7 +22,7 @@ public sealed class TrayIcon : IDisposable
         _icon = new Forms.NotifyIcon
         {
             Icon = new System.Drawing.Icon(iconStream),
-            Text = "Sonos Flow",
+            Text = "Audiora",
             ContextMenuStrip = menu,
             Visible = true,
         };
@@ -32,7 +32,7 @@ public sealed class TrayIcon : IDisposable
     public void SetStreaming(bool streaming, string speaker)
     {
         _toggle.Text = streaming ? "Detener transmisión" : "Iniciar transmisión";
-        var text = streaming ? $"Sonos Flow — transmitiendo a {speaker}" : "Sonos Flow";
+        var text = streaming ? $"Audiora — transmitiendo a {speaker}" : "Audiora";
         _icon.Text = text.Length > 63 ? text[..63] : text;
     }
 

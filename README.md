@@ -1,4 +1,6 @@
-# Sonos Flow
+# Audiora
+
+*(Antes «Sonos Flow». Los nombres técnicos — proyecto `SonosFlow.*`, `SonosFlow.exe`, carpetas de datos y de copias — se conservan.)*
 
 Aplicación de escritorio para Windows que **transmite todo el audio del PC a un altavoz Sonos por Wi-Fi**, sin la app oficial de Sonos, sin Bluetooth y sin cables.
 
@@ -12,7 +14,7 @@ Cómo funciona: captura el audio del sistema con WASAPI loopback, lo sirve como 
 
 Al no estar firmado digitalmente, SmartScreen puede mostrar "Windows protegió su PC": *Más información → Ejecutar de todas formas*.
 
-**Desinstalar:** Configuración → Aplicaciones → Aplicaciones instaladas → Sonos Flow → Desinstalar. Se conservan tus ajustes (`%APPDATA%\SonosFlow`) y registros (`%LOCALAPPDATA%\SonosFlow`).
+**Desinstalar:** Configuración → Aplicaciones → Aplicaciones instaladas → Audiora → Desinstalar. Se conservan tus ajustes (`%APPDATA%\SonosFlow`) y registros (`%LOCALAPPDATA%\SonosFlow`).
 
 ## Usar
 

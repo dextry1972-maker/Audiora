@@ -37,11 +37,11 @@ public static class Installer
         if (!HasPayload) return "Este instalador no contiene la aplicación (se compiló sin el paquete).";
 
         var running = Process.GetProcessesByName("SonosFlow");
-        if (running.Length > 0) return "Sonos Flow está abierto. Ciérralo (también desde la bandeja del sistema) y vuelve a intentarlo.";
+        if (running.Length > 0) return "Audiora está abierto. Ciérralo (también desde la bandeja del sistema) y vuelve a intentarlo.";
 
         if (Directory.Exists(o.Directory) && Directory.EnumerateFileSystemEntries(o.Directory).Any()
             && !File.Exists(ExePath(o)))
-            return $"La carpeta {o.Directory} ya existe y no contiene Sonos Flow. No se sobrescribirá.";
+            return $"La carpeta {o.Directory} ya existe y no contiene Audiora. No se sobrescribirá.";
         return null;
     }
 
@@ -115,9 +115,9 @@ public static class Installer
     {
         using var key = Registry.CurrentUser.CreateSubKey(UninstallKey);
         long sizeKb = new DirectoryInfo(o.Directory).EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length) / 1024;
-        key.SetValue("DisplayName", "Sonos Flow");
+        key.SetValue("DisplayName", "Audiora");
         key.SetValue("DisplayVersion", typeof(Installer).Assembly.GetName().Version.ToString(3));
-        key.SetValue("Publisher", "Sonos Flow (proyecto personal)");
+        key.SetValue("Publisher", "Audiora (proyecto personal)");
         key.SetValue("DisplayIcon", exe + ",0");
         key.SetValue("InstallLocation", o.Directory);
         key.SetValue("UninstallString", $"\"{exe}\" --uninstall");

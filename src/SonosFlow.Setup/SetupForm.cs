@@ -27,7 +27,7 @@ public sealed class SetupForm : Form
     public SetupForm(InstallOptions options)
     {
         _options = options;
-        Text = "Instalar Sonos Flow";
+        Text = "Instalar Audiora";
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
@@ -44,7 +44,7 @@ public sealed class SetupForm : Form
             SizeMode = PictureBoxSizeMode.Zoom,
             Bounds = new Rectangle(32, 30, 48, 48),
         };
-        var title = new Label { Text = "Sonos Flow", Font = new Font("Segoe UI Semibold", 18f), AutoSize = true, Location = new Point(92, 28) };
+        var title = new Label { Text = "Audiora", Font = new Font("Segoe UI Semibold", 18f), AutoSize = true, Location = new Point(92, 28) };
         var subtitle = new Label { Text = "Transmite el audio de tu PC a tu Sonos por Wi-Fi", ForeColor = TextDim, AutoSize = true, Location = new Point(94, 62) };
 
         var where = new Label
@@ -54,7 +54,7 @@ public sealed class SetupForm : Form
         };
 
         _desktop = MakeCheck("Crear acceso directo en el escritorio", 172, options.DesktopShortcut);
-        _launch = MakeCheck("Abrir Sonos Flow al terminar", 202, options.Launch);
+        _launch = MakeCheck("Abrir Audiora al terminar", 202, options.Launch);
 
         _bar = new ProgressBar { Bounds = new Rectangle(32, 250, 456, 6), Style = ProgressBarStyle.Continuous, Visible = false };
         _status = new Label { ForeColor = TextDim, AutoSize = false, Bounds = new Rectangle(32, 262, 456, 22) };
@@ -115,7 +115,7 @@ public sealed class SetupForm : Form
         _options.Launch = _launch.Checked;
         if (Installer.CheckPreconditions(_options) is { } problem)
         {
-            MessageBox.Show(this, problem, "Sonos Flow", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(this, problem, "Audiora", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
 
@@ -129,13 +129,13 @@ public sealed class SetupForm : Form
         catch (Exception ex)
         {
             _status.Text = "La instalación no se completó.";
-            MessageBox.Show(this, ex.Message, "Sonos Flow", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(this, ex.Message, "Audiora", MessageBoxButtons.OK, MessageBoxIcon.Error);
             _install.Enabled = _desktop.Enabled = _launch.Enabled = true;
             return;
         }
 
         _finished = true;
-        _status.Text = "Listo. Sonos Flow está instalado.";
+        _status.Text = "Listo. Audiora está instalado.";
         _install.Text = "Finalizar";
         _install.Enabled = true;
         if (_options.Launch) Process.Start(new ProcessStartInfo(Installer.ExePath(_options)) { UseShellExecute = true });

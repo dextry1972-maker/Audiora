@@ -137,12 +137,12 @@ public partial class App : Application
     private void RunUninstall()
     {
         var answer = MessageBox.Show(
-            "¿Desinstalar Sonos Flow?\n\nSe eliminarán el programa y sus accesos directos. Tus ajustes y registros se conservan.",
-            "Sonos Flow", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            "¿Desinstalar Audiora?\n\nSe eliminarán el programa y sus accesos directos. Tus ajustes y registros se conservan.",
+            "Audiora", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (answer == MessageBoxResult.Yes)
         {
             WindowsIntegration.Uninstall();
-            MessageBox.Show("Sonos Flow se ha desinstalado.", "Sonos Flow", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Audiora se ha desinstalado.", "Audiora", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         Shutdown();
     }
@@ -155,7 +155,7 @@ public partial class App : Application
             File.AppendAllText(Path.Combine(AppPaths.Logs, "errors.log"), $"[{DateTime.Now:O}] {e.Exception}\n\n");
         }
         catch (IOException) { }
-        MessageBox.Show($"Se produjo un error inesperado:\n{e.Exception.Message}\n\nDetalles en la carpeta de registros.", "Sonos Flow",
+        MessageBox.Show($"Se produjo un error inesperado:\n{e.Exception.Message}\n\nDetalles en la carpeta de registros.", "Audiora",
             MessageBoxButton.OK, MessageBoxImage.Warning);
         e.Handled = true;
     }

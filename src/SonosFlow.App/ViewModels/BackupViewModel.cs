@@ -93,7 +93,7 @@ public sealed class BackupViewModel : ObservableObject
 
     private void ChooseProject()
     {
-        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Carpeta del proyecto Sonos Flow (contiene SonosFlow.sln)" };
+        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Carpeta del proyecto Audiora (contiene SonosFlow.sln)" };
         if (dialog.ShowDialog() != true) return;
         if (!File.Exists(Path.Combine(dialog.FolderName, "SonosFlow.sln")))
         {
