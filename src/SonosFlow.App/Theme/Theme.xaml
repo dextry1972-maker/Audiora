@@ -443,6 +443,58 @@
         </Setter>
     </Style>
 
+    <!-- Segmented choice (two pill options) -->
+    <Style x:Key="Seg" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource B.TextDim}" />
+        <Setter Property="FontFamily" Value="{StaticResource F.Text}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" CornerRadius="7" Padding="8,6" Background="Transparent">
+                        <ContentPresenter HorizontalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.AccentSoft}" />
+                            <Setter Property="Foreground" Value="{StaticResource B.AccentHi}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Row button for lists of applications -->
+    <ControlTemplate x:Key="AppRowButton" TargetType="Button">
+        <Border x:Name="Bd" CornerRadius="8" Padding="8,6" Background="Transparent">
+            <ContentPresenter />
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.Glass}" />
+            </Trigger>
+            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.AccentSoft}" />
+            </DataTrigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- Green when the bound item IsActive -->
+    <Style x:Key="ActiveDot" TargetType="Ellipse">
+        <Setter Property="Fill" Value="{StaticResource B.TextFaint}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                <Setter Property="Fill" Value="{StaticResource B.Accent}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
     <Style TargetType="ToolTip">
         <Setter Property="Background" Value="#FF1A2126" />
         <Setter Property="Foreground" Value="{StaticResource B.Text}" />

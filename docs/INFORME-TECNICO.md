@@ -66,7 +66,24 @@ Formato: WAV LPCM 48 kHz / 16 bit / estéreo = 1536 kbit/s (192 kB/s). Sin compr
 | Formato | WAV 16 bit; FLAC como opción si la Wi-Fi da cortes | FLAC reduce ancho de banda, añade algo de latencia |
 | Instalador | `dotnet publish` autocontenido + instalador (Inno Setup o MSIX) | Se decidirá en fase 5; pedirá confirmación antes de instalar herramientas |
 
-## 6. Fuentes
+## 6. Captura por aplicación y mini reproductor (26/10/2026)
+
+**API:** `ActivateAudioInterfaceAsync("VAD\Process_Loopback")` con `AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK` e `INCLUDE_TARGET_PROCESS_TREE` (Windows 10 2004+). NAudio 2.2.1 trae las estructuras pero no la activación, así que se implementó en `Core/Audio/ProcessLoopbackCapture.cs` (IWaveIn). Sin controladores virtuales. Formato pedido: PCM 48 kHz/16 bit/estéreo (Windows convierte), igual que el stream, para cambiar de fuente sin reconectar el Sonos.
+
+| Prueba (medida) | Resultado |
+|---|---|
+| Captura del proceso A con A y B sonando (tonos 1 kHz / 3,15 kHz en una salida no audible) | A −12 dBFS, **B −92 dBFS (sin señal)** |
+| Captura de B | B −12 dBFS, A −100 dBFS |
+| Modo dispositivo completo | A y B −12 dBFS |
+| A silenciada en el mezclador de Windows | **la captura de A recibe silencio** → no se puede silenciar la app localmente; se documenta asignarle otra salida |
+| La app se cierra durante la captura | sin error; se rellena con silencio |
+| Perfil de navegador aislado (`--user-data-dir`) | árbol de procesos propio (14 procesos), distinto del navegador habitual; Audiora lo reconoce |
+| Extremo a extremo con el Sonos Five (16 comprobaciones, `--selftest-session`) | todas correctas: cambio de fuente en caliente con 0 reconexiones; el stream lleva solo el tono de la app (pico −59,7 dBFS); pausa = silencio sin desconectar; la app se cierra y el Sonos sigue; vuelta a Todo el PC; nunca más de 1 captura activa; al salir, 0 procesos y puerto liberado |
+| Modo Todo el PC con «Silenciar el PC» + «Nivel completo» | PC silenciado al 100 % durante la transmisión; restaurado a su estado (36 %) al salir |
+
+**Mini reproductor:** ventana WPF con transparencia por píxel (`AllowsTransparency`, ventana en capas). El desenfoque nativo (Acrylic/Mica) no es compatible con ventanas en capas de WPF, así que el interior es un cristal oscuro semitransparente con borde iluminado y sombra; lo que hay detrás se intuye ligeramente. `WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW`: nunca toma el foco ni aparece en Alt+Tab. El indicador de nivel se actualiza a ~15 fps solo mientras está visible y transmitiendo.
+
+## 7. Fuentes
 
 - swyh-rs: https://github.com/dheijl/swyh-rs
 - SoCo (control Sonos): https://soco.readthedocs.io/

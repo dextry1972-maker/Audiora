@@ -44,8 +44,24 @@ dotnet build SonosFlow.sln -c Release      # compilar
 | `src/SonosFlow.Backup` | Motor de copias y restauración (sin dependencias) |
 | `src/SonosFlow.BackupCli` + `sfbackup.cmd` | Herramienta de línea de comandos para copias |
 | `tests/SonosFlow.Backup.Tests` | Pruebas automáticas del sistema de copias (xUnit) |
+| `tools/SonosFlow.CaptureCheck` | Comprobación automática del aislamiento de la captura por aplicación (tonos en una salida no audible) |
 | `poc/` | Prueba mínima por consola usada para validar el streaming y medir |
 | `tools/make_icon.py` | Genera el icono (sin dependencias) |
+
+## Transmitir una sola aplicación
+
+En **Fuente de audio → Una aplicación** aparecen las aplicaciones que tienen audio (icono, nombre y si están sonando; la lista se actualiza sola). Al elegir una, **solo su audio** va al Sonos; los juegos, Discord y el resto siguen sonando por sus salidas habituales. Se puede cambiar de fuente durante la transmisión sin reconectar el Sonos, y volver a **Todo el PC** en cualquier momento.
+
+- Usa la captura por proceso de Windows (Windows 10 2004 o posterior). No instala controladores ni cambia la salida predeterminada.
+- **La aplicación elegida también sigue sonando en tu PC.** Para no oírla en los auriculares, en *Configuración → Sonido → Mezclador de volumen* asígnale una salida que no uses (p. ej. otra salida o «Steam Streaming Speakers»): la captura funciona igual. Silenciarla en el mezclador **no sirve**: Windows entrega entonces silencio también a la captura (comprobado).
+- «Silenciar el PC» y «Nivel completo» solo se aplican en modo **Todo el PC** (en modo aplicación silenciarían también el juego y Discord).
+- **Navegadores:** Chrome, Edge o Brave reproducen el audio de **todas sus pestañas** desde un mismo proceso, así que no se puede enviar una sola pestaña. Para YouTube Music usa **Abrir YouTube Music aislado**: abre music.youtube.com en una ventana con perfil propio (Brave si está instalado; si no, Edge o Chrome), que es un proceso separado y aparece como «YouTube Music (instancia aislada)». La primera vez hay que iniciar sesión en esa ventana.
+- Si la aplicación se cierra, la transmisión sigue (en silencio) y se retoma sola cuando vuelve a abrirse.
+- Los sonidos del sistema de Windows no se pueden capturar por separado.
+
+## Mini reproductor
+
+Cápsula flotante con la fuente, el estado real, el Sonos, el volumen (el mismo que en la ventana principal), **pausa** (el Sonos sigue conectado y recibe silencio; reanudar es instantáneo), abrir la ventana principal, elegir la fuente y ocultar. Se abre con el botón de la barra de título, desde la bandeja o al minimizar/cerrar (según Ajustes). Se puede arrastrar, recuerda su posición, se mantiene dentro de la pantalla, puede quedarse siempre encima y **nunca toma el foco del teclado** (no interrumpe juegos). Ocultarlo o cambiar de ventana no detiene ni reinicia el audio.
 
 ## Copias de seguridad
 

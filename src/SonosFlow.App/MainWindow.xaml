@@ -229,6 +229,8 @@
 
                 <!-- Title bar (drag area via WindowChrome) -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource Btn.Caption}" Content="&#xE8A7;" Command="{Binding ToggleMiniCommand}" ToolTip="Mini reproductor"
+                            AutomationProperties.Name="Mostrar u ocultar el mini reproductor" />
                     <Button Style="{StaticResource Btn.Caption}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Minimizar" />
                     <Button x:Name="MaxButton" Style="{StaticResource Btn.Caption}" Content="&#xE922;" Click="Maximize_Click" ToolTip="Maximizar" />
                     <Button Style="{StaticResource Btn.CaptionClose}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Cerrar" />
@@ -453,7 +455,7 @@
                                                         <TextBlock Text="Solo suena el Sonos" Style="{StaticResource T.Dim}" FontSize="11.5" />
                                                     </StackPanel>
                                                     <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MuteLocal}"
-                                                              IsEnabled="{Binding CanEditOptions}"
+                                                              IsEnabled="{Binding LocalOptionsEnabled}"
                                                               AutomationProperties.Name="Silenciar el PC" x:Name="MuteSwitch" />
                                                 </Grid>
                                                 <Rectangle Height="1" Fill="{StaticResource B.Stroke}" Margin="0,10" />
@@ -462,7 +464,7 @@
                                                         <TextBlock Text="Nivel completo" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
                                                         <TextBlock Text="Windows al 100 % mientras está silenciado" Style="{StaticResource T.Dim}" FontSize="11.5" TextWrapping="Wrap" MaxWidth="190" HorizontalAlignment="Left" />
                                                     </StackPanel>
-                                                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding FullLevel}" x:Name="FullLevelSwitch" IsEnabled="{Binding CanEditFullLevel}"
+                                                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding FullLevel}" x:Name="FullLevelSwitch" IsEnabled="{Binding FullLevelEnabled}"
                                                               AutomationProperties.Name="Nivel completo" />
                                                 </Grid>
                                             </StackPanel>
@@ -567,16 +569,76 @@
 
                                 <Border Style="{StaticResource Card}">
                                     <StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                             <TextBlock Text="&#xE7F4;" Style="{StaticResource T.Icon}" Foreground="{StaticResource B.Accent}" />
                                             <TextBlock Text="Fuente de audio" Style="{StaticResource T.Section}" Margin="10,0,0,0" />
                                         </StackPanel>
-                                        <TextBlock Text="Todo el sonido de" Style="{StaticResource T.Dim}" FontSize="12" Margin="0,0,0,6" />
-                                        <ComboBox Style="{StaticResource Combo.Flow}" ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}"
-                                                  IsEnabled="{Binding CanEditOptions}"
-                                                  AutomationProperties.Name="Dispositivo de salida a capturar" x:Name="SourceCombo" />
-                                        <TextBlock Style="{StaticResource T.Dim}" FontSize="11.5" TextWrapping="Wrap" Margin="0,10,0,0"
-                                                   Text="Juegos, navegador, YouTube, películas, Discord: todo lo que suena en este dispositivo se envía al Sonos." />
+
+                                        <!-- Whole PC / one application -->
+                                        <Border Background="{StaticResource B.Glass}" BorderBrush="{StaticResource B.Stroke}" BorderThickness="1" CornerRadius="10" Padding="3" Margin="0,0,0,10">
+                                            <UniformGrid Columns="2">
+                                                <RadioButton Style="{StaticResource Seg}" Content="Todo el PC" GroupName="srcmode" IsChecked="{Binding IsAppMode, Converter={StaticResource InvertBool}, Mode=TwoWay}"
+                                                             AutomationProperties.Name="Transmitir todo el audio del PC" />
+                                                <RadioButton Style="{StaticResource Seg}" Content="Una aplicación" GroupName="srcmode" IsChecked="{Binding IsAppMode, Mode=TwoWay}"
+                                                             AutomationProperties.Name="Transmitir una sola aplicación" />
+                                            </UniformGrid>
+                                        </Border>
+
+                                        <!-- Whole PC: pick the output device -->
+                                        <StackPanel Visibility="{Binding IsAppMode, Converter={StaticResource BoolToVisInv}}">
+                                            <TextBlock Text="Todo el sonido de" Style="{StaticResource T.Dim}" FontSize="12" Margin="0,0,0,6" />
+                                            <ComboBox Style="{StaticResource Combo.Flow}" ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}"
+                                                      IsEnabled="{Binding CanEditOptions}"
+                                                      AutomationProperties.Name="Dispositivo de salida a capturar" x:Name="SourceCombo" />
+                                            <TextBlock Style="{StaticResource T.Dim}" FontSize="11.5" TextWrapping="Wrap" Margin="0,10,0,0"
+                                                       Text="Juegos, navegador, YouTube, películas, Discord: todo lo que suena en este dispositivo se envía al Sonos." />
+                                        </StackPanel>
+
+                                        <!-- One application -->
+                                        <StackPanel Visibility="{Binding IsAppMode, Converter={StaticResource BoolToVis}}">
+                                            <Border Style="{StaticResource InnerCard}" Padding="4">
+                                                <Grid>
+                                                    <ItemsControl ItemsSource="{Binding Apps}" MaxHeight="150">
+                                                        <ItemsControl.Template>
+                                                            <ControlTemplate TargetType="ItemsControl">
+                                                                <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter /></ScrollViewer>
+                                                            </ControlTemplate>
+                                                        </ItemsControl.Template>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate DataType="{x:Type vm:AppSourceItem}">
+                                                                <Button Command="{Binding DataContext.SelectAppCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                                        Cursor="Hand" FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding Name}"
+                                                                        Template="{StaticResource AppRowButton}">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="28" />
+                                                                            <ColumnDefinition Width="*" />
+                                                                            <ColumnDefinition Width="Auto" />
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Image Source="{Binding Icon}" Width="20" Height="20" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality" />
+                                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                            <TextBlock Text="{Binding Name}" Style="{StaticResource T.Base}" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                                                                            <TextBlock Text="{Binding StateText}" Style="{StaticResource T.Dim}" FontSize="10.5" />
+                                                                        </StackPanel>
+                                                                        <Ellipse Grid.Column="2" Width="7" Height="7" Margin="6,0,2,0" Style="{StaticResource ActiveDot}" />
+                                                                    </Grid>
+                                                                </Button>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock Text="Ninguna aplicación está usando el audio ahora mismo" Style="{StaticResource T.Dim}" FontSize="11.5"
+                                                               Margin="8,10" TextWrapping="Wrap"
+                                                               Visibility="{Binding Apps.Count, Converter={StaticResource ZeroToVis}}" />
+                                                </Grid>
+                                            </Border>
+                                            <TextBlock Style="{StaticResource T.Dim}" FontSize="11.5" Margin="0,8,0,0" TextWrapping="Wrap">
+                                                <Run Text="{Binding SourceName, Mode=OneWay}" Foreground="{StaticResource B.Text}" /><Run Text=" · " /><Run Text="{Binding SourceStatusText, Mode=OneWay}" />
+                                            </TextBlock>
+                                            <Button Content="Abrir YouTube Music aislado" Command="{Binding LaunchYouTubeMusicCommand}" Style="{StaticResource Btn.Ghost}"
+                                                    HorizontalAlignment="Left" Padding="10,4" FontSize="11.5" Margin="0,8,0,0"
+                                                    ToolTip="Abre YouTube Music en una ventana de navegador separada (perfil propio) para poder enviar solo su audio. Un navegador normal mezcla el audio de todas sus pestañas." />
+                                        </StackPanel>
+
                                         <TextBlock Text="{Binding SourceFormatText}" Style="{StaticResource T.Dim}" FontSize="11" Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
                                     </StackPanel>
                                 </Border>
@@ -672,10 +734,16 @@
                                     <Rectangle Height="1" Fill="{StaticResource B.Stroke}" Margin="0,10" />
                                     <Grid Margin="0,6">
                                         <StackPanel>
-                                            <TextBlock Text="Minimizar a la bandeja al cerrar" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
-                                            <TextBlock Text="La transmisión sigue activa con la ventana cerrada" Style="{StaticResource T.Dim}" FontSize="12" />
+                                            <TextBlock Text="Al cerrar la ventana principal" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
+                                            <TextBlock Text="Ocultar la ventana nunca detiene la transmisión" Style="{StaticResource T.Dim}" FontSize="12" />
                                         </StackPanel>
-                                        <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MinimizeToTray}" AutomationProperties.Name="Minimizar a la bandeja" />
+                                        <ComboBox Style="{StaticResource Combo.Flow}" Width="280" HorizontalAlignment="Right" ItemsSource="{Binding CloseActions}"
+                                                  SelectedValuePath="Key" SelectedValue="{Binding CloseAction}"
+                                                  AutomationProperties.Name="Al cerrar la ventana principal">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
                                     </Grid>
                                     <Rectangle Height="1" Fill="{StaticResource B.Stroke}" Margin="0,10" />
                                     <Grid Margin="0,6">
@@ -690,11 +758,56 @@
 
                             <Border Style="{StaticResource Card}" Margin="0,0,0,18">
                                 <StackPanel>
+                                    <TextBlock Text="Mini reproductor" Style="{StaticResource T.Section}" Margin="0,0,0,12" />
+                                    <Grid Margin="0,6">
+                                        <StackPanel>
+                                            <TextBlock Text="Mostrar el mini reproductor" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
+                                            <TextBlock Text="Cápsula flotante con volumen, pausa y fuente. Ocultarla no detiene el audio" Style="{StaticResource T.Dim}" FontSize="12" />
+                                        </StackPanel>
+                                        <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MiniVisible}" AutomationProperties.Name="Mostrar el mini reproductor" />
+                                    </Grid>
+                                    <Rectangle Height="1" Fill="{StaticResource B.Stroke}" Margin="0,10" />
+                                    <Grid Margin="0,6">
+                                        <StackPanel>
+                                            <TextBlock Text="Siempre encima" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
+                                            <TextBlock Text="Por encima de otras ventanas; nunca toma el foco del teclado (no interrumpe juegos)" Style="{StaticResource T.Dim}" FontSize="12" />
+                                        </StackPanel>
+                                        <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MiniTopmost}" AutomationProperties.Name="Mini reproductor siempre encima" />
+                                    </Grid>
+                                    <Rectangle Height="1" Fill="{StaticResource B.Stroke}" Margin="0,10" />
+                                    <Grid Margin="0,6">
+                                        <StackPanel>
+                                            <TextBlock Text="Recordar su posición" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
+                                            <TextBlock Text="Vuelve a aparecer donde lo dejaste, siempre dentro de la pantalla" Style="{StaticResource T.Dim}" FontSize="12" />
+                                        </StackPanel>
+                                        <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MiniRememberPosition}" AutomationProperties.Name="Recordar la posición del mini reproductor" />
+                                    </Grid>
+                                    <Rectangle Height="1" Fill="{StaticResource B.Stroke}" Margin="0,10" />
+                                    <Grid Margin="0,6">
+                                        <StackPanel>
+                                            <TextBlock Text="Al minimizar, mostrar el mini reproductor" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
+                                            <TextBlock Text="La ventana principal se oculta y queda la cápsula" Style="{StaticResource T.Dim}" FontSize="12" />
+                                        </StackPanel>
+                                        <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MinimizeToMini}" AutomationProperties.Name="Al minimizar mostrar el mini reproductor" />
+                                    </Grid>
+                                    <Rectangle Height="1" Fill="{StaticResource B.Stroke}" Margin="0,10" />
+                                    <Grid Margin="0,6">
+                                        <StackPanel>
+                                            <TextBlock Text="Atenuar cuando no se use" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
+                                            <TextBlock Text="Baja ligeramente la opacidad si el ratón no está encima" Style="{StaticResource T.Dim}" FontSize="12" />
+                                        </StackPanel>
+                                        <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MiniDimWhenIdle}" AutomationProperties.Name="Atenuar el mini reproductor" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,18">
+                                <StackPanel>
                                     <TextBlock Text="Audio" Style="{StaticResource T.Section}" Margin="0,0,0,12" />
                                     <Grid Margin="0,6">
                                         <StackPanel>
                                             <TextBlock Text="Silenciar los altavoces del PC al transmitir" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
-                                            <TextBlock Text="Se restauran al detener, al salir e incluso tras un cierre inesperado" Style="{StaticResource T.Dim}" FontSize="12" />
+                                            <TextBlock Text="Solo en modo «Todo el PC». Se restauran al detener, al salir e incluso tras un cierre inesperado" Style="{StaticResource T.Dim}" FontSize="12" />
                                         </StackPanel>
                                         <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MuteLocal}" IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="Silenciar el PC" />
                                     </Grid>

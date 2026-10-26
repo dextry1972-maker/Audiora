@@ -23,6 +23,7 @@ public sealed class SpectrumAnalyzer
     private int _writePos;
     private int _sinceLast;
     private float _peakL, _peakR;
+    private float _peekPeak;
 
     public int BandCount { get; }
 
@@ -68,6 +69,7 @@ public sealed class SpectrumAnalyzer
         {
             _peakL = MathF.Max(_peakL, pl);
             _peakR = MathF.Max(_peakR, pr);
+            _peekPeak = MathF.Max(_peekPeak, MathF.Max(pl, pr));
         }
     }
 
@@ -104,6 +106,20 @@ public sealed class SpectrumAnalyzer
             var peaks = (_peakL, _peakR);
             _peakL = _peakR = 0;
             return peaks;
+        }
+    }
+
+    /// <summary>
+    /// Peak (0..1) since the previous call, for a second reader such as the mini player.
+    /// Independent of <see cref="Snapshot"/>, so two windows can show levels at once.
+    /// </summary>
+    public float PeekLevel()
+    {
+        lock (_lock)
+        {
+            var p = _peekPeak;
+            _peekPeak = 0;
+            return p;
         }
     }
 

@@ -15,6 +15,22 @@ public sealed class BoolToVisibilityConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+public sealed class InvertBoolConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is not true;
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => value is not true;
+}
+
+/// <summary>Visible only when the bound count is 0 (empty-list hints).</summary>
+public sealed class ZeroToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 public sealed class DbfsToTextConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>

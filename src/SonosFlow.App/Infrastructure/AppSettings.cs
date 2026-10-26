@@ -16,6 +16,22 @@ public sealed class AppSettings
     public string? ProjectPath { get; set; }
     public string? BackupRoot { get; set; }
 
+    // Source: "system" (whole output) or "app" (one application, remembered by executable).
+    public string SourceMode { get; set; } = "system";
+    public string? SourceAppExe { get; set; }
+    public bool SourceAppIsolated { get; set; }
+
+    // Mini player.
+    public bool MiniVisible { get; set; }
+    public bool MiniTopmost { get; set; } = true;
+    public bool MiniRememberPosition { get; set; } = true;
+    public double? MiniLeft { get; set; }
+    public double? MiniTop { get; set; }
+    public bool MiniDimWhenIdle { get; set; } = true;
+    public bool MinimizeToMini { get; set; }
+    /// <summary>Closing the main window: "tray", "mini" or "exit". Null = follow the older MinimizeToTray switch.</summary>
+    public string? CloseAction { get; set; }
+
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
     public static AppSettings Load()
@@ -29,8 +45,12 @@ public sealed class AppSettings
         return new();
     }
 
+    /// <summary>False in automated test runs, so they never change the user's settings.</summary>
+    public static bool PersistenceEnabled { get; set; } = true;
+
     public void Save()
     {
+        if (!PersistenceEnabled) return;
         try
         {
             Directory.CreateDirectory(AppPaths.Roaming);

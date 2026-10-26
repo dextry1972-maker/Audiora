@@ -5,8 +5,9 @@ using NAudio.Wave;
 namespace SonosFlow.Core.Audio;
 
 /// <summary>
-/// Captures everything the default render device plays (WASAPI loopback) and emits it as
-/// 16-bit stereo PCM at the device's sample rate. WASAPI delivers no packets while nothing is
+/// Captures everything an output device plays (WASAPI loopback) — or, with
+/// <see cref="ForProcess"/>, only one application's audio — and emits it as
+/// 16-bit stereo PCM at the capture's sample rate. WASAPI delivers no packets while nothing is
 /// playing, so a pacer fills those gaps with real-time silence to keep the HTTP stream alive.
 /// </summary>
 public sealed class LoopbackSource : IDisposable
@@ -15,7 +16,7 @@ public sealed class LoopbackSource : IDisposable
     private const int PacerIntervalMs = 10;
     private static readonly Guid KsDataFormatSubtypeIeeeFloat = new("00000003-0000-0010-8000-00aa00389b71");
 
-    private readonly WasapiLoopbackCapture _capture;
+    private readonly IWaveIn _capture;
     private readonly object _emitLock = new();
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private readonly int _sourceChannels;
@@ -29,12 +30,20 @@ public sealed class LoopbackSource : IDisposable
     private long AllowanceFrames => OutputFormat.SampleRate * AllowanceMs / 1000;
 
     public WaveFormat OutputFormat { get; }
-    public MMDevice Device { get; }
+    /// <summary>Captured output device, or null when capturing a single application.</summary>
+    public MMDevice? Device { get; }
+    /// <summary>What is being captured: the device name or the application name.</summary>
     public string DeviceName { get; }
     public string SourceFormatDescription { get; }
 
     /// <summary>Raised with converted PCM (16-bit LE stereo). Called on the capture or pacer thread.</summary>
     public event Action<ReadOnlyMemory<byte>>? PcmAvailable;
+
+    private static int _active;
+    private bool _counted;
+
+    /// <summary>Captures currently running in this process (diagnostics: must never exceed one per session).</summary>
+    public static int ActiveCount => Volatile.Read(ref _active);
 
     public long CapturedBytes { get; private set; }
     public long SilenceBytes { get; private set; }
@@ -53,20 +62,38 @@ public sealed class LoopbackSource : IDisposable
         Device = device;
         DeviceName = device.FriendlyName;
         _capture = new WasapiLoopbackCapture(device);
-
-        var fmt = _capture.WaveFormat;
-        _sourceChannels = fmt.Channels;
-        _sourceBytesPerSample = fmt.BitsPerSample / 8;
-        _sourceIsFloat = fmt.Encoding == WaveFormatEncoding.IeeeFloat
-                         || (fmt is WaveFormatExtensible ext && ext.SubFormat == KsDataFormatSubtypeIeeeFloat);
-        SourceFormatDescription = $"{fmt.SampleRate} Hz, {fmt.BitsPerSample} bit {(_sourceIsFloat ? "float" : "PCM")}, {fmt.Channels} canales";
-
-        if (!_sourceIsFloat && _sourceBytesPerSample != 2)
-            throw new NotSupportedException($"Formato de captura no soportado: {SourceFormatDescription}");
-
-        OutputFormat = new WaveFormat(fmt.SampleRate, 16, 2);
+        (_sourceChannels, _sourceBytesPerSample, _sourceIsFloat, SourceFormatDescription, OutputFormat) = Describe(_capture.WaveFormat);
         _capture.DataAvailable += OnDataAvailable;
         _capture.RecordingStopped += (_, e) => CaptureError ??= e.Exception;
+    }
+
+    private LoopbackSource(IWaveIn capture, string name)
+    {
+        DeviceName = name;
+        _capture = capture;
+        (_sourceChannels, _sourceBytesPerSample, _sourceIsFloat, SourceFormatDescription, OutputFormat) = Describe(_capture.WaveFormat);
+        _capture.DataAvailable += OnDataAvailable;
+        _capture.RecordingStopped += (_, e) => CaptureError ??= e.Exception;
+    }
+
+    /// <summary>
+    /// Only the audio of <paramref name="processId"/> and its child processes, delivered at
+    /// <paramref name="sampleRate"/> (Windows resamples), so it can replace a device capture mid-stream.
+    /// </summary>
+    public static LoopbackSource ForProcess(int processId, string appName, int sampleRate) =>
+        OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041)
+            ? new(new ProcessLoopbackCapture(processId, new WaveFormat(sampleRate, 16, 2)), appName)
+            : throw new PlatformNotSupportedException("La captura por aplicación requiere Windows 10 versión 2004 o posterior.");
+
+    private static (int Channels, int BytesPerSample, bool IsFloat, string Description, WaveFormat Output) Describe(WaveFormat fmt)
+    {
+        int bytesPerSample = fmt.BitsPerSample / 8;
+        bool isFloat = fmt.Encoding == WaveFormatEncoding.IeeeFloat
+                       || (fmt is WaveFormatExtensible ext && ext.SubFormat == KsDataFormatSubtypeIeeeFloat);
+        var description = $"{fmt.SampleRate} Hz, {fmt.BitsPerSample} bit {(isFloat ? "float" : "PCM")}, {fmt.Channels} canales";
+        if (!isFloat && bytesPerSample != 2)
+            throw new NotSupportedException($"Formato de captura no soportado: {description}");
+        return (fmt.Channels, bytesPerSample, isFloat, description, new WaveFormat(fmt.SampleRate, 16, 2));
     }
 
     public void Start()
@@ -75,6 +102,7 @@ public sealed class LoopbackSource : IDisposable
         _clock.Restart();
         _emittedFrames = 0;
         _capture.StartRecording();
+        if (!_counted) { _counted = true; Interlocked.Increment(ref _active); }
         _pacer = new Thread(PacerLoop) { IsBackground = true, Priority = ThreadPriority.AboveNormal, Name = "SilencePacer" };
         _pacer.Start();
     }
@@ -160,5 +188,6 @@ public sealed class LoopbackSource : IDisposable
     {
         if (_running) Stop();
         _capture.Dispose();
+        if (_counted) { _counted = false; Interlocked.Decrement(ref _active); }
     }
 }

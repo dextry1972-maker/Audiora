@@ -12,6 +12,9 @@ C# / .NET 8 (WPF + biblioteca Core), instalador en .NET Framework 4.8. Compilar:
 3. Identificar los componentes afectados y conservar lo que funciona; cambios en pasos pequeños.
 4. Ejecutar `dotnet build` y `dotnet test`; si se toca el streaming, prueba real con
    `SonosFlow.exe --autostart --screenshot <png> --delay 15000` y revisar `%LOCALAPPDATA%\SonosFlow\logs\stream-*.csv` y `app-events.log`.
+   Captura por aplicación: `tools\SonosFlow.CaptureCheck\...\SonosFlow.CaptureCheck.exe` (aislamiento, sin sonido audible) y, con el Sonos libre,
+   `SonosFlow.exe --selftest-session <pid de CaptureCheck tone-quiet> --selftest-out <txt>` (prueba de extremo a extremo; no guarda ajustes ni toca el volumen del PC).
+   No combinar `--minimized` con `--screenshot` (no se puede capturar una ventana oculta). CaptureCheck no puede escuchar en red (el firewall lo bloquea): las pruebas con el Sonos van por SonosFlow.exe.
 5. Comparar con el estado anterior e informar de cambios y problemas. Si una prueba falla, decirlo: no afirmar que funciona.
 6. No revertir automáticamente ni sobrescribir para "arreglar" un fallo: primero la causa; recuperar con `sfbackup plan/restore` (con confirmación del usuario).
 7. Commits descriptivos de los cambios importantes, sin secretos.

@@ -11,6 +11,8 @@
             <infra:BoolToVisibilityConverter x:Key="BoolToVis" />
             <infra:BoolToVisibilityConverter x:Key="BoolToVisInv" Invert="True" />
             <infra:DbfsToTextConverter x:Key="DbfsText" />
+            <infra:InvertBoolConverter x:Key="InvertBool" />
+            <infra:ZeroToVisibilityConverter x:Key="ZeroToVis" />
             <infra:LevelToOpacityConverter x:Key="LevelGlow" Min="0.25" Max="1" />
         </ResourceDictionary>
     </Application.Resources>

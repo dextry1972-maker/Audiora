@@ -13,7 +13,7 @@ namespace SonosFlow.App.ViewModels;
 
 public enum UiState { Discovering, NoSpeaker, Ready, Starting, Streaming, Recovering, Error }
 
-public sealed class MainViewModel : ObservableObject
+public sealed partial class MainViewModel : ObservableObject
 {
     private readonly AppSettings _settings;
     private readonly Dispatcher _ui = Application.Current.Dispatcher;
@@ -65,6 +65,7 @@ public sealed class MainViewModel : ObservableObject
         ResetEqCommand = new RelayCommand(() => { Bass = 0; Treble = 0; Loudness = true; });
 
         LoadOutputs();
+        InitSources();
     }
 
     public BackupViewModel Backups { get; }
@@ -100,6 +101,9 @@ public sealed class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(CanToggle));
             OnPropertyChanged(nameof(CanEditOptions));
             OnPropertyChanged(nameof(CanEditFullLevel));
+            OnPropertyChanged(nameof(LocalOptionsEnabled));
+            OnPropertyChanged(nameof(FullLevelEnabled));
+            OnPropertyChanged(nameof(MiniStatusText));
             CommandManager.InvalidateRequerySuggested();
             foreach (var s in Speakers) s.IsStreaming = s.IsSelected && IsStreaming;
             StreamingChanged?.Invoke();
@@ -109,7 +113,8 @@ public sealed class MainViewModel : ObservableObject
     public bool IsStreaming => State is UiState.Streaming or UiState.Recovering or UiState.Starting;
     /// <summary>Audio is flowing (drives the "live" look).</summary>
     public bool IsActive => State is UiState.Streaming;
-    public bool CanToggle => SelectedSpeaker is not null && State is UiState.Ready or UiState.Streaming or UiState.Recovering or UiState.Error;
+    public bool CanToggle => SelectedSpeaker is not null && State is UiState.Ready or UiState.Streaming or UiState.Recovering or UiState.Error
+                             && (IsStreaming || !IsAppMode || SelectedApp is not null);
 
     public string StatusTitle => State switch
     {
@@ -204,6 +209,7 @@ public sealed class MainViewModel : ObservableObject
             if (!value) FullLevel = false; // full level is only safe while the PC is muted
             _settings.Save();
             OnPropertyChanged(nameof(CanEditFullLevel));
+            OnPropertyChanged(nameof(FullLevelEnabled));
         }
     }
 
@@ -329,16 +335,27 @@ public sealed class MainViewModel : ObservableObject
     public async Task StartAsync()
     {
         if (SelectedSpeaker is not { } speaker || IsStreaming) return;
+        if (CurrentSpec() is not { } spec)
+        {
+            State = UiState.Error;
+            StatusDetail = "Elige la aplicación que quieres transmitir (o cambia a «Todo el PC»)";
+            return;
+        }
         State = UiState.Starting;
         AppLog.Write($"inicio solicitado → {speaker.Name} ({speaker.Address})");
         StatusDetail = $"Preparando el audio para {speaker.Name}";
         LastErrorText = "Ninguno";
 
-        var session = new StreamingSession(speaker.Device, Speakers.Select(s => s.Device.Address),
-            SelectedOutput is { IsDefault: false } o ? o.Id : null,
+        var session = new StreamingSession(speaker.Device, Speakers.Select(s => s.Device.Address), spec,
             new StreamOptions(_settings.Port, MuteLocal, FullLevel, AppPaths.Logs), AppPaths.GuardStateFile);
         session.StatsUpdated += s => _ui.BeginInvoke(() => OnStats(s));
         session.StateChanged += s => _ui.BeginInvoke(() => OnSessionState(s));
+        session.SourceChanged += src => _ui.BeginInvoke(() =>
+        {
+            if (_session is null) return;
+            SourceFormatText = $"{_session.CaptureDeviceName} · {_session.SourceFormat}";
+            AppLog.Write($"fuente activa: {src.DisplayName}");
+        });
 
         try
         {
@@ -362,8 +379,8 @@ public sealed class MainViewModel : ObservableObject
         _settings.WasStreaming = true;
         _settings.Save();
         State = UiState.Streaming;
-        StatusDetail = $"Audio del PC → {speaker.Name}";
-        AppLog.Write($"transmitiendo: {session.StreamUrl}");
+        StatusDetail = $"{spec.DisplayName} → {speaker.Name}";
+        AppLog.Write($"transmitiendo {spec.DisplayName}: {session.StreamUrl}");
     }
 
     public async Task StopAsync(bool rememberStopped = true, string reason = "sin especificar")
@@ -372,6 +389,7 @@ public sealed class MainViewModel : ObservableObject
         if (session is not null) AppLog.Write($"detenido: {reason}");
         _session = null;
         Analyzer = null;
+        IsPaused = false;
         if (session is not null) await session.DisposeAsync();
         if (rememberStopped)
         {
@@ -412,6 +430,7 @@ public sealed class MainViewModel : ObservableObject
     private void OnStats(StreamStats s)
     {
         if (_session is null) return;
+        RememberStats(s);
         ElapsedText = s.Elapsed.ToString(@"hh\:mm\:ss");
         RateText = $"{s.SendRateKBps:0} kB/s";
         TransportText = s.TransportState switch
@@ -427,6 +446,7 @@ public sealed class MainViewModel : ObservableObject
         DropsText = s.DroppedChunks.ToString();
         ReconnectsText = s.Reconnects.ToString();
         if (s.LastError is { } err) LastErrorText = err;
+        if (_sourceAvailable != s.SourceAvailable) { _sourceAvailable = s.SourceAvailable; SourceChangedNotify(); }
         SpeakerOnline = s.TransportState != "UNREACHABLE";
         if (SelectedSpeaker is { } sp) sp.IsOnline = SpeakerOnline;
     }
@@ -493,6 +513,8 @@ public sealed class MainViewModel : ObservableObject
         SonosSoapException soap => $"El Sonos rechazó la orden: {soap.Message}",
         HttpRequestException or TaskCanceledException => "El Sonos no responde. Comprueba que está encendido y en la misma red.",
         NotSupportedException ns => ns.Message,
+        System.Runtime.InteropServices.COMException when IsAppMode =>
+            $"No se pudo capturar «{SourceName}». Comprueba que la aplicación sigue abierta. ({ex.Message})",
         _ => ex.Message,
     };
 
