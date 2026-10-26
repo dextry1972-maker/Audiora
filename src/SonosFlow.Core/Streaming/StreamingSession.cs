@@ -12,7 +12,8 @@ public enum SessionState { Starting, Streaming, Recovering, Stopped, Failed }
 public enum CaptureKind { SystemOutput, Application }
 
 /// <summary>What to stream: everything an output device plays, or only one application (and its child processes).</summary>
-/// <param name="DeviceId">SystemOutput: device to capture, null = Windows default.</param>
+/// <param name="DeviceId">SystemOutput: device to capture. Application: device the app plays on (muted locally
+/// when "Silenciar el PC" is on). Null = Windows default.</param>
 /// <param name="ProcessId">Application: root process to capture.</param>
 /// <param name="ExePath">Application: lets the session follow the app if it restarts.</param>
 public sealed record CaptureSpec(CaptureKind Kind, string DisplayName, string? DeviceId = null, int ProcessId = 0,
@@ -21,7 +22,7 @@ public sealed record CaptureSpec(CaptureKind Kind, string DisplayName, string? D
     public static CaptureSpec SystemOutput(string? deviceId, string name = "Todo el audio del PC") => new(CaptureKind.SystemOutput, name, deviceId);
 
     public static CaptureSpec Application(AudioAppInfo app) =>
-        new(CaptureKind.Application, app.Name, null, app.ProcessId, app.ExePath, app.IsIsolatedYouTubeMusic);
+        new(CaptureKind.Application, app.Name, app.OutputDeviceId, app.ProcessId, app.ExePath, app.IsIsolatedYouTubeMusic);
 }
 
 public sealed record StreamOptions(int Port = 8780, bool MuteLocal = true, bool FullLevel = false, string? LogDirectory = null);
@@ -70,6 +71,7 @@ public sealed class StreamingSession : IAsyncDisposable
     private WavStreamServer? _server;
     private SonosClient? _sonos;
     private LocalOutputGuard? _guard;
+    private MMDevice? _guardDevice; // device muted in application mode (the capture itself needs none)
     private Task? _monitor;
     private StreamWriter? _log;
     private DateTime _startedAt;
@@ -173,8 +175,7 @@ public sealed class StreamingSession : IAsyncDisposable
             next.Start(); // start the new capture before stopping the old one: no gap in the stream
             old?.Dispose();
 
-            _guard?.Dispose(); // restore the previous output before (maybe) guarding a new one
-            _guard = null;
+            ReleaseGuard(); // restore the previous output before guarding the new one
             oldDevice?.Dispose();
             ApplyGuard();
 
@@ -205,13 +206,30 @@ public sealed class StreamingSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// "Silenciar el PC" mutes the captured output device, which only makes sense when capturing the
-    /// whole output: with a single app it would also silence games, Discord, etc.
+    /// "Silenciar el PC": mutes what is heard locally and restores it afterwards.
+    /// Whole output: the captured device, optionally at 100 % ("Nivel completo") because that capture
+    /// is taken after the Windows volume. Application: the device the app plays on, never touching
+    /// the master volume — per-process capture is independent of the device's mute and volume
+    /// (measured: muted or at 10 %, the captured level doesn't change).
     /// </summary>
     private void ApplyGuard()
     {
-        if (_options.MuteLocal && _spec.Kind == CaptureKind.SystemOutput && _captureDevice is not null)
-            _guard = new LocalOutputGuard(_captureDevice, _options.FullLevel, _guardStateFile);
+        if (!_options.MuteLocal) return;
+        if (_spec.Kind == CaptureKind.SystemOutput)
+        {
+            if (_captureDevice is not null) _guard = new LocalOutputGuard(_captureDevice, _options.FullLevel, _guardStateFile);
+            return;
+        }
+        _guardDevice = AudioDevices.Resolve(_spec.DeviceId);
+        _guard = new LocalOutputGuard(_guardDevice, fullLevel: false, _guardStateFile);
+    }
+
+    private void ReleaseGuard()
+    {
+        _guard?.Dispose(); // restores mute (and volume) before anything else
+        _guard = null;
+        _guardDevice?.Dispose();
+        _guardDevice = null;
     }
 
     private void OnPcm(ReadOnlyMemory<byte> pcm)
@@ -376,8 +394,7 @@ public sealed class StreamingSession : IAsyncDisposable
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or SonosSoapException) { }
         }
         // Restore the PC speakers before anything else can fail.
-        _guard?.Dispose();
-        _guard = null;
+        ReleaseGuard();
         lock (_sourceLock)
         {
             _source?.Dispose();

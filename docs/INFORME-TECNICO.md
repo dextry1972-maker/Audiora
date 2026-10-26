@@ -75,7 +75,8 @@ Formato: WAV LPCM 48 kHz / 16 bit / estéreo = 1536 kbit/s (192 kB/s). Sin compr
 | Captura del proceso A con A y B sonando (tonos 1 kHz / 3,15 kHz en una salida no audible) | A −12 dBFS, **B −92 dBFS (sin señal)** |
 | Captura de B | B −12 dBFS, A −100 dBFS |
 | Modo dispositivo completo | A y B −12 dBFS |
-| A silenciada en el mezclador de Windows | **la captura de A recibe silencio** → no se puede silenciar la app localmente; se documenta asignarle otra salida |
+| A silenciada en el mezclador de Windows (volumen de la sesión de la app) | la captura de A recibe silencio |
+| **Salida de A silenciada / volumen maestro al 10 %** (lo que hace «Silenciar el PC») | **la captura de A no cambia** (−12,0 dBFS, Δ 0,0 dB); la captura del dispositivo completo baja 34,7 dB al 10 % → en modo aplicación se silencia la salida sin tocar el volumen maestro |
 | La app se cierra durante la captura | sin error; se rellena con silencio |
 | Perfil de navegador aislado (`--user-data-dir`) | árbol de procesos propio (14 procesos), distinto del navegador habitual; Audiora lo reconoce |
 | Extremo a extremo con el Sonos Five (16 comprobaciones, `--selftest-session`) | todas correctas: cambio de fuente en caliente con 0 reconexiones; el stream lleva solo el tono de la app (pico −59,7 dBFS); pausa = silencio sin desconectar; la app se cierra y el Sonos sigue; vuelta a Todo el PC; nunca más de 1 captura activa; al salir, 0 procesos y puerto liberado |

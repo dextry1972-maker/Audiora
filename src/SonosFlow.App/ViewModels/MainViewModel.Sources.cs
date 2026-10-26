@@ -100,9 +100,10 @@ public sealed partial class MainViewModel
             : !_sourceAvailable ? "La aplicación se cerró — esperando a que vuelva"
             : SelectedApp.IsActive ? "Reproduciendo" : "En silencio";
 
-    /// <summary>"Silenciar el PC" and "Nivel completo" only make sense when capturing the whole output.</summary>
-    public bool LocalOptionsEnabled => !IsStreaming && !IsAppMode;
-    public bool FullLevelEnabled => LocalOptionsEnabled && MuteLocal;
+    /// <summary>"Silenciar el PC" works in both modes (in app mode it mutes the app's output; the capture is unaffected).</summary>
+    public bool LocalOptionsEnabled => !IsStreaming;
+    /// <summary>"Nivel completo" raises the Windows volume, needed only for whole-output capture (taken after that volume).</summary>
+    public bool FullLevelEnabled => LocalOptionsEnabled && MuteLocal && !IsAppMode;
 
     private void SourceChangedNotify()
     {

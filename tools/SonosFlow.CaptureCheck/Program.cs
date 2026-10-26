@@ -114,6 +114,48 @@ if (args is ["tone-quiet", var qhz, var qsecs, var qdev])
     return 0;
 }
 
+if (args is ["endpoint"])
+{
+    // Does per-app capture depend on the OUTPUT DEVICE's mute / master volume (what "silenciar el PC" changes)?
+    // Uses the unheard Steam Streaming output; its original mute/volume are restored at the end.
+    using var epDev = FindDevice("Steam Streaming") ?? throw new InvalidOperationException("Sin salida de prueba");
+    var vol = epDev.AudioEndpointVolume;
+    bool origMute = vol.Mute;
+    float origVol = vol.MasterVolumeLevelScalar;
+    using var t = StartTone(1000, 40, "Steam Streaming");
+    Thread.Sleep(1500);
+    int fails = 0;
+    void R(string what, bool ok, double a) { if (!ok) fails++; Console.WriteLine($"{(ok ? "OK   " : "FALLO")} {what}  [A {a:0.0} dBFS]"); }
+    try
+    {
+        vol.Mute = false; vol.MasterVolumeLevelScalar = 1f;
+        var (e0, _) = Measure(LoopbackSource.ForProcess(t.Id, "A", 48000));
+        R("Referencia: salida sin silenciar al 100 %", e0 > -20, e0);
+
+        vol.Mute = true;
+        Thread.Sleep(300);
+        var (e1, _) = Measure(LoopbackSource.ForProcess(t.Id, "A", 48000));
+        R("Salida SILENCIADA en Windows: la captura de la app sigue recibiendo audio", e1 > -20, e1);
+        var (d1, _) = Measure(new LoopbackSource(epDev));
+        Console.WriteLine($"      (captura del dispositivo completo con la salida silenciada: A {d1:0.0} dBFS)");
+
+        vol.Mute = false; vol.MasterVolumeLevelScalar = 0.10f;
+        Thread.Sleep(300);
+        var (e2, _) = Measure(LoopbackSource.ForProcess(t.Id, "A", 48000));
+        R($"Volumen maestro de Windows al 10 %: la captura de la app no cambia (Δ {e2 - e0:+0.0;-0.0} dB)", Math.Abs(e2 - e0) < 1,  e2);
+        var (d2, _) = Measure(new LoopbackSource(epDev));
+        Console.WriteLine($"      (captura del dispositivo completo al 10 %: A {d2:0.0} dBFS, Δ {d2 - e0:+0.0;-0.0} dB)");
+    }
+    finally
+    {
+        vol.MasterVolumeLevelScalar = origVol;
+        vol.Mute = origMute;
+        t.Kill();
+        Console.WriteLine($"Salida de prueba restaurada: silenciada={vol.Mute} volumen={vol.MasterVolumeLevelScalar * 100:0}%");
+    }
+    return fails == 0 ? 0 : 1;
+}
+
 string deviceName = args.SkipWhile(a => a != "--device").Skip(1).FirstOrDefault() ?? "Steam Streaming";
 using var target = FindDevice(deviceName);
 if (target is null)

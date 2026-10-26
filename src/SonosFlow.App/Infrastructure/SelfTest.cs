@@ -9,7 +9,8 @@ namespace SonosFlow.App.Infrastructure;
 /// <summary>
 /// End-to-end check with the real Sonos through the same view model the windows use
 /// (<c>--selftest-session &lt;pid&gt; --selftest-out &lt;file&gt;</c>). The target process should play a very
-/// quiet tone. Settings are not saved and the PC's mute/volume are not touched during the run.
+/// quiet tone on an output nobody listens to. Settings are not saved; the only output muted (part B) is
+/// the one the test tone plays on, and it is restored.
 /// </summary>
 public static class SelfTest
 {
@@ -80,12 +81,6 @@ public static class SelfTest
             vm.PauseResumeCommand.Execute(null);
             await Task.Delay(3000);
             Check($"7. Reanudar: vuelve el audio (pico {Peak(vm.LastStats?.PeakDbfs ?? double.NegativeInfinity)} dBFS)", vm.LastStats?.PeakDbfs > -66);
-
-            try { System.Diagnostics.Process.GetProcessById(tonePid).Kill(); } catch (Exception ex) when (ex is ArgumentException or InvalidOperationException) { }
-            await Task.Delay(5000);
-            var s3 = vm.LastStats;
-            Check($"8. La aplicación se cierra: «{vm.SourceStatusText}»; el Sonos sigue conectado ({s3?.TransportState}, clientes {s3?.Clients})",
-                s3 is { SourceAvailable: false, Clients: 1 });
         }
 
         vm.IsAppMode = false;
@@ -100,6 +95,49 @@ public static class SelfTest
         bool portFree = !System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(e => e.Port == 8780);
         Check($"10. Detener: sesión cerrada, capturas={LoopbackSource.ActiveCount}, puerto 8780 liberado={portFree}", !vm.IsStreaming && LoopbackSource.ActiveCount == 0 && portFree);
         vm.MiniVisible = false;
+
+        // ── Part B: "Una aplicación" + "Silenciar el PC" (+ "Nivel completo", which must be ignored here).
+        // The tone plays on an unheard output, so that is the "PC output" Audiora mutes; the user's real
+        // default output and the Windows master volume must not change at all.
+        if (app is not null)
+        {
+            using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+            using var defaultDev = enumerator.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.Role.Multimedia);
+            await vm.RefreshAppsNowAsync();
+            app = vm.Apps.FirstOrDefault(a => a.Info.ProcessId == root) ?? app;
+            using var appDev = app.Info.OutputDeviceId is { } id ? enumerator.GetDevice(id) : null;
+            bool defMute0 = defaultDev.AudioEndpointVolume.Mute;
+            float defVol0 = defaultDev.AudioEndpointVolume.MasterVolumeLevelScalar;
+            bool appMute0 = appDev?.AudioEndpointVolume.Mute ?? false;
+            float appVol0 = appDev?.AudioEndpointVolume.MasterVolumeLevelScalar ?? 0;
+            Check($"11. Salida de la aplicación detectada: {appDev?.FriendlyName ?? "ninguna"} (predeterminada: {defaultDev.FriendlyName})",
+                appDev is not null && appDev.ID != defaultDev.ID);
+
+            vm.MuteLocal = true;
+            vm.FullLevel = true; // must have no effect in application mode
+            await vm.SelectAppForTestAsync(app);
+            await vm.StartAsync();
+            await Task.Delay(6000);
+            var b1 = vm.LastStats;
+            Check($"12. «Una aplicación» con «Silenciar el PC»: Sonos {b1?.TransportState}, fuente «{b1?.SourceName}»", b1 is { TransportState: "PLAYING", Clients: 1 } && b1.SourceName == app.Name);
+            Check($"13. La salida de la app queda silenciada en Windows (silenciada={appDev?.AudioEndpointVolume.Mute})", appDev?.AudioEndpointVolume.Mute == true);
+            Check($"14. …y el Sonos sigue recibiendo su audio (pico {Peak(b1?.PeakDbfs ?? double.NegativeInfinity)} dBFS, esperado ≈ −60)", b1 is { PeakDbfs: > -66 and < -54 });
+            Check($"15. No se toca el volumen maestro de Windows: predeterminada {defaultDev.AudioEndpointVolume.MasterVolumeLevelScalar * 100:0}% (antes {defVol0 * 100:0}%), silenciada={defaultDev.AudioEndpointVolume.Mute} (antes {defMute0}); salida de la app {appDev?.AudioEndpointVolume.MasterVolumeLevelScalar * 100:0}% (antes {appVol0 * 100:0}%)",
+                Math.Abs(defaultDev.AudioEndpointVolume.MasterVolumeLevelScalar - defVol0) < 0.005 && defaultDev.AudioEndpointVolume.Mute == defMute0
+                && appDev is not null && Math.Abs(appDev.AudioEndpointVolume.MasterVolumeLevelScalar - appVol0) < 0.005);
+
+            try { System.Diagnostics.Process.GetProcessById(tonePid).Kill(); } catch (Exception ex) when (ex is ArgumentException or InvalidOperationException) { }
+            await Task.Delay(5000);
+            var b2 = vm.LastStats;
+            Check($"16. La aplicación se cierra: «{vm.SourceStatusText}»; el Sonos sigue conectado ({b2?.TransportState}, clientes {b2?.Clients})",
+                b2 is { SourceAvailable: false, Clients: 1 });
+
+            await vm.StopAsync(reason: "fin del autotest (parte B)");
+            await Task.Delay(500);
+            Check($"17. Al detener se restaura la salida de la app (silenciada={appDev?.AudioEndpointVolume.Mute}, antes {appMute0}) y la predeterminada sigue igual ({defaultDev.AudioEndpointVolume.MasterVolumeLevelScalar * 100:0}%, silenciada={defaultDev.AudioEndpointVolume.Mute}); capturas={LoopbackSource.ActiveCount}",
+                appDev?.AudioEndpointVolume.Mute == appMute0 && defaultDev.AudioEndpointVolume.Mute == defMute0
+                && Math.Abs(defaultDev.AudioEndpointVolume.MasterVolumeLevelScalar - defVol0) < 0.005 && LoopbackSource.ActiveCount == 0);
+        }
 
         lines.Add(fails == 0 ? "RESULTADO: todo correcto" : $"RESULTADO: {fails} fallos");
         await File.WriteAllLinesAsync(outFile, lines);

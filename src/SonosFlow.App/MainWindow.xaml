@@ -462,7 +462,7 @@
                                                 <Grid>
                                                     <StackPanel>
                                                         <TextBlock Text="Nivel completo" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
-                                                        <TextBlock Text="Windows al 100 % mientras está silenciado" Style="{StaticResource T.Dim}" FontSize="11.5" TextWrapping="Wrap" MaxWidth="190" HorizontalAlignment="Left" />
+                                                        <TextBlock Text="Solo «Todo el PC»: Windows al 100 % mientras está silenciado" Style="{StaticResource T.Dim}" FontSize="11.5" TextWrapping="Wrap" MaxWidth="190" HorizontalAlignment="Left" />
                                                     </StackPanel>
                                                     <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding FullLevel}" x:Name="FullLevelSwitch" IsEnabled="{Binding FullLevelEnabled}"
                                                               AutomationProperties.Name="Nivel completo" />
@@ -807,7 +807,7 @@
                                     <Grid Margin="0,6">
                                         <StackPanel>
                                             <TextBlock Text="Silenciar los altavoces del PC al transmitir" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
-                                            <TextBlock Text="Solo en modo «Todo el PC». Se restauran al detener, al salir e incluso tras un cierre inesperado" Style="{StaticResource T.Dim}" FontSize="12" />
+                                            <TextBlock Text="En «Una aplicación» se silencia la salida donde suena esa app; el Sonos la sigue recibiendo. Se restauran al detener, al salir e incluso tras un cierre inesperado" Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left" />
                                         </StackPanel>
                                         <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MuteLocal}" IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="Silenciar el PC" />
                                     </Grid>
@@ -816,7 +816,7 @@
                                         <StackPanel>
                                             <TextBlock Text="Nivel completo" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
                                             <TextBlock Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" MaxWidth="640" HorizontalAlignment="Left"
-                                                       Text="Windows aplica su volumen al audio capturado. Con esta opción el volumen de Windows sube al 100 % solo mientras el PC está silenciado, y el volumen se controla desde el Sonos. Requiere «Silenciar el PC»." />
+                                                       Text="Solo en modo «Todo el PC», donde Windows aplica su volumen al audio capturado: el volumen de Windows sube al 100 % solo mientras el PC está silenciado. En «Una aplicación» no hace falta y no se toca el volumen de Windows. Requiere «Silenciar el PC»." />
                                         </StackPanel>
                                         <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding FullLevel}" IsEnabled="{Binding CanEditFullLevel}" AutomationProperties.Name="Nivel completo" />
                                     </Grid>

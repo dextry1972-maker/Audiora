@@ -8,7 +8,9 @@ namespace SonosFlow.Core.Audio;
 
 /// <param name="ProcessId">Root process of the app (child audio processes are grouped under it).</param>
 /// <param name="IsActive">Some audio session of the app is playing right now.</param>
-public sealed record AudioAppInfo(int ProcessId, string Name, string ExeName, string? ExePath, bool IsActive, bool IsIsolatedYouTubeMusic);
+/// <param name="OutputDeviceId">Output device the app plays on (the active one first), used to mute it locally.</param>
+public sealed record AudioAppInfo(int ProcessId, string Name, string ExeName, string? ExePath, bool IsActive, bool IsIsolatedYouTubeMusic,
+    string? OutputDeviceId = null);
 
 /// <summary>
 /// Applications that currently own an audio session on any output device, grouped by their root
@@ -25,6 +27,7 @@ public static class AudioApps
     {
         var self = Environment.ProcessId;
         var sessions = new Dictionary<int, bool>(); // pid -> active
+        var deviceOf = new Dictionary<int, (string Id, bool Active)>(); // pid -> output device (active wins)
         using (var enumerator = new MMDeviceEnumerator())
         {
             foreach (var device in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
@@ -42,6 +45,7 @@ public static class AudioApps
                         if (s.State == AudioSessionState.AudioSessionStateExpired) continue;
                         bool active = s.State == AudioSessionState.AudioSessionStateActive;
                         sessions[pid] = sessions.TryGetValue(pid, out var a) ? a || active : active;
+                        if (!deviceOf.TryGetValue(pid, out var d) || (active && !d.Active)) deviceOf[pid] = (device.ID, active);
                     }
                 }
                 catch (COMException) { /* device vanished while enumerating */ }
@@ -51,13 +55,19 @@ public static class AudioApps
         if (sessions.Count == 0) return [];
 
         var table = ProcessTable();
-        var apps = new Dictionary<int, (bool Active, string Exe)>();
+        var apps = new Dictionary<int, (bool Active, string Exe, string? Device, bool DeviceActive)>();
         foreach (var (pid, active) in sessions)
         {
             if (!table.TryGetValue(pid, out var entry)) continue; // process already gone
             int root = RootOf(pid, table);
             if (root == self) continue;
-            apps[root] = apps.TryGetValue(root, out var cur) ? (cur.Active || active, cur.Exe) : (active, table[root].Exe);
+            var (devId, devActive) = deviceOf[pid];
+            if (apps.TryGetValue(root, out var cur))
+            {
+                bool takeDevice = cur.Device is null || (devActive && !cur.DeviceActive);
+                apps[root] = (cur.Active || active, cur.Exe, takeDevice ? devId : cur.Device, takeDevice ? devActive : cur.DeviceActive);
+            }
+            else apps[root] = (active, table[root].Exe, devId, devActive);
         }
 
         return apps.Select(kv =>
@@ -65,7 +75,7 @@ public static class AudioApps
                 var path = ImagePath(kv.Key);
                 bool isolated = ChromiumExes.Contains(kv.Value.Exe) && IsIsolatedInstance(kv.Key);
                 var name = isolated ? "YouTube Music (instancia aislada)" : FriendlyName(path, kv.Value.Exe);
-                return new AudioAppInfo(kv.Key, name, kv.Value.Exe, path, kv.Value.Active, isolated);
+                return new AudioAppInfo(kv.Key, name, kv.Value.Exe, path, kv.Value.Active, isolated, kv.Value.Device);
             })
             .OrderByDescending(a => a.IsActive)
             .ThenBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase)
