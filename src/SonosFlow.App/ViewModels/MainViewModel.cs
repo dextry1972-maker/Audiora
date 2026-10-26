@@ -34,6 +34,7 @@ public sealed class MainViewModel : ObservableObject
         _fullLevel = settings.FullLevel;
         _minimizeToTray = settings.MinimizeToTray;
         _resumeOnLaunch = settings.ResumeOnLaunch;
+        Backups = new BackupViewModel(settings);
 
         _poll = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _poll.Tick += async (_, _) => await PollSpeakerAsync();
@@ -65,6 +66,8 @@ public sealed class MainViewModel : ObservableObject
 
         LoadOutputs();
     }
+
+    public BackupViewModel Backups { get; }
 
     // ── Collections ─────────────────────────────────────────────
     public ObservableCollection<SpeakerItem> Speakers { get; } = [];
@@ -319,7 +322,7 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task ToggleStreamAsync()
     {
-        if (IsStreaming) await StopAsync();
+        if (IsStreaming) await StopAsync(reason: "usuario (botón o bandeja)");
         else await StartAsync();
     }
 
@@ -327,6 +330,7 @@ public sealed class MainViewModel : ObservableObject
     {
         if (SelectedSpeaker is not { } speaker || IsStreaming) return;
         State = UiState.Starting;
+        AppLog.Write($"inicio solicitado → {speaker.Name} ({speaker.Address})");
         StatusDetail = $"Preparando el audio para {speaker.Name}";
         LastErrorText = "Ninguno";
 
@@ -345,6 +349,7 @@ public sealed class MainViewModel : ObservableObject
             await session.DisposeAsync();
             State = UiState.Error;
             StatusDetail = Describe(ex);
+            AppLog.Write($"inicio fallido: {StatusDetail} [{ex.GetType().Name}]");
             LastErrorText = StatusDetail;
                 return;
         }
@@ -358,11 +363,13 @@ public sealed class MainViewModel : ObservableObject
         _settings.Save();
         State = UiState.Streaming;
         StatusDetail = $"Audio del PC → {speaker.Name}";
+        AppLog.Write($"transmitiendo: {session.StreamUrl}");
     }
 
-    public async Task StopAsync(bool rememberStopped = true)
+    public async Task StopAsync(bool rememberStopped = true, string reason = "sin especificar")
     {
         var session = _session;
+        if (session is not null) AppLog.Write($"detenido: {reason}");
         _session = null;
         Analyzer = null;
         if (session is not null) await session.DisposeAsync();
@@ -397,7 +404,7 @@ public sealed class MainViewModel : ObservableObject
     private async Task FailAsync()
     {
         var reason = LastErrorText;
-        await StopAsync(rememberStopped: false);
+        await StopAsync(rememberStopped: false, reason: $"error: {reason}");
         State = UiState.Error;
         StatusDetail = reason;
     }
@@ -493,7 +500,7 @@ public sealed class MainViewModel : ObservableObject
     {
         _poll.Stop();
         // Keep WasStreaming so "resume on launch" picks up where the user left off.
-        await StopAsync(rememberStopped: false);
+        await StopAsync(rememberStopped: false, reason: "cierre de la aplicación");
         _control?.Dispose();
     }
 }

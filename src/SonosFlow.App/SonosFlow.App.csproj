@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SonosFlow.Core\SonosFlow.Core.csproj" />
+    <ProjectReference Include="..\SonosFlow.Backup\SonosFlow.Backup.csproj" />
   </ItemGroup>
 
   <ItemGroup>

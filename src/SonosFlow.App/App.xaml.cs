@@ -14,6 +14,7 @@ namespace SonosFlow.App;
 ///   --exit-after N         quit after N seconds (testing)
 ///   --screenshot FILE      save a PNG of the window after loading and quit (testing)
 ///   --page settings        open on the settings page
+///   --size WxH             window size for --screenshot
 /// </summary>
 public partial class App : Application
 {
@@ -43,15 +44,21 @@ public partial class App : Application
         string? screenshot = Arg("--screenshot");
         if (screenshot is null && !AcquireSingleInstance()) return;
 
+        AppLog.Write($"app iniciada{(args.Length > 0 ? " " + string.Join(' ', args) : "")}");
         var settings = AppSettings.Load();
         _vm = new MainViewModel(settings);
         _window = new MainWindow(_vm);
         _window.Closing += OnWindowClosing;
         if (Arg("--page") is { } page) _vm.Page = page;
+        if (screenshot is not null && Arg("--size")?.Split('x') is [var w, var h] && double.TryParse(w, out var width) && double.TryParse(h, out var height))
+        {
+            _window.Width = width;
+            _window.Height = height;
+        }
 
         if (screenshot is null)
         {
-            _tray = new TrayIcon(ShowWindow, () => _vm.ToggleStreamCommand.Execute(null), () => _ = QuitAsync());
+            _tray = new TrayIcon(ShowWindow, () => _vm.ToggleStreamCommand.Execute(null), () => _ = QuitAsync("Salir desde la bandeja"));
             _vm.StreamingChanged += () => _tray.SetStreaming(_vm.IsStreaming, _vm.SelectedSpeaker?.Name ?? "");
         }
 
@@ -63,14 +70,14 @@ public partial class App : Application
         {
             await Task.Delay(int.TryParse(Arg("--delay"), out var ms) ? ms : 1500);
             _window.SaveScreenshot(screenshot);
-            await QuitAsync();
+            await QuitAsync("fin del modo captura");
             return;
         }
 
         if (int.TryParse(Arg("--exit-after"), out var seconds))
         {
             await Task.Delay(TimeSpan.FromSeconds(seconds));
-            await QuitAsync();
+            await QuitAsync("--exit-after");
         }
     }
 
@@ -107,13 +114,14 @@ public partial class App : Application
         if (_quitting) return;
         e.Cancel = true;
         if (_vm?.MinimizeToTray == true && _tray is not null) _window!.Hide();
-        else _ = QuitAsync();
+        else _ = QuitAsync("ventana cerrada");
     }
 
-    private async Task QuitAsync()
+    private async Task QuitAsync(string reason)
     {
         if (_quitting) return;
         _quitting = true;
+        AppLog.Write($"salida de la app: {reason}");
         if (_vm is not null) await _vm.ShutdownAsync(); // stops the stream and restores the PC speakers
         _tray?.Dispose();
         _window?.Close();
@@ -123,7 +131,7 @@ public partial class App : Application
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
     {
         base.OnSessionEnding(e);
-        _ = QuitAsync();
+        _ = QuitAsync("cierre de sesión de Windows");
     }
 
     private void RunUninstall()

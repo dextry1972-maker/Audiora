@@ -39,8 +39,25 @@ dotnet build SonosFlow.sln -c Release      # compilar
 | `src/SonosFlow.Core` | Captura (`Audio/`), servidor HTTP (`Net/`), control y descubrimiento Sonos (`Sonos/`), sesión de streaming con reconexión (`Streaming/`) |
 | `src/SonosFlow.App` | Interfaz WPF: tema, visualizador de espectro, bandeja, ajustes, desinstalación |
 | `src/SonosFlow.Setup` | Instalador por usuario (.NET Framework 4.8, incluido en Windows) |
+| `src/SonosFlow.Backup` | Motor de copias y restauración (sin dependencias) |
+| `src/SonosFlow.BackupCli` + `sfbackup.cmd` | Herramienta de línea de comandos para copias |
+| `tests/SonosFlow.Backup.Tests` | Pruebas automáticas del sistema de copias (xUnit) |
 | `poc/` | Prueba mínima por consola usada para validar el streaming y medir |
 | `tools/make_icon.py` | Genera el icono (sin dependencias) |
+
+## Copias de seguridad
+
+Copias del código fuente con fecha y hora, verificadas con SHA-256, en `C:\Users\Admin\SonosFlow-Backups` (fuera del proyecto y de OneDrive). Desde la app (**Ajustes → Copias de seguridad**) o desde la terminal:
+
+```bat
+sfbackup create "motivo"     & rem nueva copia
+sfbackup list                & rem enumerar
+sfbackup verify <id>         & rem integridad
+sfbackup plan <id>           & rem qué cambiaría (no modifica nada)
+sfbackup restore <id>        & rem restaurar con confirmación (antes copia el estado actual)
+```
+
+Guía completa: [docs/COPIAS-DE-SEGURIDAD.md](docs/COPIAS-DE-SEGURIDAD.md).
 
 ## Privacidad y seguridad
 
