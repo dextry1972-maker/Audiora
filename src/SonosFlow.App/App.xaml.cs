@@ -28,6 +28,7 @@ public partial class App : Application
     private MainWindow? _window;
     private TrayIcon? _tray;
     private MiniPlayerWindow? _mini;
+    private GlobalHotkeys? _hotkeys;
     private bool _quitting;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -70,6 +71,10 @@ public partial class App : Application
             _tray = new TrayIcon(ShowWindow, () => _vm.ToggleStreamCommand.Execute(null), () => _vm.MiniVisible = !_vm.MiniVisible,
                 () => _vm.TrayStatusText, () => _vm.MiniVisible, () => _ = QuitAsync("Salir desde la bandeja"));
             _vm.StreamingChanged += () => _tray.SetStreaming(_vm.IsStreaming, _vm.SelectedSpeaker?.Name ?? "");
+            // Not in test runs: a second copy must not take the shortcuts from the user's running Audiora.
+            _hotkeys = new GlobalHotkeys(_vm.HandleHotkey);
+            _vm.HotkeysSettingChanged += ApplyHotkeys;
+            ApplyHotkeys();
         }
 
         if (!args.Contains("--minimized") && miniShot is null) _window.Show();
@@ -152,6 +157,20 @@ public partial class App : Application
         else if (!_vm.MiniVisible && _mini.IsVisible) { _mini.Hide(); _vm.MiniSourcesExpanded = false; }
     }
 
+    private void ApplyHotkeys()
+    {
+        if (_hotkeys is null || _vm is null) return;
+        if (!_vm.HotkeysEnabled)
+        {
+            _hotkeys.Disable();
+            _vm.HotkeysStatus = "";
+            return;
+        }
+        var taken = _hotkeys.Enable();
+        _vm.HotkeysStatus = taken.Count == 0 ? "" : $"En uso por otro programa (no disponibles): {string.Join(", ", taken)}";
+        if (taken.Count > 0) AppLog.Write($"atajos no registrados: {string.Join(", ", taken)}");
+    }
+
     private void OnMainStateChanged(object? sender, EventArgs e)
     {
         // "Al minimizar: mostrar el mini reproductor": hide the main window instead of the taskbar button.
@@ -187,6 +206,7 @@ public partial class App : Application
         AppLog.Write($"salida de la app: {reason}");
         if (_vm is not null) await _vm.ShutdownAsync(); // stops the stream and restores the PC speakers
         _tray?.Dispose();
+        _hotkeys?.Dispose();
         _mini?.CloseForShutdown();
         _window?.Close();
         Shutdown();

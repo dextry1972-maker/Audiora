@@ -545,9 +545,19 @@
                                                 </TextBlock>
                                             </StackPanel>
                                             <StackPanel Grid.Row="2" Grid.Column="1"
-                                                        ToolTip="La latencia de extremo a extremo solo puede medirse con un micrófono; la app no la inventa.">
-                                                <TextBlock Text="LATENCIA" Style="{StaticResource StatLabel}" />
-                                                <TextBlock Text="Sin medir" Style="{StaticResource StatValue}" Foreground="{StaticResource B.TextDim}" />
+                                                        ToolTip="Atascos: segundos en que la Wi-Fi o el Sonos dejaron de recoger el audio a tiempo. Si un atasco supera el margen anti-cortes se marca en naranja (probable corte audible). Los muy cortos los absorbe Windows y no se ven. Cada uno queda anotado con su hora en los registros.">
+                                                <TextBlock Text="RED" Style="{StaticResource StatLabel}" />
+                                                <TextBlock Text="{Binding NetworkText}" TextTrimming="CharacterEllipsis">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource StatValue}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding NetworkWarning}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{StaticResource B.Warn}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                             </StackPanel>
                                         </Grid>
                                         <Rectangle Height="1" Fill="{StaticResource B.Stroke}" Margin="0,16,0,12" />
@@ -797,6 +807,16 @@
                                             <TextBlock Text="Baja ligeramente la opacidad si el ratón no está encima" Style="{StaticResource T.Dim}" FontSize="12" />
                                         </StackPanel>
                                         <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding MiniDimWhenIdle}" AutomationProperties.Name="Atenuar el mini reproductor" />
+                                    </Grid>
+                                    <Rectangle Height="1" Fill="{StaticResource B.Stroke}" Margin="0,10" />
+                                    <Grid Margin="0,6">
+                                        <StackPanel>
+                                            <TextBlock Text="Atajos de teclado globales" FontWeight="SemiBold" Style="{StaticResource T.Base}" />
+                                            <TextBlock Text="{Binding HotkeysHelp}" Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left" />
+                                            <TextBlock Text="{Binding HotkeysStatus}" Foreground="{StaticResource B.Warn}" FontSize="12" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left"
+                                                       Visibility="{Binding HasHotkeysProblem, Converter={StaticResource BoolToVis}}" />
+                                        </StackPanel>
+                                        <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" IsChecked="{Binding HotkeysEnabled}" AutomationProperties.Name="Atajos de teclado globales" />
                                     </Grid>
                                 </StackPanel>
                             </Border>

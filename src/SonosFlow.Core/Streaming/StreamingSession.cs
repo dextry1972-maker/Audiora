@@ -47,7 +47,10 @@ public sealed record StreamStats(
     bool SourceAvailable = true,
     bool Paused = false,
     double PeakDbfs = double.NegativeInfinity,
-    double BacklogMaxMs = 0);
+    double BacklogMaxMs = 0,
+    int Stalls = 0,
+    double StallWorstMs = 0,
+    int StallsOverMargin = 0);
 
 /// <summary>
 /// One streaming run: capture (whole output or one app) → WAV over HTTP → Sonos pulls it.
@@ -97,6 +100,7 @@ public sealed class StreamingSession : IAsyncDisposable
     public SpectrumAnalyzer? Spectrum { get; private set; }
     public bool Paused => _paused;
     private int _streamRate;
+    private StallTracker? _stalls;
 
     public event Action<StreamStats>? StatsUpdated;
     public event Action<SessionState>? StateChanged;
@@ -365,6 +369,14 @@ public sealed class StreamingSession : IAsyncDisposable
             _peakSinceLog > 0 ? 20 * Math.Log10(_peakSinceLog) : double.NegativeInfinity,
             _server.TakeMaxBacklogMs());
         _peakSinceLog = 0;
+        _stalls ??= new StallTracker(_streamRate * 4 / 1000.0, _options.PrebufferMs);
+        if (_stalls.Observe(stats) is { } shortfall)
+        {
+            var msg = $"atasco de red: ~{shortfall:0} ms sin entregar (margen {_options.PrebufferMs} ms, cola {stats.BacklogMaxMs:0} ms, {stats.SendRateKBps:0} kB/s)";
+            try { _log?.WriteLine($"# {DateTime.Now:HH:mm:ss.fff} {msg}"); } catch (IOException) { } catch (ObjectDisposedException) { }
+            Diagnostic?.Invoke(msg);
+        }
+        stats = stats with { Stalls = _stalls.Count, StallWorstMs = _stalls.WorstMs, StallsOverMargin = _stalls.OverMarginCount };
         WriteLog(stats);
         StatsUpdated?.Invoke(stats);
     }

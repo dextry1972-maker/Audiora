@@ -402,6 +402,7 @@ public sealed partial class MainViewModel : ObservableObject
         RateText = "—";
         BufferText = "—";
         TransportText = "—";
+        ResetNetwork();
     }
 
     private void OnSessionState(SessionState s)
@@ -446,6 +447,7 @@ public sealed partial class MainViewModel : ObservableObject
         BufferText = s.BufferEstimateSeconds is { } b ? $"≈ {Math.Max(0, b):0.0} s (estimado)" : "—";
         DropsText = s.DroppedChunks.ToString();
         ReconnectsText = s.Reconnects.ToString();
+        UpdateNetwork(s);
         if (s.LastError is { } err) LastErrorText = err;
         if (_sourceAvailable != s.SourceAvailable) { _sourceAvailable = s.SourceAvailable; SourceChangedNotify(); }
         SpeakerOnline = s.TransportState != "UNREACHABLE";

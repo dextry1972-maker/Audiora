@@ -65,6 +65,22 @@ En **Fuente de audio → Una aplicación** aparecen las aplicaciones que tienen 
 
 El Sonos reproduce en directo, así que una pausa corta de la Wi-Fi puede oírse como un corte. En **Ajustes → Audio → Margen anti-cortes** (por defecto 1 s) el Sonos recibe de golpe ese tiempo de audio al conectar y reproduce con ese retraso, aguantando pausas de red más cortas. «Sin margen» = mínima latencia (comportamiento anterior). Para diagnosticar cortes, `stream-*.csv` registra cada segundo el audio que espera a que el Sonos lo recoja (`backlog_ms`) y cada conexión del Sonos. Detalles: [docs/INVESTIGACION-CORTES-6MIN.md](docs/INVESTIGACION-CORTES-6MIN.md).
 
+## Atajos de teclado
+
+Funcionan en todo Windows, también dentro de un juego, y no toman el foco (Ajustes → Mini reproductor → «Atajos de teclado globales», activados por defecto):
+
+| Atajo | Acción |
+|---|---|
+| Ctrl+Alt+↑ / Ctrl+Alt+↓ | Volumen del Sonos ±5 |
+| Ctrl+Alt+P | Pausa / reanuda (o empieza a transmitir) |
+| Ctrl+Alt+O | Mostrar / ocultar el mini reproductor |
+
+Las teclas multimedia del teclado no se tocan: siguen controlando el reproductor que suena. Si otro programa ya usa algún atajo, Ajustes lo indica.
+
+## Indicador de red
+
+En **Estadísticas → Red**: «Estable» o el número de atascos (segundos en que la Wi-Fi o el Sonos dejaron de recoger el audio a tiempo) y el peor. En naranja si alguno superó el margen anti-cortes (probable corte audible). Cada atasco queda anotado con su hora en `app-events.log` y en `stream-*.csv`. Los atascos muy cortos los absorbe Windows y no se ven.
+
 ## Mini reproductor
 
 Cápsula flotante con la fuente, el estado real, el Sonos, el volumen (el mismo que en la ventana principal), **pausa** (el Sonos sigue conectado y recibe silencio; reanudar es instantáneo), abrir la ventana principal, elegir la fuente y ocultar. Se abre con el botón de la barra de título, desde la bandeja o al minimizar/cerrar (según Ajustes). Se puede arrastrar, recuerda su posición, se mantiene dentro de la pantalla, puede quedarse siempre encima y **nunca toma el foco del teclado** (no interrumpe juegos). Ocultarlo o cambiar de ventana no detiene ni reinicia el audio.
@@ -92,7 +108,7 @@ Guía completa: [docs/COPIAS-DE-SEGURIDAD.md](docs/COPIAS-DE-SEGURIDAD.md).
 
 ## Limitaciones conocidas
 
-- **Latencia**: el Sonos acumula audio antes de reproducir; no es apto para juegos competitivos. La latencia real aún no se ha medido con micrófono; la app la muestra como "Sin medir".
-- Captura por aplicación individual: todavía no (se captura un dispositivo de salida completo).
+- **Latencia**: el Sonos reproduce ~1–1,5 s por detrás del PC con el margen anti-cortes de 1 s (≈ 0,2 s sin margen); no es apto para juegos ni para vídeo con sincronía labial. No se ha medido con micrófono: el «búfer del Sonos» es una estimación de ±1 s.
+- Una sola pestaña del navegador no se puede capturar por separado (ver «Transmitir una sola aplicación»).
 - Grupos de Sonos: hay que elegir el altavoz principal del grupo.
 - Licencias: NAudio (MIT). Proyecto personal, no afiliado a Sonos, Inc.

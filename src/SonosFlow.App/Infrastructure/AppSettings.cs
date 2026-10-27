@@ -14,6 +14,8 @@ public sealed class AppSettings
     public int Port { get; set; } = 8780;
     /// <summary>"Margen anti-cortes" in ms (0 = pure live). Absorbs short Wi-Fi pauses at the cost of that much latency.</summary>
     public int PrebufferMs { get; set; } = 1000;
+    /// <summary>System-wide Ctrl+Alt shortcuts for the Sonos volume, pause and the mini player.</summary>
+    public bool GlobalHotkeys { get; set; } = true;
     /// <summary>Sonos Flow source folder for "Copias de seguridad" (auto-detected when running from the project).</summary>
     public string? ProjectPath { get; set; }
     public string? BackupRoot { get; set; }
