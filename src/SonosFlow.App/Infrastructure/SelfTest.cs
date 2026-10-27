@@ -35,6 +35,19 @@ public static class SelfTest
         Check($"1. Transmitir «Todo el PC»: Sonos {s0?.TransportState}, clientes {s0?.Clients}", s0 is { TransportState: "PLAYING", Clients: 1 });
         long bytes0 = s0?.BytesSent ?? 0;
 
+        // "Margen anti-cortes": the Sonos should sit about that far behind live (estimate has ±1 s resolution),
+        // and nothing should pile up waiting for it.
+        var bufs = new List<double>();
+        double backlog = 0;
+        for (int i = 0; i < 6; i++)
+        {
+            await Task.Delay(1000);
+            if (vm.LastStats is { } st) { if (st.BufferEstimateSeconds is { } b) bufs.Add(b); backlog = Math.Max(backlog, st.BacklogMaxMs); }
+        }
+        double avgBuf = bufs.Count > 0 ? bufs.Average() : 0;
+        Check($"1a. Margen anti-cortes {vm.PrebufferMs} ms: búfer medio del Sonos ≈ {avgBuf:0.0} s (sin margen ≈ 0,5 s); cola máx. {backlog:0} ms",
+            (vm.PrebufferMs == 0 || avgBuf > 0.4 + vm.PrebufferMs / 1000.0 * 0.6) && backlog < 500);
+
         // Mini player: shows, stays on top, never takes focus; hiding/showing windows doesn't touch the stream.
         var mini = Application.Current.Windows.OfType<MiniPlayerWindow>().FirstOrDefault();
         var main = Application.Current.Windows.OfType<MainWindow>().FirstOrDefault();

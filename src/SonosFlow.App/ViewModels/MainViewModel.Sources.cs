@@ -294,6 +294,27 @@ public sealed partial class MainViewModel
         _settings.Save();
     }
 
+    public IReadOnlyList<ChoiceItem> PrebufferChoices { get; } =
+    [
+        new("0", "Sin margen (mínima latencia)"),
+        new("1000", "1 s (recomendado)"),
+        new("2000", "2 s"),
+        new("3000", "3 s"),
+    ];
+
+    /// <summary>"Margen anti-cortes", applied when a stream starts.</summary>
+    public int PrebufferMs
+    {
+        get => _settings.PrebufferMs;
+        set { if (_settings.PrebufferMs == value) return; _settings.PrebufferMs = value; _settings.Save(); OnPropertyChanged(); OnPropertyChanged(nameof(PrebufferKey)); }
+    }
+
+    public string PrebufferKey
+    {
+        get => PrebufferMs.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        set { if (int.TryParse(value, out var ms)) PrebufferMs = ms; }
+    }
+
     /// <summary>Latest real statistics from the running session (null when stopped).</summary>
     public StreamStats? LastStats { get; private set; }
 

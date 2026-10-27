@@ -347,7 +347,8 @@ public sealed partial class MainViewModel : ObservableObject
         LastErrorText = "Ninguno";
 
         var session = new StreamingSession(speaker.Device, Speakers.Select(s => s.Device.Address), spec,
-            new StreamOptions(_settings.Port, MuteLocal, FullLevel, AppPaths.Logs), AppPaths.GuardStateFile);
+            new StreamOptions(_settings.Port, MuteLocal, FullLevel, AppPaths.Logs, PrebufferMs), AppPaths.GuardStateFile);
+        session.Diagnostic += msg => AppLog.Write($"red: {msg}");
         session.StatsUpdated += s => _ui.BeginInvoke(() => OnStats(s));
         session.StateChanged += s => _ui.BeginInvoke(() => OnSessionState(s));
         session.SourceChanged += src => _ui.BeginInvoke(() =>

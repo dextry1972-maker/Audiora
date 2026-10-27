@@ -25,7 +25,10 @@ public sealed record CaptureSpec(CaptureKind Kind, string DisplayName, string? D
         new(CaptureKind.Application, app.Name, app.OutputDeviceId, app.ProcessId, app.ExePath, app.IsIsolatedYouTubeMusic);
 }
 
-public sealed record StreamOptions(int Port = 8780, bool MuteLocal = true, bool FullLevel = false, string? LogDirectory = null);
+/// <param name="PrebufferMs">"Margen anti-cortes": audio handed to the Sonos at once when it connects, so it plays
+/// that far behind live and rides out network pauses shorter than it. 0 = pure live (minimum latency).</param>
+public sealed record StreamOptions(int Port = 8780, bool MuteLocal = true, bool FullLevel = false, string? LogDirectory = null,
+    int PrebufferMs = 0);
 
 /// <summary>Real values read from the pipeline and the Sonos once per second.</summary>
 public sealed record StreamStats(
@@ -43,7 +46,8 @@ public sealed record StreamStats(
     string SourceName = "",
     bool SourceAvailable = true,
     bool Paused = false,
-    double PeakDbfs = double.NegativeInfinity);
+    double PeakDbfs = double.NegativeInfinity,
+    double BacklogMaxMs = 0);
 
 /// <summary>
 /// One streaming run: capture (whole output or one app) → WAV over HTTP → Sonos pulls it.
@@ -96,6 +100,8 @@ public sealed class StreamingSession : IAsyncDisposable
 
     public event Action<StreamStats>? StatsUpdated;
     public event Action<SessionState>? StateChanged;
+    /// <summary>Connection-level events (player connects/disconnects), for the app's event log.</summary>
+    public event Action<string>? Diagnostic;
     /// <summary>Raised after the captured source changed (manual switch or the app restarted).</summary>
     public event Action<CaptureSpec>? SourceChanged;
 
@@ -119,7 +125,12 @@ public sealed class StreamingSession : IAsyncDisposable
             _source = CreateSource(_spec, out _captureDevice);
             _streamRate = _source.OutputFormat.SampleRate;
             Spectrum = new SpectrumAnalyzer(_streamRate);
-            _server = new WavStreamServer(localIp, _options.Port, _source.OutputFormat, _allowedPeers);
+            _server = new WavStreamServer(localIp, _options.Port, _source.OutputFormat, _allowedPeers, _options.PrebufferMs);
+            _server.ConnectionEvent += msg =>
+            {
+                try { _log?.WriteLine($"# {DateTime.Now:HH:mm:ss.fff} {msg}"); } catch (IOException) { } catch (ObjectDisposedException) { }
+                Diagnostic?.Invoke(msg);
+            };
             _source.PcmAvailable += OnPcm;
             _sonos = new SonosClient(_target.Address);
 
@@ -350,7 +361,8 @@ public sealed class StreamingSession : IAsyncDisposable
         var stats = new StreamStats(State, transport, DateTime.Now - _startedAt, (sent - lastSent) / 1000.0, sent, bufferEst,
             Interlocked.Read(ref _server!.DroppedChunks), _reconnects, _server.ClientCount, _source?.SilenceBytes ?? 0, _lastError,
             _spec.DisplayName, _sourceAvailable, _paused,
-            _peakSinceLog > 0 ? 20 * Math.Log10(_peakSinceLog) : double.NegativeInfinity);
+            _peakSinceLog > 0 ? 20 * Math.Log10(_peakSinceLog) : double.NegativeInfinity,
+            _server.TakeMaxBacklogMs());
         _peakSinceLog = 0;
         WriteLog(stats);
         StatsUpdated?.Invoke(stats);
@@ -364,8 +376,8 @@ public sealed class StreamingSession : IAsyncDisposable
             Directory.CreateDirectory(_options.LogDirectory);
             var path = Path.Combine(_options.LogDirectory, $"stream-{_startedAt:yyyyMMdd-HHmmss}.csv");
             _log = new StreamWriter(path) { AutoFlush = true };
-            _log.WriteLine($"# target={_target.RoomName} {_target.ModelName} {_target.Address}; capture={CaptureDeviceName}; {SourceFormat}");
-            _log.WriteLine("elapsed_s,state,transport,clients,send_rate_kBps,bytes_sent,silence_kB,dropped_chunks,reconnects,buffer_est_s,error,source,paused,peak_dbfs");
+            _log.WriteLine($"# target={_target.RoomName} {_target.ModelName} {_target.Address}; capture={CaptureDeviceName}; {SourceFormat}; margen={_options.PrebufferMs} ms");
+            _log.WriteLine("elapsed_s,state,transport,clients,send_rate_kBps,bytes_sent,silence_kB,dropped_chunks,reconnects,buffer_est_s,error,source,paused,peak_dbfs,backlog_ms");
         }
         catch (IOException) { _log = null; }
     }
@@ -381,7 +393,8 @@ public sealed class StreamingSession : IAsyncDisposable
                 s.SendRateKBps.ToString("F1", inv), s.BytesSent, (s.SilenceBytes / 1000).ToString(inv),
                 s.DroppedChunks, s.Reconnects, s.BufferEstimateSeconds?.ToString("F1", inv) ?? "",
                 s.LastError?.Replace(',', ';') ?? "", s.SourceName.Replace(',', ';'), s.Paused ? 1 : 0,
-                double.IsNegativeInfinity(s.PeakDbfs) ? "" : s.PeakDbfs.ToString("F1", inv)));
+                double.IsNegativeInfinity(s.PeakDbfs) ? "" : s.PeakDbfs.ToString("F1", inv),
+                s.BacklogMaxMs.ToString("F0", inv)));
         }
         catch (IOException) { }
     }

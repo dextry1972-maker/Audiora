@@ -114,6 +114,48 @@ if (args is ["tone-quiet", var qhz, var qsecs, var qdev])
     return 0;
 }
 
+if (args is ["soak", var minutesArg, ..])
+{
+    bool inject = args.Contains("--inject"); // positive control: a deliberate 300 ms cut at t = 20 s
+    int margin = args.SkipWhile(a => a != "--margin").Skip(1).Select(int.Parse).FirstOrDefault();
+    // PC-side end-to-end soak test: a continuous 1 kHz sine (unheard output) → our capture (per-app AND
+    // whole-device, at the same time) → pacer → WavStreamServer on loopback → a local reader acting as the
+    // Sonos. Any break of the sine is found to the sample (x[n] − 2cos(w)·x[n−1] + x[n−2] ≠ 0).
+    double minutes = double.Parse(minutesArg, System.Globalization.CultureInfo.InvariantCulture);
+    using var soakDev = FindDevice("Steam Streaming") ?? throw new InvalidOperationException("Sin salida de prueba");
+    using var tone = StartTone(1000, minutes * 60 + 30, "Steam Streaming");
+    Thread.Sleep(2000);
+    var clock = Stopwatch.StartNew();
+    using var loadCts = new CancellationTokenSource();
+    var load = Task.Run(async () => { while (!loadCts.IsCancellationRequested) { try { AudioApps.List(); } catch (Exception) { } await Task.Delay(2500); } });
+
+    var pipes = new[]
+    {
+        SoakPipe.Start("Una aplicación", LoopbackSource.ForProcess(tone.Id, "tono", 48000), 8791, clock, margin),
+        SoakPipe.Start("Todo el PC (dispositivo)", new LoopbackSource(soakDev), 8792, clock, margin),
+    };
+    var end = TimeSpan.FromMinutes(minutes);
+    if (inject)
+    {
+        Thread.Sleep(TimeSpan.FromSeconds(20) - clock.Elapsed);
+        Console.WriteLine($"[control] corte deliberado de 300 ms a los {clock.Elapsed.TotalSeconds:0.000} s");
+        SetSessionMute(soakDev, tone.Id, true);
+        Thread.Sleep(300);
+        SetSessionMute(soakDev, tone.Id, false);
+    }
+    while (clock.Elapsed < end)
+    {
+        Thread.Sleep(30000);
+        Console.WriteLine($"[{clock.Elapsed:mm\\:ss}] " + string.Join(" · ", pipes.Select(p => $"{p.Name}: {p.Glitches.Count} cortes, máx hueco paquetes {p.MaxPacketGapMs:0} ms, máx lectura {p.MaxReadStallMs:0} ms")));
+    }
+    loadCts.Cancel();
+    foreach (var p in pipes) p.Stop();
+    tone.Kill();
+    Console.WriteLine();
+    foreach (var p in pipes) p.Report();
+    return pipes.All(p => p.Glitches.Count == 0) ? 0 : 1;
+}
+
 if (args is ["endpoint"])
 {
     // Does per-app capture depend on the OUTPUT DEVICE's mute / master volume (what "silenciar el PC" changes)?

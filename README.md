@@ -61,6 +61,10 @@ En **Fuente de audio → Una aplicación** aparecen las aplicaciones que tienen 
 - Si la aplicación se cierra, la transmisión sigue (en silencio) y se retoma sola cuando vuelve a abrirse.
 - Los sonidos del sistema de Windows no se pueden capturar por separado.
 
+## Margen anti-cortes
+
+El Sonos reproduce en directo, así que una pausa corta de la Wi-Fi puede oírse como un corte. En **Ajustes → Audio → Margen anti-cortes** (por defecto 1 s) el Sonos recibe de golpe ese tiempo de audio al conectar y reproduce con ese retraso, aguantando pausas de red más cortas. «Sin margen» = mínima latencia (comportamiento anterior). Para diagnosticar cortes, `stream-*.csv` registra cada segundo el audio que espera a que el Sonos lo recoja (`backlog_ms`) y cada conexión del Sonos. Detalles: [docs/INVESTIGACION-CORTES-6MIN.md](docs/INVESTIGACION-CORTES-6MIN.md).
+
 ## Mini reproductor
 
 Cápsula flotante con la fuente, el estado real, el Sonos, el volumen (el mismo que en la ventana principal), **pausa** (el Sonos sigue conectado y recibe silencio; reanudar es instantáneo), abrir la ventana principal, elegir la fuente y ocultar. Se abre con el botón de la barra de título, desde la bandeja o al minimizar/cerrar (según Ajustes). Se puede arrastrar, recuerda su posición, se mantiene dentro de la pantalla, puede quedarse siempre encima y **nunca toma el foco del teclado** (no interrumpe juegos). Ocultarlo o cambiar de ventana no detiene ni reinicia el audio.
