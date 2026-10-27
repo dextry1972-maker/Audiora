@@ -107,12 +107,17 @@ public sealed class WavStreamServer : IDisposable
         }
     }
 
+    /// <summary>
+    /// The full margin: the Sonos connects ~0.2–0.5 s after the stream starts, before the ring has filled,
+    /// so the missing part goes first as silence (zero bytes are silence in PCM and float).
+    /// </summary>
     private byte[] HistorySnapshot()
     {
-        var copy = new byte[_historyCount];
+        var copy = new byte[_history.Length];
+        int pad = _history.Length - _historyCount;
         int first = Math.Min(_historyCount, _history.Length - _historyStart);
-        _history.AsSpan(_historyStart, first).CopyTo(copy);
-        _history.AsSpan(0, _historyCount - first).CopyTo(copy.AsSpan(first));
+        _history.AsSpan(_historyStart, first).CopyTo(copy.AsSpan(pad));
+        _history.AsSpan(0, _historyCount - first).CopyTo(copy.AsSpan(pad + first));
         return copy;
     }
 

@@ -114,15 +114,16 @@ public sealed class WavStreamServerTests
     }
 
     [Fact]
-    public async Task Margin_before_much_audio_sends_what_exists()
+    public async Task Margin_before_much_audio_is_completed_with_leading_silence()
     {
-        using var server = Server(2000);
-        server.Write(Frames(0, 4800)); // only 100 ms captured so far
+        using var server = Server(2000); // 96 000 frames
+        server.Write(Frames(1, 4800)); // only 100 ms captured so far (values 1…4800, never 0)
         var (tcp, s, extra) = await ConnectAsync(server);
         using var _ = tcp;
-        var got = await ReadFramesAsync(s, extra, 4800);
-        Assert.Equal(0, got[0]);
-        Assert.Equal(4799, got[^1]);
+        var got = await ReadFramesAsync(s, extra, 96000);
+        Assert.All(got.Take(96000 - 4800), v => Assert.Equal(0, v)); // the Sonos still gets the full 2 s
+        Assert.Equal(1, got[96000 - 4800]);
+        Assert.Equal(4800, got[^1]);
     }
 
     [Fact]

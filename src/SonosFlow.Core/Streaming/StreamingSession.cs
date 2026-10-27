@@ -276,8 +276,9 @@ public sealed class StreamingSession : IAsyncDisposable
 
     private async Task StartPlaybackAsync(CancellationToken ct)
     {
-        await _sonos!.SetStreamAsync(_server!.StreamUrl, WavStreamServer.MimeType, StreamTitle, ct);
-        _sentAtPlaybackStart = Interlocked.Read(ref _server.BytesSent);
+        // Before SetAVTransportURI: the Sonos already connects (and takes the margin) while handling it.
+        _sentAtPlaybackStart = Interlocked.Read(ref _server!.BytesSent);
+        await _sonos!.SetStreamAsync(_server.StreamUrl, WavStreamServer.MimeType, StreamTitle, ct);
         await _sonos.PlayAsync(ct);
     }
 

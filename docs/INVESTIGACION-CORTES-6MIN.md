@@ -1,6 +1,6 @@
 # Investigación: interrupciones «hacia los 6 minutos»
 
-Estado (27/10/2026): **causa localizada fuera del PC (red Wi-Fi de la zona o el propio Sonos); mitigación implementada y probada en el PC; falta validarla con el Sonos**, que no era accesible porque la zona Wi-Fi del PC estaba apagada tras el cierre de sesión de Windows.
+Estado (27/10/2026): **causa localizada fuera del PC (red Wi-Fi de la zona o el propio Sonos); mitigación implementada, corregida y validada con el Sonos Five real** (autotest 22/22, margen de ~1,2 s estable). Falta confirmar en uso normal que los cortes desaparecen.
 
 ## 1. Lo que dicen tus sesiones reales (26/10, 12:07–13:34)
 
@@ -46,12 +46,15 @@ La periodicidad exacta de «~6 min» **no está confirmada**: hace falta correla
 - 12 pruebas de copias de seguridad: siguen pasando.
 - Resistencia de 7 min con margen de 1 s (detector por muestra): **0 cortes** en «Una aplicación» y en «Todo el PC»; unión margen→directo perfecta; 0 descartes; bloqueo máx. de lectura 31 / 67 ms.
 
-## 5. Pendiente (requiere el Sonos accesible)
+### Validación con el Sonos Five (27/10)
+- Primer autotest: **falló la comprobación del margen**. El Sonos se conecta 0,2–0,5 s después de iniciar la sesión (ya durante `SetAVTransportURI`), cuando la reserva aún no se ha llenado: recibía ~0,2 s de margen, no 1 s. Además la estimación del búfer descontaba los bytes enviados antes de `Play`.
+- Corrección: en la primera conexión lo que falta del margen se envía como silencio al principio (el Sonos recibe siempre el margen completo); la estimación cuenta desde antes de `SetAVTransportURI`.
+- Segundo autotest: **22/22 correcto**. Búfer estimado estable 1,1–1,4 s durante toda la sesión (antes 0,1–0,2 s; el salto 1,0 → 0,1 s a los ~7 s que aparece en todas las sesiones antiguas ya no se produce). Cola máx. 60 ms.
 
-1. Activar la **zona Wi-Fi** del PC (Configuración → Red → Zona con cobertura inalámbrica móvil) — no se toca desde Audiora ni desde Claude por norma del proyecto.
-2. Autotest con el Sonos (`--selftest-session`, ya comprueba el margen).
-3. Usar Audiora normalmente; cuando oigas un corte, anota la hora: el CSV dirá si hubo cola (`backlog_ms` alto → red) o no (→ el propio Sonos).
-4. Si con 1 s aún hay cortes, probar 2 s.
+## 5. Pendiente
+
+1. Usar Audiora normalmente; cuando oigas un corte, anota la hora: el CSV dirá si hubo cola (`backlog_ms` alto → red) o no (→ el propio Sonos).
+2. Si con 1 s aún hay cortes, probar 2 s.
 
 ## 6. Nota sobre los registros leídos desde Claude
 
