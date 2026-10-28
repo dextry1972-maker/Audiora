@@ -89,6 +89,31 @@ if (args is ["route-browser", var browserExe, var pageFile])
     }
 }
 
+if (args is ["observe"])
+{
+    // Read-only snapshot for the acceptance test: where each app plays, the level on the default output, mute states.
+    var outputs = AudioDevices.ListOutputs().ToDictionary(o => o.Id, o => o.Name);
+    foreach (var app in AudioApps.List())
+    {
+        var on = AudioApps.PlayingOn(app.ProcessId).Select(id => outputs.GetValueOrDefault(id, id));
+        string? perApp = null;
+        int sp = AudioApps.SessionProcessOf(app.ProcessId);
+        try { if (sp != 0) perApp = AppOutputRouting.Get(sp); } catch (Exception) { perApp = "?"; }
+        Console.WriteLine($"{(app.IsActive ? "▶" : " ")} {app.Name,-24} suena en: {string.Join(" + ", on).PadRight(40)} salida por app: {(perApp is null ? "predeterminada" : outputs.GetValueOrDefault(perApp, perApp))}");
+    }
+    using var def = AudioDevices.Resolve(null);
+    var all = new List<float>();
+    var src = new LoopbackSource(def);
+    src.PcmAvailable += pcm => { var s = pcm.Span; lock (all) for (int i = 0; i + 1 < s.Length; i += 2) all.Add(BitConverter.ToInt16(s.Slice(i, 2)) / 32768f); };
+    src.Start(); Thread.Sleep(1500); src.Stop(); src.Dispose();
+    double rms; lock (all) rms = all.Count == 0 ? 0 : Math.Sqrt(all.Average(v => (double)v * v));
+    Console.WriteLine($"Nivel en la predeterminada ({def.FriendlyName}): {20 * Math.Log10(rms + 1e-12):0.0} dBFS RMS");
+    using var en2 = new MMDeviceEnumerator();
+    foreach (var d in en2.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+        using (d) Console.WriteLine($"  {d.FriendlyName}: silenciada={d.AudioEndpointVolume.Mute} volumen={d.AudioEndpointVolume.MasterVolumeLevelScalar * 100:0}%");
+    return 0;
+}
+
 if (args is ["follow-check"])
 {
     // Does a plain WASAPI app on a fixed device follow a per-app output change? (Audiora's redirect check must spot
