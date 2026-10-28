@@ -82,6 +82,39 @@ public static class AudioApps
             .ToList();
     }
 
+    /// <summary>
+    /// The process that owns the app's audio session (in browsers a child "audio service" process, not the root),
+    /// the playing one first; 0 while the app has no session. Windows' per-app settings must be addressed through it.
+    /// </summary>
+    public static int SessionProcessOf(int rootPid)
+    {
+        int found = 0;
+        bool foundActive = false;
+        var table = ProcessTable();
+        using var enumerator = new MMDeviceEnumerator();
+        foreach (var device in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+        {
+            try
+            {
+                var mgr = device.AudioSessionManager;
+                mgr.RefreshSessions();
+                var list = mgr.Sessions;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var s = list[i];
+                    int pid = (int)s.GetProcessID;
+                    if (pid == 0 || s.State == AudioSessionState.AudioSessionStateExpired || !table.ContainsKey(pid)) continue;
+                    if (RootOf(pid, table) != rootPid) continue;
+                    bool active = s.State == AudioSessionState.AudioSessionStateActive;
+                    if (found == 0 || (active && !foundActive)) (found, foundActive) = (pid, active);
+                }
+            }
+            catch (COMException) { /* device vanished while enumerating */ }
+            finally { device.Dispose(); }
+        }
+        return found;
+    }
+
     /// <summary>Finds a running app by executable path (used when the selected app restarts with a new PID).</summary>
     public static AudioAppInfo? FindByExe(string exePath, bool isolatedYouTubeMusic) =>
         List().FirstOrDefault(a => a.IsIsolatedYouTubeMusic == isolatedYouTubeMusic
@@ -97,6 +130,17 @@ public static class AudioApps
     /// <summary>True when <paramref name="rootPid"/> is a browser instance using the dedicated YouTube Music profile.</summary>
     public static bool IsIsolatedInstance(int rootPid) =>
         CommandLine(rootPid)?.Contains(IsolatedProfileDir, StringComparison.OrdinalIgnoreCase) ?? false;
+
+    /// <summary>Some running process of <paramref name="exePath"/> (any one: Windows keys per-app settings by app).</summary>
+    public static int? AnyProcessOf(string exePath)
+    {
+        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exePath)))
+        {
+            using (p)
+                if (string.Equals(ImagePath(p.Id), exePath, StringComparison.OrdinalIgnoreCase)) return p.Id;
+        }
+        return null;
+    }
 
     public static bool IsRunning(int pid)
     {

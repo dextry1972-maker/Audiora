@@ -21,6 +21,10 @@ public sealed class ProcessLoopbackCapture : IWaveIn
     private const uint StreamFlagsAutoConvertPcm = 0x80000000;
     private const uint StreamFlagsSrcDefaultQuality = 0x08000000;
     private const uint BufferFlagsSilent = 0x2;
+    private const uint BufferFlagsDataDiscontinuity = 0x1;
+
+    [DllImport("avrt.dll", CharSet = CharSet.Unicode)] private static extern IntPtr AvSetMmThreadCharacteristicsW(string taskName, ref int taskIndex);
+    [DllImport("avrt.dll")] private static extern bool AvRevertMmThreadCharacteristics(IntPtr handle);
 
     private readonly int _processId;
     private readonly bool _includeTree;
@@ -98,11 +102,19 @@ public sealed class ProcessLoopbackCapture : IWaveIn
         _thread = null;
     }
 
+    private long _discontinuities;
+
+    /// <summary>Packets Windows flagged as not continuous with the previous one (a gap in the captured audio).</summary>
+    public long Discontinuities => Interlocked.Read(ref _discontinuities);
+
     private void CaptureLoop()
     {
         Exception? error = null;
         var buffer = new byte[WaveFormat.AverageBytesPerSecond / 10];
         int blockAlign = WaveFormat.BlockAlign;
+        // Real-time scheduling, as in Microsoft's ApplicationLoopback sample (best effort: works without it).
+        int taskIndex = 0;
+        var mmcss = AvSetMmThreadCharacteristicsW("Pro Audio", ref taskIndex);
         try
         {
             while (!_stopRequested)
@@ -116,6 +128,7 @@ public sealed class ProcessLoopbackCapture : IWaveIn
                     Check(_captureClient.GetBuffer(out var data, out var frames, out var flags, out _, out _), "GetBuffer");
                     int bytes = (int)frames * blockAlign;
                     if (buffer.Length < bytes) buffer = new byte[bytes];
+                    if ((flags & BufferFlagsDataDiscontinuity) != 0) Interlocked.Increment(ref _discontinuities);
                     if ((flags & BufferFlagsSilent) != 0) Array.Clear(buffer, 0, bytes);
                     else Marshal.Copy(data, buffer, 0, bytes);
                     Check(_captureClient.ReleaseBuffer(frames), "ReleaseBuffer");
@@ -130,6 +143,7 @@ public sealed class ProcessLoopbackCapture : IWaveIn
         finally
         {
             try { _client?.Stop(); } catch (COMException) { }
+            if (mmcss != IntPtr.Zero) AvRevertMmThreadCharacteristics(mmcss);
             RecordingStopped?.Invoke(this, new StoppedEventArgs(error));
         }
     }

@@ -45,6 +45,10 @@ public sealed class LoopbackSource : IDisposable
     /// <summary>Captures currently running in this process (diagnostics: must never exceed one per session).</summary>
     public static int ActiveCount => Volatile.Read(ref _active);
 
+    /// <summary>Gaps Windows reported in the per-app capture (0 for whole-output capture).</summary>
+    public long CaptureDiscontinuities =>
+        OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041) && _capture is ProcessLoopbackCapture p ? p.Discontinuities : 0;
+
     public long CapturedBytes { get; private set; }
     public long SilenceBytes { get; private set; }
     /// <summary>Peak of the last captured block, 0..1. Real measurement of what was captured.</summary>
