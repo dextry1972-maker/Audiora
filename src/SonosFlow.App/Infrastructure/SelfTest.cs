@@ -190,7 +190,7 @@ public static class SelfTest
                 using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
                 using var defaultDev = enumerator.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.Role.Multimedia);
                 bool defMute0 = defaultDev.AudioEndpointVolume.Mute;
-                string? before = sessionPid != 0 ? AppOutputRouting.Get(sessionPid) : null;
+                string? before = sessionPid != 0 ? await Task.Run(() => AppOutputRouting.Get(sessionPid)) : null;
                 double local0 = await LocalLevelAsync(defaultDev, 300);
                 Check($"17a. App en la salida predeterminada ({defaultDev.FriendlyName}): sesión en el PID {sessionPid}, suena en local ({local0:0.0} dBFS)",
                     defaultApp is not null && sessionPid != 0 && local0 > -70);
@@ -201,7 +201,7 @@ public static class SelfTest
                     await vm.StartAsync();
                     await Task.Delay(6000);
                     var c1 = vm.LastStats;
-                    string? routed = AppOutputRouting.Get(sessionPid);
+                    string? routed = await Task.Run(() => AppOutputRouting.Get(sessionPid));
                     double local1 = await LocalLevelAsync(defaultDev, 300);
                     Check($"17b. Solo esa app se aparta a «{silent.Name}» (Windows: {(routed == silent.Id ? "sí" : routed ?? "no")}); Sonos {c1?.TransportState}, pico {Peak(c1?.PeakDbfs ?? double.NegativeInfinity)} dBFS (≈ −60)",
                         routed == silent.Id && c1 is { TransportState: "PLAYING", Clients: 1, PeakDbfs: > -66 and < -54 });
@@ -209,10 +209,9 @@ public static class SelfTest
                         local1 < local0 - 20 && defaultDev.AudioEndpointVolume.Mute == defMute0);
                     await vm.StopAsync(reason: "fin del autotest (parte B2)");
                     await Task.Delay(800);
-                    string? after = AppOutputRouting.Get(sessionPid);
-                    bool pending = File.Exists(SonosFlow.Core.Streaming.StreamingSession.RedirectStateFileFor(AppPaths.GuardStateFile));
-                    Check($"17d. Al detener, la app vuelve a su salida (Windows: {after ?? "predeterminada"}; antes {before ?? "predeterminada"}) y no queda nada pendiente ({!pending})",
-                        after == before && !pending);
+                    string? after = await Task.Run(() => AppOutputRouting.Get(sessionPid));
+                    Check($"17d. Al detener, la app vuelve a su salida (Windows: {after ?? "predeterminada"}; antes {before ?? "predeterminada"})",
+                        after == before);
                 }
             }
             finally

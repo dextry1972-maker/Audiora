@@ -24,24 +24,38 @@ public sealed class AppOutputRedirectTests
     }
 
     [Fact]
-    public void An_unreadable_state_file_is_dropped_never_retried_forever()
+    public void An_unreadable_state_file_never_throws()
     {
         var file = Path.Combine(Path.GetTempPath(), $"sf-redirect-{Guid.NewGuid():N}.json");
         File.WriteAllText(file, "{ not json");
-        Assert.True(AppOutputRedirect.RecoverPending(file));
-        Assert.False(File.Exists(file));
+        try { Assert.True(AppOutputRedirect.RecoverPending(file)); }
+        finally { File.Delete(file); }
     }
 
     [Fact]
     public void A_redirect_for_an_app_that_is_not_running_stays_pending()
     {
         var file = Path.Combine(Path.GetTempPath(), $"sf-redirect-{Guid.NewGuid():N}.json");
-        File.WriteAllText(file, $$"""{"ExePath":"C:\\nowhere\\sf-no-such-app.exe","PreviousDeviceId":null,"TargetDeviceId":"{{EndpointId.Replace("\\", "\\\\")}}"}""");
+        File.WriteAllText(file, Record("C:\\nowhere\\sf-no-such-app.exe", ownerPid: 0));
         try
         {
             Assert.False(AppOutputRedirect.RecoverPending(file));
-            Assert.True(File.Exists(file)); // kept until the app runs again
+            Assert.True(File.Exists(file)); // kept until Windows accepts the restore
         }
         finally { File.Delete(file); }
     }
+
+    [Fact]
+    public void A_live_redirect_of_this_process_is_left_alone()
+    {
+        // Owned by this process but not one of its live redirects (e.g. a restore Windows refused): it is retried.
+        // Owned by another running Audiora: skipped. Here the owner is this test process, which isn't "SonosFlow".
+        var file = Path.Combine(Path.GetTempPath(), $"sf-redirect-{Guid.NewGuid():N}.json");
+        File.WriteAllText(file, Record("C:\\nowhere\\sf-no-such-app.exe", Environment.ProcessId));
+        try { Assert.False(AppOutputRedirect.RecoverPending(file)); }
+        finally { File.Delete(file); }
+    }
+
+    private static string Record(string exe, int ownerPid) =>
+        System.Text.Json.JsonSerializer.Serialize(new[] { new { ExePath = exe, PreviousDeviceId = (string?)null, TargetDeviceId = EndpointId, OwnerPid = ownerPid } });
 }

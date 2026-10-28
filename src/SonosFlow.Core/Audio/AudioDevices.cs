@@ -24,9 +24,9 @@ public static class AudioDevices
             .ToList();
     }
 
-    // Virtual outputs that play nowhere unless the user wires them up. Voicemeeter is left out on purpose:
-    // its inputs are normally routed to the speakers.
-    private static readonly string[] SilentOutputNames = ["Steam Streaming", "CABLE Input", "VB-Audio Virtual Cable"];
+    // Virtual outputs that play nowhere (Steam's only sounds during a Remote Play session). Left out on purpose:
+    // VB-Audio CABLE Input and Voicemeeter, which are commonly listened to or routed to the speakers.
+    private static readonly string[] SilentOutputNames = ["Steam Streaming"];
 
     /// <summary>
     /// An active output nobody hears (a known virtual device), never the system default nor

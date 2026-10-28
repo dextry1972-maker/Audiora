@@ -260,10 +260,16 @@ public sealed class StreamingSession : IAsyncDisposable
             if (_captureDevice is not null) _guard = new LocalOutputGuard(_captureDevice, _options.FullLevel, _guardStateFile);
             return;
         }
+        GuardApplication();
+    }
+
+    /// <summary>Application mode: redirect the app, or wait for its audio session, or (this PC can't) mute its device.</summary>
+    private void GuardApplication()
+    {
         if (TryRedirectApp() || _redirectPending) return; // pending: done as soon as the app opens its audio
         _guardDevice = AudioDevices.Resolve(_spec.DeviceId);
         _guard = new LocalOutputGuard(_guardDevice, fullLevel: false, _guardStateFile);
-        Note($"silencio local: salida «{_guardDevice.FriendlyName}» silenciada (este PC no permite apartar solo «{_spec.DisplayName}»)");
+        Note($"silencio local: salida «{_guardDevice.FriendlyName}» silenciada (no se pudo apartar solo «{_spec.DisplayName}»)");
     }
 
     /// <summary>
@@ -274,20 +280,22 @@ public sealed class StreamingSession : IAsyncDisposable
     {
         _redirectPending = false;
         if (!AppOutputRouting.IsSupported || _spec.ExePath is null) return false;
-        var silent = AudioDevices.FindSilentOutput(_spec.DeviceId);
-        if (silent is null) return false;
-        int sessionPid = AudioApps.SessionProcessOf(_spec.ProcessId);
-        if (sessionPid == 0) { _redirectPending = true; return false; }
         try
         {
+            var silent = AudioDevices.FindSilentOutput(_spec.DeviceId);
+            if (silent is null) return false;
+            int sessionPid = AudioApps.SessionProcessOf(_spec.ProcessId);
+            if (sessionPid == 0) { _redirectPending = true; return false; }
             _redirect = new AppOutputRedirect(sessionPid, _spec.ExePath, silent.Id, _redirectStateFile);
             Note($"silencio local: «{_spec.DisplayName}» (PID {sessionPid}) → «{silent.Name}»; el resto del PC no cambia");
+            // Windows applies it per executable: another instance (a second profile, the isolated YouTube Music) goes too.
+            if (AudioApps.OtherInstancesWithAudio(_spec.ProcessId, _spec.ExePath) is > 0 and var others)
+                Note($"silencio local: Windows lo aplica por ejecutable; {others} instancia(s) más de {Path.GetFileName(_spec.ExePath)} tampoco sonará(n) en el PC");
             return true;
         }
-        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or ArgumentException or InvalidOperationException
-                                       or IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (AppOutputRedirect.IsRoutingFailure(ex))
         {
-            Note($"silencio local: no se pudo apartar «{_spec.DisplayName}» (0x{ex.HResult:X8}); se silencia su salida");
+            Note($"silencio local: no se pudo apartar «{_spec.DisplayName}» ({ex.GetType().Name} 0x{ex.HResult:X8})");
             return false;
         }
     }
@@ -302,7 +310,7 @@ public sealed class StreamingSession : IAsyncDisposable
         {
             _redirect.Dispose();
             Note(_redirect.Restored ? "silencio local: salida de la app restaurada"
-                                    : "silencio local: la app no está abierta; su salida se restaurará cuando vuelva a abrirse");
+                                    : "silencio local: Windows no aceptó aún la restauración (la app no tiene audio abierto); se reintenta sola");
             _redirect = null;
         }
         _redirectPending = false;
@@ -403,7 +411,7 @@ public sealed class StreamingSession : IAsyncDisposable
                 await FollowApplicationAsync().ConfigureAwait(false);
                 if (_redirectPending && await _switchLock.WaitAsync(0).ConfigureAwait(false))
                 {
-                    try { if (_redirectPending) TryRedirectApp(); }
+                    try { if (_redirectPending) GuardApplication(); }
                     finally { _switchLock.Release(); }
                 }
             }

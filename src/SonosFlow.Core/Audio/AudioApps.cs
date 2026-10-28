@@ -91,6 +91,42 @@ public static class AudioApps
         int found = 0;
         bool foundActive = false;
         var table = ProcessTable();
+        foreach (var (pid, active) in SessionList())
+        {
+            if (!table.ContainsKey(pid) || RootOf(pid, table) != rootPid) continue;
+            if (found == 0 || (active && !foundActive)) (found, foundActive) = (pid, active);
+        }
+        return found;
+    }
+
+    /// <summary>Other running instances (other root processes) of the same executable that have audio sessions.</summary>
+    public static int OtherInstancesWithAudio(int rootPid, string exePath)
+    {
+        var table = ProcessTable();
+        return SessionList().Select(s => s.Pid)
+            .Where(pid => table.ContainsKey(pid))
+            .Select(pid => RootOf(pid, table))
+            .Where(root => root != rootPid && string.Equals(ImagePath(root), exePath, StringComparison.OrdinalIgnoreCase))
+            .Distinct().Count();
+    }
+
+    /// <summary>Every running process of <paramref name="exePath"/>, those with an audio session first.</summary>
+    public static IReadOnlyList<int> ProcessesOf(string exePath)
+    {
+        var withSession = SessionList().Select(s => s.Pid).ToHashSet();
+        var pids = new List<int>();
+        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exePath)))
+        {
+            using (p)
+                if (string.Equals(ImagePath(p.Id), exePath, StringComparison.OrdinalIgnoreCase)) pids.Add(p.Id);
+        }
+        return [.. pids.OrderByDescending(withSession.Contains)];
+    }
+
+    /// <summary>Processes owning a live (not expired) audio session on any output.</summary>
+    private static List<(int Pid, bool Active)> SessionList()
+    {
+        var result = new List<(int, bool)>();
         using var enumerator = new MMDeviceEnumerator();
         foreach (var device in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
         {
@@ -103,16 +139,14 @@ public static class AudioApps
                 {
                     var s = list[i];
                     int pid = (int)s.GetProcessID;
-                    if (pid == 0 || s.State == AudioSessionState.AudioSessionStateExpired || !table.ContainsKey(pid)) continue;
-                    if (RootOf(pid, table) != rootPid) continue;
-                    bool active = s.State == AudioSessionState.AudioSessionStateActive;
-                    if (found == 0 || (active && !foundActive)) (found, foundActive) = (pid, active);
+                    if (pid == 0 || s.State == AudioSessionState.AudioSessionStateExpired) continue;
+                    result.Add((pid, s.State == AudioSessionState.AudioSessionStateActive));
                 }
             }
             catch (COMException) { /* device vanished while enumerating */ }
             finally { device.Dispose(); }
         }
-        return found;
+        return result;
     }
 
     /// <summary>Finds a running app by executable path (used when the selected app restarts with a new PID).</summary>
@@ -130,17 +164,6 @@ public static class AudioApps
     /// <summary>True when <paramref name="rootPid"/> is a browser instance using the dedicated YouTube Music profile.</summary>
     public static bool IsIsolatedInstance(int rootPid) =>
         CommandLine(rootPid)?.Contains(IsolatedProfileDir, StringComparison.OrdinalIgnoreCase) ?? false;
-
-    /// <summary>Some running process of <paramref name="exePath"/> (any one: Windows keys per-app settings by app).</summary>
-    public static int? AnyProcessOf(string exePath)
-    {
-        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exePath)))
-        {
-            using (p)
-                if (string.Equals(ImagePath(p.Id), exePath, StringComparison.OrdinalIgnoreCase)) return p.Id;
-        }
-        return null;
-    }
 
     public static bool IsRunning(int pid)
     {

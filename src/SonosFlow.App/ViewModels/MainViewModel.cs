@@ -307,7 +307,9 @@ public sealed partial class MainViewModel : ObservableObject
         bool restored = LocalOutputGuard.RecoverPending(AppPaths.GuardStateFile);
         if (File.Exists(RedirectStateFile))
         {
-            bool done = await Task.Run(() => AppOutputRedirect.RecoverPending(RedirectStateFile));
+            bool done = false;
+            try { done = await Task.Run(() => AppOutputRedirect.RecoverPending(RedirectStateFile)); }
+            catch (Exception ex) when (AppOutputRedirect.IsRoutingFailure(ex)) { AppLog.Write($"restaurar salida de app: {ex.GetType().Name}"); }
             AppLog.Write(done ? "salida de la app restaurada tras un cierre inesperado" : "salida de la app pendiente de restaurar (la app no está abierta)");
             restored |= done;
         }
