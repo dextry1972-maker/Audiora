@@ -396,14 +396,15 @@
                         <Border Width="52" Height="52" CornerRadius="10" Background="{StaticResource B.CardHi}" ClipToBounds="True">
                             <Grid>
                                 <TextBlock Text="&#xEC4F;" Style="{StaticResource T.Icon}" FontSize="20" Foreground="{StaticResource B.TextDim}" HorizontalAlignment="Center" />
-                                <Image Source="{Binding NowPlayingArtwork}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
-                                       Visibility="{Binding HasArtwork, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
-                                    <Image.Clip><RectangleGeometry Rect="0,0,52,52" RadiusX="10" RadiusY="10" /></Image.Clip>
-                                </Image>
+                                <!-- A brush fills the slot exactly (an overflowing UniformToFill Image is mis-clipped in right-to-left) -->
+                                <Border CornerRadius="10" FlowDirection="LeftToRight" RenderOptions.BitmapScalingMode="HighQuality"
+                                        Visibility="{Binding HasArtwork, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+                                    <Border.Background><ImageBrush ImageSource="{Binding NowPlayingArtwork}" Stretch="UniformToFill" /></Border.Background>
+                                </Border>
                             </Grid>
                         </Border>
                         <StackPanel Grid.Column="1" Margin="14,0,12,0" VerticalAlignment="Center" ToolTip="{Binding NowPlayingText}">
-                            <TextBlock FontSize="15" TextTrimming="CharacterEllipsis">
+                            <TextBlock FontSize="15" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" FlowDirection="{Binding Text, RelativeSource={RelativeSource Self}, Converter={x:Static loc:AutoDirection.Instance}}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource T.Value}">
                                         <Setter Property="Text" Value="{Binding SourceName}" />
@@ -415,7 +416,7 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-                            <TextBlock FontSize="12.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis">
+                            <TextBlock FontSize="12.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" FlowDirection="{Binding Text, RelativeSource={RelativeSource Self}, Converter={x:Static loc:AutoDirection.Instance}}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource T.Dim}">
                                         <Setter Property="Text" Value="{Binding SourceStatusText}" />

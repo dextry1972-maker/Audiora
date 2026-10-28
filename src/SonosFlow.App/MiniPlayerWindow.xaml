@@ -94,7 +94,7 @@
                     <Ellipse Width="44" Height="44" Fill="{StaticResource B.CardHi}" />
                     <TextBlock Text="&#xEC4F;" FontFamily="{StaticResource F.Icons}" FontSize="17" Foreground="{StaticResource B.TextDim}"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    <Ellipse Width="44" Height="44" Visibility="{Binding HasArtwork, Converter={StaticResource BoolToVis}}">
+                    <Ellipse Width="44" Height="44" FlowDirection="LeftToRight" Visibility="{Binding HasArtwork, Converter={StaticResource BoolToVis}}">
                         <Ellipse.Fill>
                             <ImageBrush ImageSource="{Binding NowPlayingArtwork}" Stretch="UniformToFill" />
                         </Ellipse.Fill>
@@ -103,7 +103,7 @@
 
                 <!-- Title (or source), then status · speaker -->
                 <StackPanel Grid.Column="1" Margin="12,0,10,0" VerticalAlignment="Center" ToolTip="{Binding NowPlayingText}">
-                    <TextBlock FontSize="14" FontWeight="SemiBold" FontFamily="{StaticResource F.Display}" Foreground="{StaticResource B.Text}" TextTrimming="CharacterEllipsis">
+                    <TextBlock FontSize="14" FontWeight="SemiBold" FontFamily="{StaticResource F.Display}" Foreground="{StaticResource B.Text}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" FlowDirection="{Binding Text, RelativeSource={RelativeSource Self}, Converter={x:Static loc:AutoDirection.Instance}}">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Text" Value="{Binding SourceName}" />

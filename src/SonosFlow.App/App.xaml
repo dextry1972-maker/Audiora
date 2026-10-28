@@ -14,6 +14,10 @@
             <infra:InvertBoolConverter x:Key="InvertBool" />
             <infra:ZeroToVisibilityConverter x:Key="ZeroToVis" />
             <infra:LevelToOpacityConverter x:Key="LevelGlow" Min="0.25" Max="1" />
+            <!-- Pictures (logo, cover art, app icons) are never mirrored in the right-to-left layout -->
+            <Style TargetType="Image">
+                <Setter Property="FlowDirection" Value="LeftToRight" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

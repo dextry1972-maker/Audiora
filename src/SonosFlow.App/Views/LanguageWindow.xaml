@@ -89,8 +89,8 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel>
                                 <!-- Native names keep their own direction whatever the window's -->
-                                <TextBlock Text="{Binding Info.NativeName}" Style="{StaticResource T.Base}" FontSize="15" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding Info.EnglishName}" Style="{StaticResource T.Dim}" FontSize="12" />
+                                <TextBlock Text="{Binding Info.NativeName}" HorizontalAlignment="Left" FlowDirection="{Binding Text, RelativeSource={RelativeSource Self}, Converter={x:Static loc:AutoDirection.Instance}}" Style="{StaticResource T.Base}" FontSize="15" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Info.EnglishName}" HorizontalAlignment="Left" FlowDirection="{Binding Text, RelativeSource={RelativeSource Self}, Converter={x:Static loc:AutoDirection.Instance}}" Style="{StaticResource T.Dim}" FontSize="12" />
                             </StackPanel>
                             <Border Grid.Column="1" CornerRadius="9" Padding="8,3" Background="{StaticResource B.GlassHi}" VerticalAlignment="Center"
                                     Visibility="{Binding IsSuggested, Converter={StaticResource BoolToVis}}">

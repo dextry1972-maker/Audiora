@@ -42,7 +42,7 @@
   "net.stalls.few": "{0} заминки · макс. {1:0.0} с",
   "net.stalls.many": "{0} заминок · макс. {1:0.0} с",
   "sleep.remaining": "Остановка через {0}:{1:00}",
-  "choices.close.tray": "Продолжить работу в области уведомлений",
+  "choices.close.tray": "Свернуть в область уведомлений",
   "choices.close.mini": "Показать мини-плеер",
   "choices.close.exit": "Выйти из Audiora",
   "choices.prebuffer.none": "Без буфера (минимальная задержка)",
