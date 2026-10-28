@@ -53,6 +53,7 @@ public sealed partial class MainViewModel
                     // An adapter changed (the hotspot coming up): give it a moment to get its address.
                     try { await Task.Delay(TimeSpan.FromSeconds(2), ct); } catch (OperationCanceledException) { return; }
                 }
+                if (ct.IsCancellationRequested) return; // the user acted meanwhile (e.g. picked a speaker): keep their choice
                 if (State == UiState.Error) SelectedSpeaker = null; // a failed start may mean a stale address: rediscover
             }
         }

@@ -22,8 +22,8 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly DispatcherTimer _eqDebounce;
 
     private StreamingSession? _session;
-    private (StreamingSession Session, Task Start)? _starting;
-    private bool _cancelStart;
+    private PendingStart? _starting;
+    private Task? _abortingStart;
     private bool _lastStartRetryable;
     private SonosClient? _control;
     private DateTime _lastUserVolumeChange = DateTime.MinValue;
@@ -273,14 +273,15 @@ public sealed partial class MainViewModel : ObservableObject
     public string StreamUrl { get => _streamUrl; private set => Set(ref _streamUrl, value); }
 
     // ── Lifecycle ───────────────────────────────────────────────
-    public async Task InitializeAsync(bool autoStart)
+    /// <param name="allowResume">False in screenshot modes: they must never start a stream from saved settings.</param>
+    public async Task InitializeAsync(bool autoStart, bool allowResume = true)
     {
         if (LocalOutputGuard.RecoverPending(AppPaths.GuardStateFile))
             StatusDetail = "Se restauró el sonido del PC tras un cierre inesperado";
         await DiscoverAsync();
         _poll.Start();
         // At Windows sign-in the hotspot and the Sonos may need a while: wait for them (bounded) instead of giving up.
-        if (autoStart || (_settings.ResumeOnLaunch && _settings.WasStreaming))
+        if (autoStart || (allowResume && _settings.ResumeOnLaunch && _settings.WasStreaming))
             await WaitForSpeakerAndStartAsync();
     }
 
@@ -338,6 +339,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public async Task StartAsync()
     {
+        _lastStartRetryable = false;
         if (SelectedSpeaker is not { } speaker || IsStreaming) return;
         if (CurrentSpec() is not { } spec)
         {
@@ -346,7 +348,6 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
         State = UiState.Starting;
-        _lastStartRetryable = false;
         AppLog.Write($"inicio solicitado → {speaker.Name} ({speaker.Address})");
         StatusDetail = $"Preparando el audio para {speaker.Name}";
         LastErrorText = "Ninguno";
@@ -363,26 +364,28 @@ public sealed partial class MainViewModel : ObservableObject
             AppLog.Write($"fuente activa: {src.DisplayName}");
         });
 
-        var start = session.StartAsync();
-        _starting = (session, start);
+        var cts = new CancellationTokenSource();
+        var pending = new PendingStart(session, session.StartAsync(cts.Token), cts);
+        _starting = pending;
         try
         {
-            await start;
+            await pending.Start;
         }
         catch (Exception ex)
         {
-            if (_cancelStart) return; // StopAsync is disposing it
+            if (pending.Cancelled) return; // StopAsync owns the cleanup
             _starting = null;
             await session.DisposeAsync();
             State = UiState.Error;
             StatusDetail = Describe(ex);
             _lastStartRetryable = ex is HttpRequestException or TaskCanceledException
+                or SonosSoapException { UpnpErrorCode: not 800 } // e.g. HTTP 500 while the Sonos boots; 800 = grouped speaker
                 or SocketException { SocketErrorCode: SocketError.AddressAlreadyInUse or SocketError.AddressNotAvailable or SocketError.NetworkUnreachable or SocketError.HostUnreachable };
             AppLog.Write($"inicio fallido: {StatusDetail} [{ex.GetType().Name}]");
             LastErrorText = StatusDetail;
             return;
         }
-        if (_cancelStart) return; // stopped (or the app is closing) while connecting: StopAsync disposes it
+        if (pending.Cancelled) return; // stopped (or the app is closing) while connecting: StopAsync disposes it
         _starting = null;
 
         _session = session;
@@ -399,16 +402,16 @@ public sealed partial class MainViewModel : ObservableObject
 
     public async Task StopAsync(bool rememberStopped = true, string reason = "sin especificar")
     {
-        if (_starting is var (pending, startTask))
+        if (_starting is { } pending)
         {
-            // Still connecting: let the start finish, then undo it, so nothing (a muted PC, the port) is left behind.
-            _cancelStart = true;
-            AppLog.Write($"detenido durante la conexión: {reason}");
-            try { await startTask; } catch (Exception) { }
-            await pending.DisposeAsync();
+            // Still connecting: cancel the start, let it unwind, then undo it, so nothing (a muted PC, the port)
+            // is left behind. A second Stop meanwhile (tray + quit) waits for the same cleanup.
             _starting = null;
-            _cancelStart = false;
+            pending.Cancelled = true;
+            AppLog.Write($"detenido durante la conexión: {reason}");
+            _abortingStart = AbortStartAsync(pending);
         }
+        if (_abortingStart is { } aborting) await aborting;
         var session = _session;
         if (session is not null) AppLog.Write($"detenido: {reason}");
         _session = null;
@@ -427,6 +430,32 @@ public sealed partial class MainViewModel : ObservableObject
         TransportText = "—";
         ResetNetwork();
         if (_sleepAt is not null) CancelSleep(log: true);
+    }
+
+    private sealed class PendingStart(StreamingSession session, Task start, CancellationTokenSource cts)
+    {
+        public StreamingSession Session { get; } = session;
+        public Task Start { get; } = start;
+        public CancellationTokenSource Cts { get; } = cts;
+        public bool Cancelled { get; set; }
+    }
+
+    private async Task AbortStartAsync(PendingStart pending)
+    {
+        try
+        {
+            pending.Cts.Cancel();
+            try { await pending.Start; } catch (Exception) { } // it fails or completes; either way it's undone below
+            await pending.Session.DisposeAsync();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write($"limpieza tras cancelar el inicio: {ex.GetType().Name}: {ex.Message}");
+        }
+        finally
+        {
+            _abortingStart = null;
+        }
     }
 
     private void OnSessionState(SessionState s)

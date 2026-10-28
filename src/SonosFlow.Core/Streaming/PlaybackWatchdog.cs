@@ -21,11 +21,14 @@ public sealed class PlaybackWatchdog(int marginMs)
     public static readonly TimeSpan Warmup = TimeSpan.FromSeconds(10);
     public static readonly TimeSpan FrozenAfter = TimeSpan.FromSeconds(8);
     public static readonly TimeSpan TransitioningLimit = TimeSpan.FromSeconds(15);
+    /// <summary>How long the control channel (SOAP) may fail while audio keeps flowing before it counts.</summary>
+    public static readonly TimeSpan UnreachableTolerance = TimeSpan.FromSeconds(30);
 
     public TimeSpan NotConsumingAfter { get; } = TimeSpan.FromMilliseconds(Math.Max(5000, marginMs + 3000));
 
     private TimeSpan _connectedAt;
     private TimeSpan? _transitioningSince;
+    private TimeSpan? _unreachableSince;
     private TimeSpan? _relTime;
     private TimeSpan _relChangedAt;
     private int _relAdvances;
@@ -48,6 +51,16 @@ public sealed class PlaybackWatchdog(int marginMs)
         if (transport == "TRANSITIONING") _transitioningSince ??= now;
         else _transitioningSince = null;
 
+        if (transport == "UNREACHABLE")
+        {
+            // A control-plane hiccup is not a playback failure: while the player keeps taking audio, leave the
+            // data connection alone (re-issuing would itself cause the cut we try to avoid).
+            _unreachableSince ??= now;
+            bool audioFlowing = clients > 0 && sinceClientProgress < NotConsumingAfter;
+            return audioFlowing && now - _unreachableSince < UnreachableTolerance ? PlaybackVerdict.Healthy : PlaybackVerdict.NotPlaying;
+        }
+        _unreachableSince = null;
+
         if (transport is not ("PLAYING" or "TRANSITIONING") || clients == 0) return PlaybackVerdict.NotPlaying;
         if (now - _transitioningSince > TransitioningLimit) return PlaybackVerdict.NotPlaying;
         if (now - _connectedAt < Warmup) return PlaybackVerdict.Healthy;
@@ -59,7 +72,11 @@ public sealed class PlaybackWatchdog(int marginMs)
 
     private void TrackPosition(TimeSpan now, TimeSpan? relTime)
     {
-        if (relTime is not { } rel) return; // unknown: neither progress nor a freeze
+        if (relTime is not { } rel)
+        {
+            _relChangedAt = now; // unknown: neither progress nor a freeze (failed reads must not add up to "frozen")
+            return;
+        }
         if (_relTime is not { } last || rel < last)
         {
             _relTime = rel; // first value, or the player restarted the position: new baseline
@@ -112,8 +129,9 @@ public sealed class RecoveryPolicy
         _healthySince = null;
         _unhealthySince ??= now;
         if (now - _unhealthySince < Debounce) return RecoveryDecision.None;
-        if (Attempts >= MaxAttempts || now - _unhealthySince >= GiveUpAfter) return RecoveryDecision.GiveUp;
-        if (Attempts > 0 && now < _nextAttemptAt) return RecoveryDecision.None;
+        if (now - _unhealthySince >= GiveUpAfter) return RecoveryDecision.GiveUp;
+        if (Attempts > 0 && now < _nextAttemptAt) return RecoveryDecision.None; // every attempt, the last one too, gets its wait
+        if (Attempts >= MaxAttempts) return RecoveryDecision.GiveUp;
 
         _nextAttemptAt = now + TimeSpan.FromSeconds(BackoffSeconds[Math.Min(Attempts, BackoffSeconds.Length - 1)]);
         Attempts++;

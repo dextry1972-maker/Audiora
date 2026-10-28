@@ -82,7 +82,7 @@ public sealed partial class MainViewModel
         set
         {
             if (!int.TryParse(value, out var minutes) || value == _sleepKey) return;
-            if (minutes <= 0 || !IsStreaming)
+            if (minutes <= 0 || State is not (UiState.Streaming or UiState.Recovering)) // not while still connecting
             {
                 CancelSleep(log: minutes <= 0 && _sleepAt is not null);
                 return;

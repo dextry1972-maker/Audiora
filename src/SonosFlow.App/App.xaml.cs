@@ -16,6 +16,10 @@ namespace SonosFlow.App;
 ///   --page settings        open on the settings page
 ///   --size WxH             window size for --screenshot
 ///   --screenshot-mini FILE save a PNG of the mini player (over a light backdrop) and quit (testing)
+///   --screenshot-hud FILE  save a PNG of the volume indicator and quit (testing)
+///   --delay MS, --expand   wait before a screenshot; expand the mini player's source list
+///   --selftest-session PID --selftest-out FILE   end-to-end check with the real Sonos (see SelfTest)
+/// Test modes never take the single-instance mutex, register hotkeys, save settings or resume a stream.
 /// </summary>
 public partial class App : Application
 {
@@ -84,7 +88,8 @@ public partial class App : Application
         if (miniShot is not null) _vm.MiniVisible = true;
         ApplyMiniVisibility();
 
-        await _vm.InitializeAsync(autoStart: args.Contains("--autostart"));
+        // The HUD capture needs no speaker; other test modes never resume a stream from the saved settings.
+        if (hudShot is null) await _vm.InitializeAsync(autoStart: args.Contains("--autostart"), allowResume: !testCapture);
 
         if (int.TryParse(Arg("--selftest-session"), out var tonePid) && Arg("--selftest-out") is { } outFile)
         {

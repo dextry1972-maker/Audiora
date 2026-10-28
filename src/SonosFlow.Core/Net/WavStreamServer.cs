@@ -180,7 +180,8 @@ public sealed class WavStreamServer : IDisposable
 
         await stream.WriteAsync(BuildWavHeader(_format), ct);
 
-        // ~2 s of 10 ms chunks (plus the prebuffer); a full queue means the player stopped reading.
+        // 200 chunks (≈2 s of 10 ms app-capture chunks, more with larger device packets) plus the prebuffer;
+        // a full queue means the player stopped reading.
         using var client = new Client(Channel.CreateBounded<byte[]>(new BoundedChannelOptions(200)
         {
             SingleReader = true,
@@ -302,8 +303,13 @@ public sealed class WavStreamServer : IDisposable
     /// <summary>Closes every player connection (including one stuck in a socket write) so the stream can be re-issued.</summary>
     public void AbortClients()
     {
-        lock (_clients)
-            foreach (var c in _clients) c.Abort.Cancel();
+        List<Client> clients;
+        lock (_clients) clients = [.. _clients];
+        foreach (var c in clients)
+        {
+            // Outside the lock: cancellation callbacks may run inline. A client that just ended is already disposed.
+            try { c.Abort.Cancel(); } catch (ObjectDisposedException) { }
+        }
     }
 
     private sealed class Client(Channel<byte[]> queue, CancellationTokenSource abort) : IDisposable

@@ -39,6 +39,9 @@ public sealed class SonosClient(IPAddress address) : IDisposable
     public Task PlayAsync(CancellationToken ct = default) =>
         InvokeAsync("/MediaRenderer/AVTransport/Control", AvTransport, "Play", "<InstanceID>0</InstanceID><Speed>1</Speed>", ct);
 
+    public Task PauseAsync(CancellationToken ct = default) =>
+        InvokeAsync("/MediaRenderer/AVTransport/Control", AvTransport, "Pause", "<InstanceID>0</InstanceID>", ct);
+
     public Task StopAsync(CancellationToken ct = default) =>
         InvokeAsync("/MediaRenderer/AVTransport/Control", AvTransport, "Stop", "<InstanceID>0</InstanceID>", ct);
 

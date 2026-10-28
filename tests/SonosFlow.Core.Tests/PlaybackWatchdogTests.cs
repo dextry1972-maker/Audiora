@@ -37,6 +37,32 @@ public sealed class PlaybackWatchdogTests
     }
 
     [Fact]
+    public void Failed_position_reads_after_arming_are_not_a_freeze()
+    {
+        var w = new PlaybackWatchdog(1000);
+        PlayHealthy(w, 30);
+        for (int t = 30; t < 60; t++) Assert.Equal(PlaybackVerdict.Healthy, w.Observe(S(t), "PLAYING", 1, S(0.01), null));
+    }
+
+    [Fact]
+    public void Unreachable_control_with_audio_flowing_is_tolerated_for_30_s()
+    {
+        var w = new PlaybackWatchdog(1000);
+        PlayHealthy(w, 20);
+        for (int t = 20; t < 50; t++) Assert.Equal(PlaybackVerdict.Healthy, w.Observe(S(t), "UNREACHABLE", 1, S(0.01), null));
+        Assert.Equal(PlaybackVerdict.NotPlaying, w.Observe(S(50), "UNREACHABLE", 1, S(0.01), null));
+    }
+
+    [Fact]
+    public void Unreachable_with_audio_stalled_is_not_playing_at_once()
+    {
+        var w = new PlaybackWatchdog(1000);
+        PlayHealthy(w, 20);
+        Assert.Equal(PlaybackVerdict.NotPlaying, w.Observe(S(20), "UNREACHABLE", 1, S(6), null));
+        Assert.Equal(PlaybackVerdict.NotPlaying, w.Observe(S(21), "UNREACHABLE", 0, S(0), null));
+    }
+
+    [Fact]
     public void Player_that_stops_taking_audio_is_detected_after_margin_plus_3_s()
     {
         var w = new PlaybackWatchdog(2000);
@@ -109,7 +135,18 @@ public sealed class RecoveryPolicyTests
         }
         Assert.Equal([5, 10, 20, 40, 80, 140, 200, 260], attempts);
         Assert.Equal(RecoveryDecision.GiveUp, d);
-        Assert.True(t < 600, "gives up well before 10 min");
+        Assert.Equal(321, t); // the 8th attempt still gets its full 60 s before giving up
+    }
+
+    [Fact]
+    public void Once_given_up_it_stays_given_up()
+    {
+        var p = new RecoveryPolicy();
+        var decisions = new List<RecoveryDecision>();
+        for (int t = 0; t <= 700; t++) decisions.Add(p.Observe(S(t), healthy: false));
+        int first = decisions.IndexOf(RecoveryDecision.GiveUp);
+        Assert.InRange(first, 1, 600); // never later than the 10-minute backstop
+        Assert.All(decisions.Skip(first), d => Assert.Equal(RecoveryDecision.GiveUp, d));
     }
 
     [Fact]
