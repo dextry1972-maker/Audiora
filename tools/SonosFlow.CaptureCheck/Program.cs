@@ -89,6 +89,61 @@ if (args is ["route-browser", var browserExe, var pageFile])
     }
 }
 
+if (args is ["follow-check"])
+{
+    // Does a plain WASAPI app on a fixed device follow a per-app output change? (Audiora's redirect check must spot
+    // it when it doesn't.) Quiet tone on the default output, redirected, then: where is it playing? Nothing is muted.
+    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    using var fc = Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "tone-default 1000 20 0.001")
+        { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true })!;
+    Console.WriteLine(fc.StandardOutput.ReadLine());
+    Thread.Sleep(1000);
+    int pid = fc.Id; // the tone process owns its session (its "root" is this process: same executable)
+    string? prev = AppOutputRouting.Get(pid);
+    try
+    {
+        AppOutputRouting.Set(pid, silent.Id);
+        Thread.Sleep(4000);
+        var playing = AudioApps.PlayingOn(Environment.ProcessId);
+        bool moved = playing.Count > 0 && playing.All(id => id == silent.Id);
+        Console.WriteLine($"{(moved ? "SIGUE" : "NO SIGUE")} el cambio de salida en caliente (suena en {playing.Count} salida(s); la silenciosa: {playing.Contains(silent.Id)})");
+        Console.WriteLine(moved ? "Audiora mantendría la redirección" : "Audiora deshará la redirección y aplicará el plan B (silenciar su salida)");
+        return 0;
+    }
+    finally
+    {
+        AppOutputRouting.Set(pid, prev);
+        try { fc.Kill(); } catch (InvalidOperationException) { }
+    }
+}
+
+if (args is ["browser-tone", var btExe, var btSeconds])
+{
+    // For SonosFlow's self-test: a private browser instance (temporary profile, window off-screen) playing a 1 kHz
+    // tone at −60 dBFS on the default output. Prints "ROOT <pid>"; closes everything when stdin closes or on timeout.
+    var html = Path.Combine(Path.GetTempPath(), $"sf-browser-tone-{Environment.ProcessId}.html");
+    File.WriteAllText(html, """
+        <!doctype html><meta charset="utf-8"><title>Tono</title><script>
+        const c = new AudioContext(), o = c.createOscillator(), g = c.createGain();
+        o.frequency.value = 1000; g.gain.value = 0.001; o.connect(g).connect(c.destination); o.start();
+        setInterval(() => { if (c.state !== 'running') c.resume(); }, 500);
+        </script>
+        """);
+    var btProfile = Path.Combine(Path.GetTempPath(), $"sf-browser-tone-{Environment.ProcessId}");
+    using var bt = Process.Start(new ProcessStartInfo(btExe,
+        $"--user-data-dir=\"{btProfile}\" --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required " +
+        $"--window-position=-32000,-32000 --window-size=300,200 --app=\"{new Uri(html).AbsoluteUri}\"") { UseShellExecute = false })!;
+    Console.WriteLine($"ROOT {bt.Id}");
+    Console.Out.Flush();
+    Task.Run(Console.In.ReadToEnd).Wait(TimeSpan.FromSeconds(double.Parse(btSeconds)));
+    foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(btExe)))
+        if (AudioApps.RootProcessId(p.Id) == bt.Id) { try { p.Kill(); } catch (Exception) { } }
+    Thread.Sleep(800);
+    try { Directory.Delete(btProfile, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    try { File.Delete(html); } catch (IOException) { }
+    return 0;
+}
+
 if (args is ["redirect-and-crash", var rPid, var rExe, var rTarget, var rState])
 {
     // Child of redirect-crash: redirect like Audiora does, then die without restoring (simulated crash).

@@ -91,7 +91,7 @@ public static class AudioApps
         int found = 0;
         bool foundActive = false;
         var table = ProcessTable();
-        foreach (var (pid, active) in SessionList())
+        foreach (var (pid, active, _) in SessionList())
         {
             if (!table.ContainsKey(pid) || RootOf(pid, table) != rootPid) continue;
             if (found == 0 || (active && !foundActive)) (found, foundActive) = (pid, active);
@@ -123,10 +123,18 @@ public static class AudioApps
         return [.. pids.OrderByDescending(withSession.Contains)];
     }
 
-    /// <summary>Processes owning a live (not expired) audio session on any output.</summary>
-    private static List<(int Pid, bool Active)> SessionList()
+    /// <summary>Outputs on which the app (any process under <paramref name="rootPid"/>) is playing right now.</summary>
+    public static IReadOnlySet<string> PlayingOn(int rootPid)
     {
-        var result = new List<(int, bool)>();
+        var table = ProcessTable();
+        return SessionList().Where(s => s.Active && table.ContainsKey(s.Pid) && RootOf(s.Pid, table) == rootPid)
+            .Select(s => s.DeviceId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Processes owning a live (not expired) audio session on any output.</summary>
+    private static List<(int Pid, bool Active, string DeviceId)> SessionList()
+    {
+        var result = new List<(int, bool, string)>();
         using var enumerator = new MMDeviceEnumerator();
         foreach (var device in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
         {
@@ -140,7 +148,7 @@ public static class AudioApps
                     var s = list[i];
                     int pid = (int)s.GetProcessID;
                     if (pid == 0 || s.State == AudioSessionState.AudioSessionStateExpired) continue;
-                    result.Add((pid, s.State == AudioSessionState.AudioSessionStateActive));
+                    result.Add((pid, s.State == AudioSessionState.AudioSessionStateActive, device.ID));
                 }
             }
             catch (COMException) { /* device vanished while enumerating */ }

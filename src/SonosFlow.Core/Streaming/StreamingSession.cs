@@ -83,6 +83,10 @@ public sealed class StreamingSession : IAsyncDisposable
     private MMDevice? _guardDevice; // device muted in application mode when the app can't be redirected
     private AppOutputRedirect? _redirect; // application mode: only that app sent to an unheard output
     private volatile bool _redirectPending;
+    private string? _redirectTarget;
+    private DateTime _redirectAt;
+    private int _redirectStrikes;
+    private volatile bool _redirectVerified;
     private readonly string _redirectStateFile;
     private Task? _monitor;
     private TextWriter? _log;
@@ -287,6 +291,7 @@ public sealed class StreamingSession : IAsyncDisposable
             int sessionPid = AudioApps.SessionProcessOf(_spec.ProcessId);
             if (sessionPid == 0) { _redirectPending = true; return false; }
             _redirect = new AppOutputRedirect(sessionPid, _spec.ExePath, silent.Id, _redirectStateFile);
+            (_redirectTarget, _redirectAt, _redirectStrikes, _redirectVerified) = (silent.Id, DateTime.UtcNow, 0, false);
             Note($"silencio local: «{_spec.DisplayName}» (PID {sessionPid}) → «{silent.Name}»; el resto del PC no cambia");
             // Windows applies it per executable: another instance (a second profile, the isolated YouTube Music) goes too.
             if (AudioApps.OtherInstancesWithAudio(_spec.ProcessId, _spec.ExePath) is > 0 and var others)
@@ -297,6 +302,37 @@ public sealed class StreamingSession : IAsyncDisposable
         {
             Note($"silencio local: no se pudo apartar «{_spec.DisplayName}» ({ex.GetType().Name} 0x{ex.HResult:X8})");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Apps that opened a specific output (instead of following Windows' choice) keep playing locally after the
+    /// redirect — Chromium follows it, a plain WASAPI app on a fixed device doesn't (measured). If the app is still
+    /// playing elsewhere on two checks after a short grace, the redirect is undone and its device is muted (plan B).
+    /// </summary>
+    private void VerifyRedirect()
+    {
+        if (_redirect is null || _redirectVerified || DateTime.UtcNow - _redirectAt < TimeSpan.FromSeconds(2)) return;
+        try
+        {
+            var playing = AudioApps.PlayingOn(_spec.ProcessId);
+            if (playing.Count == 0) return; // quiet right now: nothing to judge yet
+            if (playing.All(id => string.Equals(id, _redirectTarget, StringComparison.OrdinalIgnoreCase)))
+            {
+                _redirectVerified = true;
+                Note("silencio local: la app ya suena solo en la salida silenciosa");
+                return;
+            }
+            if (++_redirectStrikes < 2) return;
+            Note($"silencio local: «{_spec.DisplayName}» no cambió de salida en caliente; se deshace y se silencia su salida");
+            _redirect.Dispose();
+            _redirect = null;
+            _guardDevice = AudioDevices.Resolve(_spec.DeviceId);
+            _guard = new LocalOutputGuard(_guardDevice, fullLevel: false, _guardStateFile);
+        }
+        catch (Exception ex) when (AppOutputRedirect.IsRoutingFailure(ex))
+        {
+            Note($"silencio local: no se pudo comprobar la redirección ({ex.GetType().Name})");
         }
     }
 
@@ -409,9 +445,13 @@ public sealed class StreamingSession : IAsyncDisposable
             if (_spec.Kind == CaptureKind.Application && ++tick % 3 == 0)
             {
                 await FollowApplicationAsync().ConfigureAwait(false);
-                if (_redirectPending && await _switchLock.WaitAsync(0).ConfigureAwait(false))
+                if ((_redirectPending || (_redirect is not null && !_redirectVerified)) && await _switchLock.WaitAsync(0).ConfigureAwait(false))
                 {
-                    try { if (_redirectPending) GuardApplication(); }
+                    try
+                    {
+                        if (_redirectPending) GuardApplication();
+                        else VerifyRedirect();
+                    }
                     finally { _switchLock.Release(); }
                 }
             }

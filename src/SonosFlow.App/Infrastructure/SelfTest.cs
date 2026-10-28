@@ -175,34 +175,43 @@ public static class SelfTest
 
         // ── Part B2: the app plays on the user's default output (the usual case). "Silenciar el PC" must send only that
         // app to an unheard output: the Sonos keeps getting it, it goes quiet locally, and no output is muted.
-        // Very quiet tone (−60 dBFS), audible at most faintly until it is sent away.
-        if (toolPath is not null && AppOutputRouting.IsSupported && AudioDevices.FindSilentOutput(null) is { } silent)
+        // The app is a private Chromium instance (CaptureCheck browser-tone: own profile, window off-screen) playing a
+        // very quiet tone (−60 dBFS), audible at most faintly until it is sent away. A browser the user isn't running
+        // is used, because Windows applies the redirect to every instance of that executable.
+        string? browserExe = new[]
         {
-            using var child = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(toolPath, "tone-default 300 45 0.001")
-                { UseShellExecute = false, CreateNoWindow = true })!;
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Google", "Chrome", "Application", "chrome.exe"),
+            AudioApps.EdgePath() ?? "",
+        }.FirstOrDefault(p => p.Length > 0 && File.Exists(p) && System.Diagnostics.Process.GetProcessesByName(Path.GetFileNameWithoutExtension(p)).Length == 0);
+        if (toolPath is not null && browserExe is not null && AppOutputRouting.IsSupported && AudioDevices.FindSilentOutput(null) is { } silent)
+        {
+            using var child = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(toolPath, $"browser-tone \"{browserExe}\" 120")
+                { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardInput = true })!;
             try
             {
-                int sessionPid = 0;
-                for (int i = 0; i < 40 && sessionPid == 0; i++) { await Task.Delay(250); sessionPid = AudioApps.SessionProcessOf(child.Id); }
-                await Task.Delay(500);
+                int browserRoot = 0, sessionPid = 0;
+                var rootLine = await child.StandardOutput.ReadLineAsync();
+                if (rootLine is not null && rootLine.StartsWith("ROOT ")) browserRoot = int.Parse(rootLine[5..]);
+                for (int i = 0; i < 60 && browserRoot != 0 && sessionPid == 0; i++) { await Task.Delay(250); sessionPid = await Task.Run(() => AudioApps.SessionProcessOf(browserRoot)); }
+                await Task.Delay(1000);
                 await vm.RefreshAppsNowAsync();
-                var defaultApp = vm.Apps.FirstOrDefault(a => a.Info.ProcessId == child.Id);
+                var defaultApp = vm.Apps.FirstOrDefault(a => a.Info.ProcessId == browserRoot);
                 using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
                 using var defaultDev = enumerator.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.Role.Multimedia);
                 bool defMute0 = defaultDev.AudioEndpointVolume.Mute;
                 string? before = sessionPid != 0 ? await Task.Run(() => AppOutputRouting.Get(sessionPid)) : null;
-                double local0 = await LocalLevelAsync(defaultDev, 300);
-                Check($"17a. App en la salida predeterminada ({defaultDev.FriendlyName}): sesión en el PID {sessionPid}, suena en local ({local0:0.0} dBFS)",
+                double local0 = await LocalLevelAsync(defaultDev, 1000);
+                Check($"17a. Navegador ({Path.GetFileName(browserExe)}) en la salida predeterminada ({defaultDev.FriendlyName}): sesión en el PID {sessionPid}, suena en local ({local0:0.0} dBFS)",
                     defaultApp is not null && sessionPid != 0 && local0 > -70);
                 if (defaultApp is not null && sessionPid != 0)
                 {
                     vm.MuteLocal = true;
                     await vm.SelectAppForTestAsync(defaultApp);
                     await vm.StartAsync();
-                    await Task.Delay(6000);
+                    await Task.Delay(9000); // past the redirect check (2 s grace + one monitor round)
                     var c1 = vm.LastStats;
                     string? routed = await Task.Run(() => AppOutputRouting.Get(sessionPid));
-                    double local1 = await LocalLevelAsync(defaultDev, 300);
+                    double local1 = await LocalLevelAsync(defaultDev, 1000);
                     Check($"17b. Solo esa app se aparta a «{silent.Name}» (Windows: {(routed == silent.Id ? "sí" : routed ?? "no")}); Sonos {c1?.TransportState}, pico {Peak(c1?.PeakDbfs ?? double.NegativeInfinity)} dBFS (≈ −60)",
                         routed == silent.Id && c1 is { TransportState: "PLAYING", Clients: 1, PeakDbfs: > -66 and < -54 });
                     Check($"17c. En el PC deja de sonar (salida predeterminada {local1:0.0} dBFS, antes {local0:0.0}) sin silenciar ninguna salida (predeterminada silenciada={defaultDev.AudioEndpointVolume.Mute}, antes {defMute0})",
@@ -217,10 +226,10 @@ public static class SelfTest
             finally
             {
                 vm.MuteLocal = false;
-                try { child.Kill(); } catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception) { }
+                try { child.StandardInput.Close(); child.WaitForExit(15000); } catch (Exception ex) when (ex is InvalidOperationException or IOException) { }
             }
         }
-        else lines.Add("—     17a–17d omitidas: este PC no tiene una salida silenciosa o Windows es anterior a 21H2");
+        else lines.Add("—     17a–17d omitidas: sin Chrome/Edge libre, sin salida silenciosa o Windows anterior a 21H2");
 
         // ── Part C: the user takes the Sonos from the Sonos app (simulated with the same transport commands the app
         // sends; never volume or EQ). Audiora must step aside instead of re-issuing its stream.
