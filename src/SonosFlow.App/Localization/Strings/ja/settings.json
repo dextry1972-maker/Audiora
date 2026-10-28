@@ -14,7 +14,7 @@
   "settings.general.resume.a11y": "起動時に再開",
   "settings.audio.section": "オーディオ",
   "settings.audio.muteLocal.title": "ストリーミング中は PC のスピーカーをミュート",
-  "settings.audio.muteLocal.hint": "「1 つのアプリ」では、そのアプリが使う出力デバイスがミュートされます（そこで再生中のほかの音も含む）。Sonos は引き続き受信します。停止時、終了時、さらに予期しないシャットダウンの後でも元に戻ります。",
+  "settings.audio.muteLocal.hint": "「1 つのアプリ」では、そのアプリだけが PC で鳴らなくなります（Windows が誰も聞いていない出力へ送ります）。ほかのアプリやゲームの音はそのままで、Sonos は引き続き受信します。そのような出力がない PC では、アプリの出力デバイスをミュートします。停止時、終了時、さらに予期しないシャットダウンの後でも元に戻ります。",
   "settings.audio.muteLocal.a11y": "PC をミュート",
   "settings.audio.prebuffer.title": "音切れ防止バッファー",
   "settings.audio.prebuffer.hint": "Sonos はこの長さのオーディオを先に受け取り、その分遅れて再生することで、短い Wi-Fi の途切れを乗り切ります。バッファーが多いほど安定しますが、遅延も大きくなります。",

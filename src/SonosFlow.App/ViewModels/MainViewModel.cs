@@ -304,8 +304,16 @@ public sealed partial class MainViewModel : ObservableObject
     /// <param name="allowResume">False in screenshot modes: they must never start a stream from saved settings.</param>
     public async Task InitializeAsync(bool autoStart, bool allowResume = true)
     {
-        if (LocalOutputGuard.RecoverPending(AppPaths.GuardStateFile))
-            Detail(() => L.T("status.detail.restoredAfterCrash"));
+        bool restored = LocalOutputGuard.RecoverPending(AppPaths.GuardStateFile);
+        if (File.Exists(RedirectStateFile))
+        {
+            bool done = false;
+            try { done = await Task.Run(() => AppOutputRedirect.RecoverPending(RedirectStateFile)); }
+            catch (Exception ex) when (AppOutputRedirect.IsRoutingFailure(ex)) { AppLog.Write($"restaurar salida de app: {ex.GetType().Name}"); }
+            AppLog.Write(done ? "salida de la app restaurada tras un cierre inesperado" : "salida de la app pendiente de restaurar (la app no está abierta)");
+            restored |= done;
+        }
+        if (restored) Detail(() => L.T("status.detail.restoredAfterCrash"));
         await DiscoverAsync();
         _poll.Start();
         // At Windows sign-in the hotspot and the Sonos may need a while: wait for them (bounded) instead of giving up.

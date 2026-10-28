@@ -22,7 +22,7 @@
   "main.sleep.tooltip": "Interrompe a transmissão após esse tempo. É cancelado quando você a interrompe.",
   "main.volume.name": "Volume do Sonos",
   "main.muteLocal.label": "Silenciar PC",
-  "main.muteLocal.tooltip": "Só o Sonos toca. No modo “Um app”, silencia a saída em que esse app toca (e tudo o mais nela). Vale ao iniciar a transmissão.",
+  "main.muteLocal.tooltip": "Só o Sonos toca. No modo “Um app”, só esse app fica em silêncio no PC; o resto continua tocando. Vale ao iniciar a transmissão.",
   "main.fullLevel.label": "Nível máximo",
   "main.fullLevel.tooltip": "Só em “PC inteiro”: Windows em 100% enquanto silenciado, para que o volume seja controlado pelo Sonos. Vale ao iniciar a transmissão.",
   "main.source.mode.system.label": "PC inteiro",

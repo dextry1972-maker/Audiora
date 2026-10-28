@@ -14,7 +14,7 @@
   "settings.general.resume.a11y": "启动时恢复",
   "settings.audio.section": "音频",
   "settings.audio.muteLocal.title": "传输时将电脑扬声器静音",
-  "settings.audio.muteLocal.hint": "在“单个应用”模式下，会将该应用所用的输出设备静音（该设备上的其他声音也一并静音），Sonos 仍会接收音频。停止、退出时都会恢复，即使意外关闭后也会恢复。",
+  "settings.audio.muteLocal.hint": "在“单个应用”模式下，只有该应用在电脑上不再发声（Windows 会把它发送到一个无人收听的输出设备）；其他应用和游戏照常发声，Sonos 仍会接收音频。如果电脑上没有这样的输出设备，则会将该应用的输出设备静音。停止、退出时都会恢复，即使意外关闭后也会恢复。",
   "settings.audio.muteLocal.a11y": "电脑静音",
   "settings.audio.prebuffer.title": "防断音缓冲",
   "settings.audio.prebuffer.hint": "Sonos 会预先接收这么多音频并以相应延迟播放，从而扛过短暂的 Wi-Fi 波动。缓冲越多 = 越稳定，延迟越大。",

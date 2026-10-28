@@ -1,0 +1,107 @@
+# Motor de audio selectivo: una aplicación al Sonos sin tocar el resto del PC
+
+Estado (28/10/2026, rama `motor/audio-selectivo`): implementado y medido con pruebas automáticas y con CaptureCheck; resultados de la prueba con el Sonos y de la prueba prolongada en la sección 6.
+
+## 1. Arquitectura
+
+```
+App elegida (y sus procesos hijos)
+  └─ captura por proceso (Application Loopback de Windows, INCLUDE_TARGET_PROCESS_TREE)
+       48 kHz · 16 bit · 2 canales PCM pedidos a Windows (AUTOCONVERTPCM + SRC_DEFAULT_QUALITY), por eventos,
+       hilo propio con MMCSS «Pro Audio»                                   ProcessLoopbackCapture.cs
+  └─ LoopbackSource: conversión a 16 bit estéreo si hace falta y marcapasos que rellena silencio cuando la app calla
+                                                                            LoopbackSource.cs
+  └─ WavStreamServer: anillo acotado (margen anti-cortes), WAV infinito por HTTP solo en la IP local de la red del
+       Sonos y solo para las IP de los Sonos descubiertos                   WavStreamServer.cs
+  └─ Sonos: control local UPnP AVTransport (SetAVTransportURI + Play), vigilante y reintentos acotados
+                                                                            SonosClient.cs, StreamingSession.cs
+```
+
+Esta cadena ya existía y se conserva: la captura en tiempo real nunca espera a la red (el hilo de captura solo copia
+a una cola acotada; si el Sonos no recoge, se descarta y se cuenta en `dropped_chunks`), y el disco (CSV) va aparte.
+
+### Formato: WAV PCM 16 bit, no MP3/AAC
+- No es PCM flotante: Windows convierte lo que la app reproduzca a PCM entero de 16 bit y 48 kHz.
+- Sonos admite WAV de 16 bit hasta 48 kHz ([soporte de Sonos](https://support.sonos.com/en/article/supported-audio-formats-for-sonos-music-library)); la lista de [docs.sonos.com](https://docs.sonos.com/docs/supported-audio-formats) no menciona WAV, pero el Sonos Five lo reproduce de forma continua y verificada (autotest 27/27 y 38 min de uso real sin cortes; `docs/INVESTIGACION-CORTES-6MIN.md`).
+- Un códec comprimido añadiría latencia, CPU y una dependencia nueva sin resolver nada medido: ~1,5 Mbit/s caben de sobra en la Wi-Fi local. Ya se evaluó FLAC (`docs/ROADMAP.md`). MP3/AAC quedan como alternativa si un día faltara ancho de banda.
+
+### Sonos: control local, no `loadStreamUrl`
+`loadStreamUrl` es de la Control API en la nube (`api.ws.sonos.com`, OAuth, sesión de reproducción) y está pensada para radio por Internet, no para una URL privada del PC. Audiora usa el control local UPnP (AVTransport), que no necesita cuenta ni nube y es el mecanismo validado con el Sonos Five. Riesgo: UPnP no es una API pública de Sonos y podría restringirse.
+
+### Red y firewall
+El servidor escucha solo en la IP local del PC en la red del Sonos (no `localhost` ni `0.0.0.0`) y rechaza cualquier cliente que no sea un Sonos descubierto. No hay reenvío de puertos ni exposición a Internet. El firewall no se modifica (`docs/NETWORKING.md`).
+
+## 2. Silenciar en el PC solo la app elegida
+
+Antes, en «Una aplicación», «Silenciar el PC» silenciaba **el dispositivo** donde sonaba la app: todo lo demás de ese dispositivo (Chrome, juegos) se quedaba mudo. Se midieron las alternativas con CaptureCheck (tonos en una salida que nadie escucha; nada audible):
+
+| Prueba (`CaptureCheck local-silence`) | Captura de la app (→ Sonos) | Salida local |
+|---|---|---|
+| Referencia | −12,0 dBFS | −12,0 dBFS |
+| Sesión de la app silenciada (`ISimpleAudioVolume.Mute`) | **−163,1** | −240 |
+| Volumen de la sesión al 0 % | **−163,1** | −240 |
+| Volumen de la sesión al 10 % | −32,0 | −32,0 |
+
+El silencio y el volumen **de la sesión** se aplican antes de la captura por proceso: silenciar la sesión también silenciaría el Sonos. **Descartado.** (El silencio y el volumen **del dispositivo**, en cambio, no afectan a la captura por proceso: medido con `CaptureCheck endpoint`.)
+
+Alternativa adoptada, como [AppAudioRouter](https://github.com/Eververdants/AppAudioRouter) (MIT): **enviar solo esa app a una salida que nadie escucha** con la «salida por aplicación» de Windows (Configuración → Sonido → Mezclador de volumen), la misma que usan el mezclador y EarTrumpet (`IAudioPolicyConfigFactory`, no documentada; ranuras 25/26; IID `ab3d4648-…` desde la build 21390). Medido con una instancia propia de Chrome (perfil temporal, tono a −60 dBFS) que ya estaba sonando (`CaptureCheck route-browser`):
+
+| | Captura de la app | Steam Streaming (nadie lo oye) | Salida predeterminada |
+|---|---|---|---|
+| Antes | −60,0 | — | −60,0 |
+| Redirigida | **−60,0** | −60,0 | **—** |
+| Restaurada | −60,0 | — | −60,0 |
+
+Chrome cambia de salida **en caliente**; la captura no se interrumpe; nada más del PC cambia.
+
+### Cómo se aplica (`AppOutputRedirect`, `StreamingSession.ApplyGuard`)
+1. «Salida silenciosa»: un dispositivo virtual que no suena, hoy solo **Steam Streaming Speakers** (suena únicamente durante una sesión de Steam Remote Play). Nunca el predeterminado ni el de la app (`AudioDevices.FindSilentOutput`). VB-Audio CABLE y Voicemeeter se excluyen a propósito: a menudo sí se escuchan.
+2. Windows solo acepta el cambio para un proceso con sesión de audio (si no, `E_INVALIDARG`), así que se usa el PID de la sesión, que en los navegadores es un proceso hijo (`AudioApps.SessionProcessOf`). Si la app aún no suena, se aplica en cuanto abre su audio (reintento cada 3 s; si entonces falla, plan B).
+3. Antes de cambiar nada se anota la salida anterior en `%LOCALAPPDATA%\SonosFlow\app-output-guard.json`: **un registro por ejecutable**, escrito de forma atómica y protegido con un mutex con nombre. Si ya había un registro pendiente para esa app, se conserva su salida original (nunca se guarda la salida silenciosa como «anterior»). Cada registro lleva la instancia de Audiora que lo creó, y otra instancia (el autotest, una captura) no lo toca mientras esa siga abierta.
+4. Al detener, cambiar de fuente o salir se restaura, solo si la salida sigue siendo la nuestra: si el usuario eligió otra mientras tanto, se respeta. Se prueba con cada proceso de la app, primero los que tienen audio. Si Windows aún no acepta ninguno (la app cerrada o sin audio), el registro queda pendiente y se reintenta al abrir Audiora y cada vez que se refresca la lista de apps, también mientras se transmite.
+5. Ante cualquier fallo de la API (la factory no está documentada y puede cambiar), si el PC no tiene salida silenciosa o si Windows es anterior a 21H2, se aplica el plan B: silenciar la salida de la app, como antes. Queda anotado en el registro.
+
+Nunca se silencia la salida predeterminada, nunca se cambia el dispositivo predeterminado del sistema ni el volumen de otras apps.
+
+## 3. Brave, Chrome y otros navegadores
+
+- Cada app se identifica por su **proceso raíz**: se sube por el árbol mientras el padre sea el mismo ejecutable (`AudioApps.RootOf`). Brave (`brave.exe`) y Chrome (`chrome.exe`) son raíces distintas y se capturan por separado; la captura incluye todos los procesos hijos (`INCLUDE_TARGET_PROCESS_TREE`), que es donde los navegadores generan el audio.
+- Si la app se reinicia (PID nuevo), la sesión la vuelve a encontrar por la ruta del ejecutable (`FollowApplicationAsync`) y rehace la captura y la redirección.
+- **Granularidad: por aplicación, no por pestaña.** Las pestañas de un navegador comparten un único proceso de audio; Windows no ofrece nada más fino. Para separar YouTube Music del resto, Audiora abre una instancia del navegador con un perfil propio (árbol de procesos propio).
+- La salida por aplicación de Windows se guarda **por ejecutable**: al redirigir la instancia aislada de YouTube Music (que usa `brave.exe`) también se aparta el Brave normal mientras dura la transmisión, y lo mismo pasa con dos perfiles del mismo navegador o con las apps WebView2 (`msedgewebview2.exe`). Audiora lo anota en el registro cuando detecta otra instancia con audio. Con el plan B anterior (silenciar el dispositivo) esas instancias también se callaban, junto con todo lo demás.
+- Si la app no tiene audio, la captura entrega silencio y la interfaz lo dice («Sin sonido» / «La aplicación no está abierta»); no se simula actividad.
+
+## 4. Degradación «hacia los 6 minutos»
+
+Investigada antes (`docs/INVESTIGACION-CORTES-6MIN.md`): la cadena del PC demostró no perder ni repetir muestras (prueba de resistencia a nivel de muestra); la causa estaba en la red o en el Sonos, que reproducía casi sin margen; se corrigió con el margen anti-cortes. Ahora se añade:
+- `capture_gaps` en `stream-*.csv`: discontinuidades que Windows marca en la captura por proceso (`AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY`), antes ignoradas.
+- MMCSS «Pro Audio» en el hilo de captura, como el ejemplo de Microsoft.
+Métricas existentes: `dropped_chunks`, `backlog_ms`, `buffer_est_s`, `silence_kB`, `reconnects`, `peak_dbfs`, atascos de red y conexiones HTTP (`app-events.log`).
+
+## 5. Riesgos y limitaciones
+
+- `IAudioPolicyConfigFactory` no está documentada: su IID y su vtable han cambiado entre versiones de Windows. Solo se usa la variante de 21H2+, comprobada en este PC (build 26300); en otra build fallaría la activación y se aplicaría el plan B.
+- Si Audiora se cierra de golpe, la app redirigida sigue apartada hasta que Audiora vuelva a abrirse y Windows acepte la restauración (la app abierta y con audio; si la app suena antes de eso, se restaura en el siguiente refresco, unos segundos). También se puede cambiar a mano en Configuración → Sonido → Mezclador de volumen.
+- Apps que no siguen el cambio de salida en caliente (las que fijan un dispositivo concreto) seguirían sonando en local hasta reiniciar su audio. Chromium sí lo sigue (medido).
+- `Application Loopback` está documentado desde la build 20348; Audiora lo usa desde la 19041 (2004), donde funciona según la comunidad.
+
+## 6. Pruebas (28/10/2026)
+
+**Automáticas** (`dotnet test`): 35 de Core (4 nuevas de la redirección), 86 de la app, 12 de copias: todas correctas.
+
+**CaptureCheck** (tonos en salidas que nadie oye o a −60 dBFS; nada audible):
+
+| Prueba | Resultado |
+|---|---|
+| Aislamiento (por defecto) | A −12,0 / B −91,9 dBFS: solo llega la app elegida |
+| `local-silence` | silenciar la sesión silencia la captura (−163 dBFS) → descartado |
+| `route-browser` (Chrome propio) | cambia de salida en caliente; captura sin cambios; predeterminada en silencio |
+| `redirect-crash` (Chrome propio, el hijo muere sin restaurar) | sigue apartado tras el «cuelgue»; `RecoverPending` lo devuelve a su salida y borra el registro |
+| `follow-check` (app WASAPI de dispositivo fijo) | NO sigue el cambio → Audiora lo detecta y aplica el plan B |
+| `soak 30 --margin 1000` | 30 min, 0 cortes en «Una aplicación» y «Todo el PC»; 1802,3 s de audio en 1802,5 s; hueco máx. 11,8 ms; 0 descartes |
+
+**Con el Sonos Five** (`--selftest-session`): **31/31**. La primera ejecución dio 30/31: con una app WASAPI de dispositivo fijo, Windows la redirigía pero seguía sonando en local (17c). De ahí la comprobación posterior a la redirección (`VerifyRedirect`) y el cambio de la parte B2 a una instancia de Chrome. Resultado de la parte B2: Chrome en la salida predeterminada (−61,1 dBFS) → apartado a Steam Streaming, el Sonos lo recibe (−59,7 dBFS), en el PC baja a −86,1 dBFS sin silenciar ninguna salida, y al detener vuelve a su salida. Después: ninguna salida silenciada, puerto libre, sin archivos de estado.
+
+**Aceptación con las apps reales del usuario** (28/10, 17:11, `CaptureCheck observe`): música en Brave y otro contenido en Chrome; Audiora en «Una aplicación» → Brave con «Silenciar el PC». Brave pasa a sonar solo en Steam Streaming (detectado a los 3 s: «la app ya suena solo en la salida silenciosa») y el Sonos lo reproduce (PLAYING, búfer ≈ 1,6 s con margen de 1 s, 0 descartes, 0 reconexiones, `capture_gaps` 0). Chrome y el resto siguen en el BenQ (−16 dBFS RMS) y ninguna salida está silenciada. El usuario lo confirmó de oído: Brave solo en el Sonos y Chrome por los altavoces.
+
+**Pendiente:** comprobar la restauración de Brave al detener esa transmisión y una transmisión real larga (30 min) con el Sonos.

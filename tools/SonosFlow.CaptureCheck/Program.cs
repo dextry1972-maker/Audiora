@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
@@ -18,6 +18,262 @@ if (args is ["tone", var hz, var secs, var dev])
     output.Play();
     Thread.Sleep(TimeSpan.FromSeconds(double.Parse(secs)));
     return 0;
+}
+
+if (args is ["tone-default", var dhz, var dsecs, var dgain])
+{
+    // Like an ordinary app: plays on whatever Windows says is the default output for this process,
+    // opened after a short wait so a per-app output set by the parent applies.
+    Thread.Sleep(3000);
+    using var en = new MMDeviceEnumerator();
+    using var device = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+    Console.WriteLine($"tone-default → {device.FriendlyName}");
+    using var output = new WasapiOut(device, AudioClientShareMode.Shared, true, 50);
+    output.Init(new SignalGenerator(48000, 2) { Frequency = double.Parse(dhz), Gain = double.Parse(dgain, System.Globalization.CultureInfo.InvariantCulture), Type = SignalGeneratorType.Sin });
+    output.Play();
+    Thread.Sleep(TimeSpan.FromSeconds(double.Parse(dsecs)));
+    return 0;
+}
+
+if (args is ["route-browser", var browserExe, var pageFile])
+{
+    // Live re-route of a Chromium browser that is ALREADY playing (what Audiora has to do with Brave/Chrome):
+    // its own instance (temporary profile, window off-screen) plays a quiet tone on the default output; we send
+    // its audio process to the unheard output and measure where it plays. The per-app output of that browser
+    // executable is restored at the end.
+    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    using var silentDev = AudioDevices.Resolve(silent.Id);
+    using var defaultDev = AudioDevices.Resolve(null);
+    var profile = Path.Combine(Path.GetTempPath(), "sf-route-browser-" + Environment.ProcessId);
+    using var browser = Process.Start(new ProcessStartInfo(browserExe,
+        $"--user-data-dir=\"{profile}\" --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required " +
+        $"--window-position=-32000,-32000 --window-size=300,200 --app=\"{new Uri(pageFile).AbsoluteUri}\"") { UseShellExecute = false })!;
+    int root = browser.Id, sessionPid = 0;
+    try
+    {
+        for (int i = 0; i < 40 && sessionPid == 0; i++) { Thread.Sleep(250); sessionPid = SessionPidUnder(root); }
+        if (sessionPid == 0) { Console.WriteLine("FALLO el navegador no abrió una sesión de audio"); return 1; }
+        Console.WriteLine($"Navegador {Path.GetFileName(browserExe)}: raíz {root}, sesión de audio en el PID {sessionPid}");
+        Thread.Sleep(1000);
+        string? previous = AppOutputRouting.Get(sessionPid);
+        void Row(string what)
+        {
+            var (app, _) = Measure(LoopbackSource.ForProcess(root, "A", 48000));
+            var (onSilent, _) = Measure(new LoopbackSource(silentDev));
+            var (onDefault, _) = Measure(new LoopbackSource(defaultDev));
+            Console.WriteLine($"{what,-34} captura {app,7:0.0} · {silent.Name[..Math.Min(24, silent.Name.Length)]} {onSilent,7:0.0} · predeterminada {onDefault,7:0.0} dBFS");
+        }
+        Row("Antes (salida predeterminada)");
+        try
+        {
+            AppOutputRouting.Set(sessionPid, silent.Id);
+            Thread.Sleep(1500);
+            Row("Redirigido a la salida silenciosa");
+            AppOutputRouting.Set(sessionPid, previous);
+            Thread.Sleep(1500);
+            Row("Restaurado");
+        }
+        finally
+        {
+            AppOutputRouting.Set(sessionPid, previous);
+            Console.WriteLine($"Salida por aplicación final: {AppOutputRouting.Get(sessionPid) ?? "(predeterminada del sistema)"}");
+        }
+        return 0;
+    }
+    finally
+    {
+        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(browserExe)))
+            if (AudioApps.RootProcessId(p.Id) == root) { try { p.Kill(); } catch (Exception) { } }
+        Thread.Sleep(500);
+        try { Directory.Delete(profile, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    }
+}
+
+if (args is ["observe"])
+{
+    // Read-only snapshot for the acceptance test: where each app plays, the level on the default output, mute states.
+    var outputs = AudioDevices.ListOutputs().ToDictionary(o => o.Id, o => o.Name);
+    foreach (var app in AudioApps.List())
+    {
+        var on = AudioApps.PlayingOn(app.ProcessId).Select(id => outputs.GetValueOrDefault(id, id));
+        string? perApp = null;
+        int sp = AudioApps.SessionProcessOf(app.ProcessId);
+        try { if (sp != 0) perApp = AppOutputRouting.Get(sp); } catch (Exception) { perApp = "?"; }
+        Console.WriteLine($"{(app.IsActive ? "▶" : " ")} {app.Name,-24} suena en: {string.Join(" + ", on).PadRight(40)} salida por app: {(perApp is null ? "predeterminada" : outputs.GetValueOrDefault(perApp, perApp))}");
+    }
+    using var def = AudioDevices.Resolve(null);
+    var all = new List<float>();
+    var src = new LoopbackSource(def);
+    src.PcmAvailable += pcm => { var s = pcm.Span; lock (all) for (int i = 0; i + 1 < s.Length; i += 2) all.Add(BitConverter.ToInt16(s.Slice(i, 2)) / 32768f); };
+    src.Start(); Thread.Sleep(1500); src.Stop(); src.Dispose();
+    double rms; lock (all) rms = all.Count == 0 ? 0 : Math.Sqrt(all.Average(v => (double)v * v));
+    Console.WriteLine($"Nivel en la predeterminada ({def.FriendlyName}): {20 * Math.Log10(rms + 1e-12):0.0} dBFS RMS");
+    using var en2 = new MMDeviceEnumerator();
+    foreach (var d in en2.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+        using (d) Console.WriteLine($"  {d.FriendlyName}: silenciada={d.AudioEndpointVolume.Mute} volumen={d.AudioEndpointVolume.MasterVolumeLevelScalar * 100:0}%");
+    return 0;
+}
+
+if (args is ["follow-check"])
+{
+    // Does a plain WASAPI app on a fixed device follow a per-app output change? (Audiora's redirect check must spot
+    // it when it doesn't.) Quiet tone on the default output, redirected, then: where is it playing? Nothing is muted.
+    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    using var fc = Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "tone-default 1000 20 0.001")
+        { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true })!;
+    Console.WriteLine(fc.StandardOutput.ReadLine());
+    Thread.Sleep(1000);
+    int pid = fc.Id; // the tone process owns its session (its "root" is this process: same executable)
+    string? prev = AppOutputRouting.Get(pid);
+    try
+    {
+        AppOutputRouting.Set(pid, silent.Id);
+        Thread.Sleep(4000);
+        var playing = AudioApps.PlayingOn(Environment.ProcessId);
+        bool moved = playing.Count > 0 && playing.All(id => id == silent.Id);
+        Console.WriteLine($"{(moved ? "SIGUE" : "NO SIGUE")} el cambio de salida en caliente (suena en {playing.Count} salida(s); la silenciosa: {playing.Contains(silent.Id)})");
+        Console.WriteLine(moved ? "Audiora mantendría la redirección" : "Audiora deshará la redirección y aplicará el plan B (silenciar su salida)");
+        return 0;
+    }
+    finally
+    {
+        AppOutputRouting.Set(pid, prev);
+        try { fc.Kill(); } catch (InvalidOperationException) { }
+    }
+}
+
+if (args is ["browser-tone", var btExe, var btSeconds])
+{
+    // For SonosFlow's self-test: a private browser instance (temporary profile, window off-screen) playing a 1 kHz
+    // tone at −60 dBFS on the default output. Prints "ROOT <pid>"; closes everything when stdin closes or on timeout.
+    var html = Path.Combine(Path.GetTempPath(), $"sf-browser-tone-{Environment.ProcessId}.html");
+    File.WriteAllText(html, """
+        <!doctype html><meta charset="utf-8"><title>Tono</title><script>
+        const c = new AudioContext(), o = c.createOscillator(), g = c.createGain();
+        o.frequency.value = 1000; g.gain.value = 0.001; o.connect(g).connect(c.destination); o.start();
+        setInterval(() => { if (c.state !== 'running') c.resume(); }, 500);
+        </script>
+        """);
+    var btProfile = Path.Combine(Path.GetTempPath(), $"sf-browser-tone-{Environment.ProcessId}");
+    using var bt = Process.Start(new ProcessStartInfo(btExe,
+        $"--user-data-dir=\"{btProfile}\" --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required " +
+        $"--window-position=-32000,-32000 --window-size=300,200 --app=\"{new Uri(html).AbsoluteUri}\"") { UseShellExecute = false })!;
+    Console.WriteLine($"ROOT {bt.Id}");
+    Console.Out.Flush();
+    Task.Run(Console.In.ReadToEnd).Wait(TimeSpan.FromSeconds(double.Parse(btSeconds)));
+    foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(btExe)))
+        if (AudioApps.RootProcessId(p.Id) == bt.Id) { try { p.Kill(); } catch (Exception) { } }
+    Thread.Sleep(800);
+    try { Directory.Delete(btProfile, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    try { File.Delete(html); } catch (IOException) { }
+    return 0;
+}
+
+if (args is ["redirect-and-crash", var rPid, var rExe, var rTarget, var rState])
+{
+    // Child of redirect-crash: redirect like Audiora does, then die without restoring (simulated crash).
+    _ = new AppOutputRedirect(int.Parse(rPid), rExe, rTarget, rState);
+    Environment.Exit(3);
+}
+
+if (args is ["redirect-crash", var crashBrowser, var crashPage])
+{
+    // Audiora's own redirect (AppOutputRedirect) on a private browser instance that is playing: a child process
+    // redirects it and dies without restoring; RecoverPending must then put the browser back where it was.
+    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    using var silentDev = AudioDevices.Resolve(silent.Id);
+    using var defaultDev = AudioDevices.Resolve(null);
+    var state = Path.Combine(Path.GetTempPath(), $"sf-redirect-crash-{Environment.ProcessId}.json");
+    var profile = Path.Combine(Path.GetTempPath(), "sf-route-browser-" + Environment.ProcessId);
+    using var browser = Process.Start(new ProcessStartInfo(crashBrowser,
+        $"--user-data-dir=\"{profile}\" --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required " +
+        $"--window-position=-32000,-32000 --window-size=300,200 --app=\"{new Uri(crashPage).AbsoluteUri}\"") { UseShellExecute = false })!;
+    int root = browser.Id, sessionPid = 0, fails = 0;
+    string? before = null;
+    void R(string what, bool ok) { if (!ok) fails++; Console.WriteLine($"{(ok ? "OK   " : "FALLO")} {what}"); }
+    (double App, double Silent, double Default) Levels() =>
+        (Measure(LoopbackSource.ForProcess(root, "A", 48000)).A, Measure(new LoopbackSource(silentDev)).A, Measure(new LoopbackSource(defaultDev)).A);
+    try
+    {
+        for (int i = 0; i < 40 && sessionPid == 0; i++) { Thread.Sleep(250); sessionPid = SessionPidUnder(root); }
+        if (sessionPid == 0) { Console.WriteLine("FALLO el navegador no abrió una sesión de audio"); return 1; }
+        Thread.Sleep(1000);
+        before = AppOutputRouting.Get(sessionPid);
+        var l0 = Levels();
+        R($"Antes: suena en la predeterminada ({l0.Default:0.0} dBFS), captura {l0.App:0.0}", l0.Default > -66 && l0.App > -66);
+        using (var child = Process.Start(new ProcessStartInfo(Environment.ProcessPath!,
+                   $"redirect-and-crash {sessionPid} \"{crashBrowser}\" \"{silent.Id}\" \"{state}\"") { UseShellExecute = false, CreateNoWindow = true })!)
+            child.WaitForExit(15000);
+        Thread.Sleep(1500);
+        var l1 = Levels();
+        R($"Tras el «cuelgue»: sigue apartada (predeterminada {l1.Default:0.0}, {silent.Name} {l1.Silent:0.0}), captura {l1.App:0.0}, registro pendiente={File.Exists(state)}",
+            l1.Default < l0.Default - 6 && l1.Silent > -66 && l1.App > -66 && File.Exists(state)); // other audio may be playing on the default output
+        bool recovered = AppOutputRedirect.RecoverPending(state);
+        Thread.Sleep(1500);
+        var l2 = Levels();
+        string? after = AppOutputRouting.Get(sessionPid);
+        R($"RecoverPending={recovered}: vuelve a la predeterminada ({l2.Default:0.0} dBFS), salida por aplicación {after ?? "(predeterminada)"} = antes {before ?? "(predeterminada)"}, sin registro={!File.Exists(state)}",
+            recovered && l2.Default > -66 && after == before && !File.Exists(state));
+        return fails == 0 ? 0 : 1;
+    }
+    finally
+    {
+        if (sessionPid != 0) { try { AppOutputRouting.Set(sessionPid, before); } catch (Exception) { } } // never leave it redirected
+        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(crashBrowser)))
+            if (AudioApps.RootProcessId(p.Id) == root) { try { p.Kill(); } catch (Exception) { } }
+        Thread.Sleep(500);
+        try { File.Delete(state); } catch (IOException) { }
+        try { Directory.Delete(profile, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    }
+}
+
+if (args is ["policy-get", .. var pids])
+{
+    // Read-only: the per-app output Windows has for each PID (or the error it answers).
+    foreach (var p in pids)
+    {
+        try { Console.WriteLine($"PID {p}: {AppOutputRouting.Get(int.Parse(p)) ?? "(predeterminada del sistema)"}"); }
+        catch (Exception ex) { Console.WriteLine($"PID {p}: 0x{ex.HResult:X8} {ex.GetType().Name}"); }
+    }
+    return 0;
+}
+
+if (args is ["route"])
+{
+    // Per-app output: send ONE process to an unheard output and check that (a) Audiora's per-app capture still
+    // gets it, (b) it now plays on the unheard output and (c) not on the user's default output. Quiet tone
+    // (−60 dBFS); the app's previous per-app output is restored at the end.
+    if (!AppOutputRouting.IsSupported) { Console.WriteLine("Windows sin soporte (build < 21390)"); return 2; }
+    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    using var silentDev = AudioDevices.Resolve(silent.Id);
+    using var defaultDev = AudioDevices.Resolve(null);
+    Console.WriteLine($"Salida silenciosa: {silent.Name} · predeterminada: {defaultDev.FriendlyName}");
+    var (baseline, _) = Measure(new LoopbackSource(defaultDev));
+    using var child = Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "tone-default 1000 25 0.001")
+        { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true })!;
+    Thread.Sleep(700); // the audio service rejects a process that is still starting (E_INVALIDARG)
+    string? previous = AppOutputRouting.Get(child.Id);
+    Console.WriteLine($"Salida por aplicación antes: {previous ?? "(predeterminada del sistema)"}");
+    try
+    {
+        AppOutputRouting.Set(child.Id, silent.Id);
+        Console.WriteLine($"Salida por aplicación ahora: {AppOutputRouting.Get(child.Id)}");
+        Console.WriteLine(child.StandardOutput.ReadLine());
+        Thread.Sleep(1000);
+        var (app, _) = Measure(LoopbackSource.ForProcess(child.Id, "A", 48000));
+        var (onSilent, _) = Measure(new LoopbackSource(silentDev));
+        var (onDefault, _) = Measure(new LoopbackSource(defaultDev));
+        Console.WriteLine($"Captura de la app {app:0.0} dBFS · en {silent.Name} {onSilent:0.0} dBFS · en la predeterminada {onDefault:0.0} dBFS (antes del tono {baseline:0.0})");
+        bool ok = app > -66 && onSilent > -66 && onDefault < -80;
+        Console.WriteLine(ok ? "OK    solo esa app deja de oírse en el PC y la captura sigue recibiéndola" : "FALLO el enrutado por aplicación no se comportó como se esperaba");
+        return ok ? 0 : 1;
+    }
+    finally
+    {
+        AppOutputRouting.Set(child.Id, previous);
+        Console.WriteLine($"Restaurada: {AppOutputRouting.Get(child.Id) ?? "(predeterminada del sistema)"}");
+        try { child.Kill(); } catch (InvalidOperationException) { }
+    }
 }
 
 if (args is ["list"])
@@ -198,6 +454,42 @@ if (args is ["endpoint"])
     return fails == 0 ? 0 : 1;
 }
 
+if (args is ["local-silence"])
+{
+    // Can the selected app be silenced LOCALLY without silencing what Audiora captures from it?
+    // For each candidate, measure the per-app capture (what the Sonos would get) and the device loopback
+    // (what the PC's speakers would play). Uses the unheard Steam Streaming output; every change is undone.
+    using var silenceDev = FindDevice("Steam Streaming") ?? throw new InvalidOperationException("Sin salida de prueba");
+    using var t = StartTone(1000, 40, "Steam Streaming");
+    Thread.Sleep(1500);
+    var session = FindSession(silenceDev, t.Id) ?? throw new InvalidOperationException("Sin sesión del tono");
+    var sv = session.SimpleAudioVolume;
+    bool origMute = sv.Mute; float origVol = sv.Volume;
+    void Row(string what)
+    {
+        var (app, _) = Measure(LoopbackSource.ForProcess(t.Id, "A", 48000));
+        var (local, _) = Measure(new LoopbackSource(silenceDev));
+        Console.WriteLine($"{what,-46} captura de la app {app,7:0.0} dBFS · salida local {local,7:0.0} dBFS");
+    }
+    try
+    {
+        Row("Referencia (sesión normal)");
+        sv.Mute = true; Thread.Sleep(300);
+        Row("Sesión SILENCIADA (ISimpleAudioVolume.Mute)");
+        sv.Mute = false; sv.Volume = 0f; Thread.Sleep(300);
+        Row("Volumen de la sesión al 0 %");
+        sv.Volume = 0.1f; Thread.Sleep(300);
+        Row("Volumen de la sesión al 10 %");
+    }
+    finally
+    {
+        sv.Volume = origVol; sv.Mute = origMute;
+        t.Kill();
+        Console.WriteLine($"Sesión restaurada: silenciada={sv.Mute} volumen={sv.Volume * 100:0}%");
+    }
+    return 0;
+}
+
 string deviceName = args.SkipWhile(a => a != "--device").Skip(1).FirstOrDefault() ?? "Steam Streaming";
 using var target = FindDevice(deviceName);
 if (target is null)
@@ -277,6 +569,38 @@ static MMDevice? FindDevice(string part)
     using var en = new MMDeviceEnumerator();
     return en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
         .FirstOrDefault(d => d.FriendlyName.Contains(part, StringComparison.OrdinalIgnoreCase));
+}
+
+// PID of a process with an active audio session whose root is rootPid (0 if none yet).
+static int SessionPidUnder(int rootPid)
+{
+    using var en = new MMDeviceEnumerator();
+    foreach (var d in en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active))
+    {
+        using (d)
+        {
+            var mgr = d.AudioSessionManager;
+            mgr.RefreshSessions();
+            for (int i = 0; i < mgr.Sessions.Count; i++)
+            {
+                var s = mgr.Sessions[i];
+                int pid = (int)s.GetProcessID;
+                if (pid != 0 && s.State == NAudio.CoreAudioApi.Interfaces.AudioSessionState.AudioSessionStateActive
+                    && AudioApps.RootProcessId(pid) == rootPid) return pid;
+            }
+        }
+    }
+    return 0;
+}
+
+static AudioSessionControl? FindSession(MMDevice device, int pid)
+{
+    var mgr = device.AudioSessionManager;
+    mgr.RefreshSessions();
+    var sessions = mgr.Sessions;
+    for (int i = 0; i < sessions.Count; i++)
+        if ((int)sessions[i].GetProcessID == pid) return sessions[i];
+    return null;
 }
 
 static bool SetSessionMute(MMDevice device, int pid, bool mute)

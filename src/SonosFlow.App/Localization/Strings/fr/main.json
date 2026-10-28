@@ -22,7 +22,7 @@
   "main.sleep.tooltip": "Arrête la diffusion après ce délai. Annulée si vous arrêtez.",
   "main.volume.name": "Volume du Sonos",
   "main.muteLocal.label": "Couper le PC",
-  "main.muteLocal.tooltip": "Seul le Sonos joue. En mode « Une app », coupe la sortie sur laquelle joue cette app (et tout ce qui y joue). S’applique au démarrage de la diffusion.",
+  "main.muteLocal.tooltip": "Seul le Sonos joue. En mode « Une app », seule cette app se tait sur le PC ; tout le reste continue de jouer. S’applique au démarrage de la diffusion.",
   "main.fullLevel.label": "Niveau maximal",
   "main.fullLevel.tooltip": "« Tout le PC » uniquement : Windows à 100 % pendant la coupure, le volume se règle donc depuis le Sonos. S’applique au démarrage de la diffusion.",
   "main.source.mode.system.label": "Tout le PC",

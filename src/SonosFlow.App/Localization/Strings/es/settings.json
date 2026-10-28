@@ -17,7 +17,7 @@
 
   "settings.audio.section": "AUDIO",
   "settings.audio.muteLocal.title": "Silenciar los altavoces del PC al transmitir",
-  "settings.audio.muteLocal.hint": "En «Una aplicación» se silencia la salida donde suena esa app (y todo lo que suene en ella); el Sonos la sigue recibiendo. Se restaura al detener, al salir e incluso tras un cierre inesperado.",
+  "settings.audio.muteLocal.hint": "En «Una aplicación», solo esa app deja de sonar en el PC (Windows la envía a una salida que nadie escucha); las demás apps y los juegos siguen sonando y el Sonos la sigue recibiendo. Si el PC no tiene esa salida, se silencia la salida de la app. Se restaura al detener, al salir e incluso tras un cierre inesperado.",
   "settings.audio.muteLocal.a11y": "Silenciar el PC",
   "settings.audio.prebuffer.title": "Margen anti-cortes",
   "settings.audio.prebuffer.hint": "El Sonos recibe de golpe este tiempo de audio y reproduce con ese retraso: aguanta pausas cortas de la Wi-Fi. Más margen = más estable, más retraso.",

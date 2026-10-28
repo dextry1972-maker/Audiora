@@ -22,7 +22,7 @@
   "main.sleep.tooltip": "到时间后停止传输。停止传输时会取消。",
   "main.volume.name": "Sonos 音量",
   "main.muteLocal.label": "电脑静音",
-  "main.muteLocal.tooltip": "仅 Sonos 发声。在“单个应用”模式下，会将该应用所用的输出设备静音（该设备上的其他声音也会静音）。开始传输时生效。",
+  "main.muteLocal.tooltip": "仅 Sonos 发声。在“单个应用”模式下，只有该应用在电脑上静音，其他声音照常播放。开始传输时生效。",
   "main.fullLevel.label": "最大电平",
   "main.fullLevel.tooltip": "仅限“整台电脑”：静音期间将 Windows 音量设为 100%，以便从 Sonos 控制音量。开始传输时生效。",
   "main.source.mode.system.label": "整台电脑",

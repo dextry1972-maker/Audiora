@@ -14,7 +14,7 @@
   "settings.general.resume.a11y": "Beim Start fortsetzen",
   "settings.audio.section": "AUDIO",
   "settings.audio.muteLocal.title": "PC-Lautsprecher beim Streamen stummschalten",
-  "settings.audio.muteLocal.hint": "Bei „Eine App“ wird das Ausgabegerät dieser App stummgeschaltet (samt allem, was dort läuft); der Sonos empfängt es weiterhin. Wird beim Stoppen, beim Beenden und sogar nach einem unerwarteten Herunterfahren wiederhergestellt.",
+  "settings.audio.muteLocal.hint": "Bei „Eine App“ verstummt nur diese App am PC (Windows leitet sie auf eine Ausgabe, die niemand hört); andere Apps und Spiele behalten ihren Ton, und der Sonos empfängt sie weiterhin. Hat der PC keine solche Ausgabe, wird stattdessen das Ausgabegerät der App stummgeschaltet. Wird beim Stoppen, beim Beenden und sogar nach einem unerwarteten Herunterfahren wiederhergestellt.",
   "settings.audio.muteLocal.a11y": "PC stummschalten",
   "settings.audio.prebuffer.title": "Aussetzer-Puffer",
   "settings.audio.prebuffer.hint": "Der Sonos erhält vorab so viel Audio und spielt mit dieser Verzögerung, um kurze Wi-Fi-Aussetzer zu überbrücken. Mehr Puffer = stabiler, aber mehr Verzögerung.",

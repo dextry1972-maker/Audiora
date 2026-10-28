@@ -14,7 +14,7 @@
   "settings.general.resume.a11y": "Reprendre au lancement",
   "settings.audio.section": "AUDIO",
   "settings.audio.muteLocal.title": "Couper les haut-parleurs du PC pendant la diffusion",
-  "settings.audio.muteLocal.hint": "En « Une app », la sortie sur laquelle joue cette app est coupée (avec tout ce qui y joue) ; le Sonos la reçoit toujours. Rétablie à l’arrêt, à la fermeture et même après un arrêt inattendu.",
+  "settings.audio.muteLocal.hint": "En « Une app », seule cette app ne joue plus sur le PC (Windows l’envoie vers une sortie que personne n’entend) ; les autres apps et les jeux gardent leur son et le Sonos la reçoit toujours. Si le PC n’a pas une telle sortie, la sortie de l’app est coupée. Rétabli à l’arrêt, à la fermeture et même après un arrêt inattendu.",
   "settings.audio.muteLocal.a11y": "Couper le PC",
   "settings.audio.prebuffer.title": "Marge anti-coupure",
   "settings.audio.prebuffer.hint": "Le Sonos reçoit cette quantité d’audio à l’avance et joue avec ce retard, ce qui absorbe les petites saccades du Wi-Fi. Plus de marge = plus stable, mais plus de retard.",

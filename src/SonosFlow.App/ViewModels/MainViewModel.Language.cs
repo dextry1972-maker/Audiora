@@ -16,6 +16,8 @@ public sealed partial class MainViewModel
 
     public IReadOnlyList<LanguageInfo> LanguageChoices => Languages.All;
 
+    private static string RedirectStateFile => SonosFlow.Core.Streaming.StreamingSession.RedirectStateFileFor(AppPaths.GuardStateFile);
+
     public string SelectedLanguageCode
     {
         get => Loc.Instance.Code;

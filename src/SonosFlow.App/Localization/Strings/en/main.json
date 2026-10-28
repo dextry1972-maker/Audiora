@@ -22,7 +22,7 @@
   "main.sleep.tooltip": "Stops streaming after this time. Canceled when you stop.",
   "main.volume.name": "Sonos volume",
   "main.muteLocal.label": "Mute PC",
-  "main.muteLocal.tooltip": "Only the Sonos plays. In “One app” mode, mutes the output that app plays on (and everything else on it). Applies when streaming starts.",
+  "main.muteLocal.tooltip": "Only the Sonos plays. In “One app” mode, only that app goes quiet on the PC; everything else keeps playing. Applies when streaming starts.",
   "main.fullLevel.label": "Full level",
   "main.fullLevel.tooltip": "“Whole PC” only: Windows at 100% while muted, so the volume is controlled from the Sonos. Applies when streaming starts.",
   "main.source.mode.system.label": "Whole PC",

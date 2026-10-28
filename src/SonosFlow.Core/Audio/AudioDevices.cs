@@ -24,6 +24,18 @@ public static class AudioDevices
             .ToList();
     }
 
+    // Virtual outputs that play nowhere (Steam's only sounds during a Remote Play session). Left out on purpose:
+    // VB-Audio CABLE Input and Voicemeeter, which are commonly listened to or routed to the speakers.
+    private static readonly string[] SilentOutputNames = ["Steam Streaming"];
+
+    /// <summary>
+    /// An active output nobody hears (a known virtual device), never the system default nor
+    /// <paramref name="excludeId"/>; null when this PC has none.
+    /// </summary>
+    public static OutputDeviceInfo? FindSilentOutput(string? excludeId) =>
+        ListOutputs().FirstOrDefault(d => !d.IsDefault && d.Id != excludeId
+            && SilentOutputNames.Any(n => d.Name.Contains(n, StringComparison.OrdinalIgnoreCase)));
+
     /// <summary>The device with <paramref name="id"/>, or the current default when null/missing.</summary>
     public static MMDevice Resolve(string? id)
     {

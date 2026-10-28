@@ -80,7 +80,14 @@ public sealed class StreamingSession : IAsyncDisposable
     private WavStreamServer? _server;
     private SonosClient? _sonos;
     private LocalOutputGuard? _guard;
-    private MMDevice? _guardDevice; // device muted in application mode (the capture itself needs none)
+    private MMDevice? _guardDevice; // device muted in application mode when the app can't be redirected
+    private AppOutputRedirect? _redirect; // application mode: only that app sent to an unheard output
+    private volatile bool _redirectPending;
+    private string? _redirectTarget;
+    private DateTime _redirectAt;
+    private int _redirectStrikes;
+    private volatile bool _redirectVerified;
+    private readonly string _redirectStateFile;
     private Task? _monitor;
     private TextWriter? _log;
     private DateTime _startedAt;
@@ -121,7 +128,12 @@ public sealed class StreamingSession : IAsyncDisposable
         _spec = source;
         _options = options;
         _guardStateFile = guardStateFile;
+        _redirectStateFile = RedirectStateFileFor(guardStateFile);
     }
+
+    /// <summary>Where the app redirect keeps its undo information (next to the output guard's).</summary>
+    public static string RedirectStateFileFor(string guardStateFile) =>
+        Path.Combine(Path.GetDirectoryName(guardStateFile) ?? "", "app-output-guard.json");
 
     public Task StartAsync(CancellationToken ct = default) => Task.Run(() => StartCoreAsync(ct), ct);
 
@@ -237,11 +249,12 @@ public sealed class StreamingSession : IAsyncDisposable
     }
 
     /// <summary>
-    /// "Silenciar el PC": mutes what is heard locally and restores it afterwards.
-    /// Whole output: the captured device, optionally at 100 % ("Nivel completo") because that capture
-    /// is taken after the Windows volume. Application: the device the app plays on, never touching
-    /// the master volume — per-process capture is independent of the device's mute and volume
-    /// (measured: muted or at 10 %, the captured level doesn't change).
+    /// "Silenciar el PC": what is heard locally goes quiet and is restored afterwards.
+    /// Whole output: the captured device is muted, optionally at 100 % ("Nivel completo") because that capture
+    /// is taken after the Windows volume. Application: only that app is sent to an output nobody hears
+    /// (<see cref="AppOutputRedirect"/>); other apps, the device's mute and the Windows volume stay as they are.
+    /// Only when this PC can't (no virtual output, Windows before 21H2) is the app's device muted instead, as before —
+    /// per-process capture is independent of the device's mute and volume (measured), unlike the session's own.
     /// </summary>
     private void ApplyGuard()
     {
@@ -251,8 +264,76 @@ public sealed class StreamingSession : IAsyncDisposable
             if (_captureDevice is not null) _guard = new LocalOutputGuard(_captureDevice, _options.FullLevel, _guardStateFile);
             return;
         }
+        GuardApplication();
+    }
+
+    /// <summary>Application mode: redirect the app, or wait for its audio session, or (this PC can't) mute its device.</summary>
+    private void GuardApplication()
+    {
+        if (TryRedirectApp() || _redirectPending) return; // pending: done as soon as the app opens its audio
         _guardDevice = AudioDevices.Resolve(_spec.DeviceId);
         _guard = new LocalOutputGuard(_guardDevice, fullLevel: false, _guardStateFile);
+        Note($"silencio local: salida «{_guardDevice.FriendlyName}» silenciada (no se pudo apartar solo «{_spec.DisplayName}»)");
+    }
+
+    /// <summary>
+    /// Sends only the selected app to an unheard output. False when this PC can't; <see cref="_redirectPending"/>
+    /// when the app has no audio session yet (Windows only accepts a process that has one).
+    /// </summary>
+    private bool TryRedirectApp()
+    {
+        _redirectPending = false;
+        if (!AppOutputRouting.IsSupported || _spec.ExePath is null) return false;
+        try
+        {
+            var silent = AudioDevices.FindSilentOutput(_spec.DeviceId);
+            if (silent is null) return false;
+            int sessionPid = AudioApps.SessionProcessOf(_spec.ProcessId);
+            if (sessionPid == 0) { _redirectPending = true; return false; }
+            _redirect = new AppOutputRedirect(sessionPid, _spec.ExePath, silent.Id, _redirectStateFile);
+            (_redirectTarget, _redirectAt, _redirectStrikes, _redirectVerified) = (silent.Id, DateTime.UtcNow, 0, false);
+            Note($"silencio local: «{_spec.DisplayName}» (PID {sessionPid}) → «{silent.Name}»; el resto del PC no cambia");
+            // Windows applies it per executable: another instance (a second profile, the isolated YouTube Music) goes too.
+            if (AudioApps.OtherInstancesWithAudio(_spec.ProcessId, _spec.ExePath) is > 0 and var others)
+                Note($"silencio local: Windows lo aplica por ejecutable; {others} instancia(s) más de {Path.GetFileName(_spec.ExePath)} tampoco sonará(n) en el PC");
+            return true;
+        }
+        catch (Exception ex) when (AppOutputRedirect.IsRoutingFailure(ex))
+        {
+            Note($"silencio local: no se pudo apartar «{_spec.DisplayName}» ({ex.GetType().Name} 0x{ex.HResult:X8})");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Apps that opened a specific output (instead of following Windows' choice) keep playing locally after the
+    /// redirect — Chromium follows it, a plain WASAPI app on a fixed device doesn't (measured). If the app is still
+    /// playing elsewhere on two checks after a short grace, the redirect is undone and its device is muted (plan B).
+    /// </summary>
+    private void VerifyRedirect()
+    {
+        if (_redirect is null || _redirectVerified || DateTime.UtcNow - _redirectAt < TimeSpan.FromSeconds(2)) return;
+        try
+        {
+            var playing = AudioApps.PlayingOn(_spec.ProcessId);
+            if (playing.Count == 0) return; // quiet right now: nothing to judge yet
+            if (playing.All(id => string.Equals(id, _redirectTarget, StringComparison.OrdinalIgnoreCase)))
+            {
+                _redirectVerified = true;
+                Note("silencio local: la app ya suena solo en la salida silenciosa");
+                return;
+            }
+            if (++_redirectStrikes < 2) return;
+            Note($"silencio local: «{_spec.DisplayName}» no cambió de salida en caliente; se deshace y se silencia su salida");
+            _redirect.Dispose();
+            _redirect = null;
+            _guardDevice = AudioDevices.Resolve(_spec.DeviceId);
+            _guard = new LocalOutputGuard(_guardDevice, fullLevel: false, _guardStateFile);
+        }
+        catch (Exception ex) when (AppOutputRedirect.IsRoutingFailure(ex))
+        {
+            Note($"silencio local: no se pudo comprobar la redirección ({ex.GetType().Name})");
+        }
     }
 
     private void ReleaseGuard()
@@ -261,6 +342,14 @@ public sealed class StreamingSession : IAsyncDisposable
         _guard = null;
         _guardDevice?.Dispose();
         _guardDevice = null;
+        if (_redirect is not null)
+        {
+            _redirect.Dispose();
+            Note(_redirect.Restored ? "silencio local: salida de la app restaurada"
+                                    : "silencio local: Windows no aceptó aún la restauración (la app no tiene audio abierto); se reintenta sola");
+            _redirect = null;
+        }
+        _redirectPending = false;
     }
 
     private void OnPcm(ReadOnlyMemory<byte> pcm)
@@ -354,7 +443,18 @@ public sealed class StreamingSession : IAsyncDisposable
 
             // The selected app closed: keep the stream alive (silence) and follow it if it comes back.
             if (_spec.Kind == CaptureKind.Application && ++tick % 3 == 0)
+            {
                 await FollowApplicationAsync().ConfigureAwait(false);
+                if ((_redirectPending || (_redirect is not null && !_redirectVerified)) && await _switchLock.WaitAsync(0).ConfigureAwait(false))
+                {
+                    try
+                    {
+                        if (_redirectPending) GuardApplication();
+                        else VerifyRedirect();
+                    }
+                    finally { _switchLock.Release(); }
+                }
+            }
 
             var now = clock.Elapsed;
             var verdict = watchdog.Observe(now, transport, _server.ClientCount, _server.SinceLastClientProgress, rel);
@@ -522,7 +622,7 @@ public sealed class StreamingSession : IAsyncDisposable
             // Written from the monitor, the server's connection events and Note(): serialize the writes.
             _log = TextWriter.Synchronized(new StreamWriter(path) { AutoFlush = true });
             _log.WriteLine($"# target={_target.RoomName} {_target.ModelName} {_target.Address}; capture={CaptureDeviceName}; {SourceFormat}; margen={_options.PrebufferMs} ms");
-            _log.WriteLine("elapsed_s,state,transport,clients,send_rate_kBps,bytes_sent,silence_kB,dropped_chunks,reconnects,buffer_est_s,error,source,paused,peak_dbfs,backlog_ms");
+            _log.WriteLine("elapsed_s,state,transport,clients,send_rate_kBps,bytes_sent,silence_kB,dropped_chunks,reconnects,buffer_est_s,error,source,paused,peak_dbfs,backlog_ms,capture_gaps");
         }
         catch (IOException) { _log = null; }
     }
@@ -539,7 +639,7 @@ public sealed class StreamingSession : IAsyncDisposable
                 s.DroppedChunks, s.Reconnects, s.BufferEstimateSeconds?.ToString("F1", inv) ?? "",
                 s.LastError?.Replace(',', ';') ?? "", s.SourceName.Replace(',', ';'), s.Paused ? 1 : 0,
                 double.IsNegativeInfinity(s.PeakDbfs) ? "" : s.PeakDbfs.ToString("F1", inv),
-                s.BacklogMaxMs.ToString("F0", inv)));
+                s.BacklogMaxMs.ToString("F0", inv), _source?.CaptureDiscontinuities ?? 0));
         }
         catch (IOException) { }
     }
