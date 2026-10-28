@@ -56,7 +56,8 @@ public static class AppOutputRouting
         finally { if (h != IntPtr.Zero) WindowsDeleteString(h); }
     }
 
-    internal static string? FromPolicyId(string? id)
+    /// <summary>MMDevice id inside a policy-store device id (<c>\\?\SWD#MMDEVAPI#{id}#{class}</c>); null when empty.</summary>
+    public static string? FromPolicyId(string? id)
     {
         if (string.IsNullOrEmpty(id)) return null;
         if (id.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase)) id = id[Prefix.Length..];
