@@ -42,7 +42,10 @@ public static class SonosDiscovery
 
     private static async Task ListenAsync(IPAddress localIp, byte[] request, TimeSpan timeout, HashSet<string> locations, CancellationToken ct)
     {
-        using var udp = new UdpClient(new IPEndPoint(localIp, 0));
+        UdpClient udp;
+        try { udp = new UdpClient(new IPEndPoint(localIp, 0)); }
+        catch (SocketException) { return; } // the address vanished (e.g. the hotspot is coming up): skip it, keep the others
+        using var _ = udp;
         try
         {
             await udp.SendAsync(request, MulticastEndpoint, ct);

@@ -7,7 +7,9 @@ using SonosFlow.Core.Sonos;
 
 namespace SonosFlow.Core.Streaming;
 
-public enum SessionState { Starting, Streaming, Recovering, Stopped, Failed }
+/// <remarks><see cref="Released"/>: the user took the Sonos for something else (another source, or paused it in the
+/// Sonos app); the session ended on purpose and must not be re-issued.</remarks>
+public enum SessionState { Starting, Streaming, Recovering, Stopped, Failed, Released }
 
 public enum CaptureKind { SystemOutput, Application }
 
@@ -101,6 +103,7 @@ public sealed class StreamingSession : IAsyncDisposable
     public bool Paused => _paused;
     private int _streamRate;
     private StallTracker? _stalls;
+    private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(2);
 
     public event Action<StreamStats>? StatsUpdated;
     public event Action<SessionState>? StateChanged;
@@ -176,6 +179,7 @@ public sealed class StreamingSession : IAsyncDisposable
 
             LoopbackSource? old;
             MMDevice? oldDevice;
+            var oldSpec = _spec;
             lock (_sourceLock)
             {
                 old = _source;
@@ -187,7 +191,25 @@ public sealed class StreamingSession : IAsyncDisposable
                 _sourceAvailable = true;
             }
             next.PcmAvailable += OnPcm;
-            next.Start(); // start the new capture before stopping the old one: no gap in the stream
+            try
+            {
+                next.Start(); // start the new capture before stopping the old one: no gap in the stream
+            }
+            catch
+            {
+                // Keep feeding the stream from the old capture (still running) instead of leaving it empty.
+                next.PcmAvailable -= OnPcm;
+                lock (_sourceLock)
+                {
+                    _source = old;
+                    _captureDevice = oldDevice;
+                    _spec = oldSpec;
+                }
+                if (old is not null) old.PcmAvailable += OnPcm;
+                next.Dispose();
+                nextDevice?.Dispose();
+                throw;
+            }
             old?.Dispose();
 
             ReleaseGuard(); // restore the previous output before guarding the new one
@@ -270,10 +292,12 @@ public sealed class StreamingSession : IAsyncDisposable
         _cts.Cancel();
         if (_monitor is not null)
         {
-            try { await _monitor.ConfigureAwait(false); } catch (OperationCanceledException) { }
+            // Whatever ended the monitor, teardown below must run: it restores the PC and frees the port.
+            try { await _monitor.ConfigureAwait(false); } catch (Exception) { }
         }
         await _switchLock.WaitAsync().ConfigureAwait(false);
-        try { await TearDownAsync(stopSonos: true).ConfigureAwait(false); }
+        // Released: the Sonos now plays what the user chose; sending Stop would cut it.
+        try { await TearDownAsync(stopSonos: State != SessionState.Released).ConfigureAwait(false); }
         finally { _switchLock.Release(); }
         SetState(SessionState.Stopped);
     }
@@ -288,27 +312,38 @@ public sealed class StreamingSession : IAsyncDisposable
 
     private async Task MonitorAsync(CancellationToken ct)
     {
+        try
+        {
+            await MonitorLoopAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            // Never die silently: the app must stop the session, which restores the PC and frees the port.
+            _lastError = $"Error interno de la transmisión: {ex.Message}";
+            Diagnostic?.Invoke($"monitor detenido por {ex.GetType().Name}: {ex.Message}");
+            SetState(SessionState.Failed);
+        }
+    }
+
+    private async Task MonitorLoopAsync(CancellationToken ct)
+    {
         long lastSent = Interlocked.Read(ref _server!.BytesSent);
-        int unhealthy = 0, tick = 0;
+        int tick = 0;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var watchdog = new PlaybackWatchdog(_options.PrebufferMs);
+        var policy = new RecoveryPolicy();
+        var lastVerdict = PlaybackVerdict.Healthy;
+        watchdog.Reset(clock.Elapsed);
+
         while (!ct.IsCancellationRequested)
         {
             await Task.Delay(1000, ct);
 
-            string transport;
-            double? bufferEst = null;
             long sent = Interlocked.Read(ref _server.BytesSent);
-            try
-            {
-                transport = await _sonos!.GetTransportStateAsync(ct);
-                // ESTIMATE (±1 s): audio delivered to the Sonos minus the position it reports.
-                if (await _sonos.GetRelTimeAsync(ct) is { } rel)
-                    bufferEst = (sent - _sentAtPlaybackStart) / (double)(_streamRate * 4) - rel.TotalSeconds;
-            }
-            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or SonosSoapException && !ct.IsCancellationRequested)
-            {
-                transport = "UNREACHABLE";
-                _lastError = "El Sonos no responde en la red";
-            }
+            var (transport, rel) = await ProbeAsync(ct).ConfigureAwait(false);
+            // ESTIMATE (±1 s): audio delivered to the Sonos minus the position it reports.
+            double? bufferEst = rel is { } r ? (sent - _sentAtPlaybackStart) / (double)(_streamRate * 4) - r.TotalSeconds : null;
 
             if (_source?.CaptureError is { } capErr)
             {
@@ -322,29 +357,107 @@ public sealed class StreamingSession : IAsyncDisposable
             if (_spec.Kind == CaptureKind.Application && ++tick % 3 == 0)
                 await FollowApplicationAsync().ConfigureAwait(false);
 
-            bool healthy = transport is "PLAYING" or "TRANSITIONING" && _server.ClientCount > 0;
-            unhealthy = healthy ? 0 : unhealthy + 1;
+            var now = clock.Elapsed;
+            var verdict = watchdog.Observe(now, transport, _server.ClientCount, _server.SinceLastClientProgress, rel);
+            bool healthy = verdict == PlaybackVerdict.Healthy;
+            if (verdict != lastVerdict) Note(healthy ? "vigilante: reproducción correcta" : $"vigilante: {verdict} (Sonos {transport}, clientes {_server.ClientCount})");
+            lastVerdict = verdict;
             if (healthy && State == SessionState.Recovering) { SetState(SessionState.Streaming); _lastError = null; }
 
-            // Not pulling for 5 s (Wi-Fi drop, another app took the speaker): re-issue our stream.
-            if (unhealthy >= 5)
+            switch (policy.Observe(now, healthy))
             {
-                unhealthy = 0;
-                _reconnects++;
-                SetState(SessionState.Recovering);
-                try
-                {
-                    await StartPlaybackAsync(ct);
-                }
-                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or SonosSoapException && !ct.IsCancellationRequested)
-                {
-                    _lastError = $"Reintento fallido: {ex.Message}";
-                }
+                case RecoveryDecision.Reconnect:
+                    if (await SpeakerTakenElsewhereAsync(transport, ct).ConfigureAwait(false) is { } why)
+                    {
+                        // The user chose something else on the Sonos: step aside instead of fighting it.
+                        _lastError = why;
+                        Note($"fin: {why}");
+                        Publish(transport, sent, lastSent, bufferEst);
+                        SetState(SessionState.Released);
+                        return;
+                    }
+                    _reconnects++;
+                    SetState(SessionState.Recovering);
+                    Note($"reintento {policy.Attempts}/{RecoveryPolicy.MaxAttempts} ({verdict})");
+                    _server.AbortClients(); // a stuck connection must not keep counting as a client
+                    try
+                    {
+                        await StartPlaybackAsync(ct).ConfigureAwait(false);
+                    }
+                    catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or SonosSoapException && !ct.IsCancellationRequested)
+                    {
+                        _lastError = $"Reintento fallido: {ex.Message}";
+                    }
+                    watchdog.Reset(clock.Elapsed);
+                    _stalls?.RestartWarmup(DateTime.Now - _startedAt);
+                    break;
+
+                case RecoveryDecision.GiveUp:
+                    _lastError = $"El Sonos no recupera la transmisión tras {policy.Attempts} intentos";
+                    Note($"fin: {_lastError}");
+                    Publish(transport, sent, lastSent, bufferEst);
+                    SetState(SessionState.Failed);
+                    return;
             }
 
             Publish(transport, sent, lastSent, bufferEst);
             lastSent = sent;
         }
+    }
+
+    /// <summary>Transport state and position, each with a short timeout so a slow reply can't stall the monitor.</summary>
+    private async Task<(string Transport, TimeSpan? Rel)> ProbeAsync(CancellationToken ct)
+    {
+        string transport;
+        try
+        {
+            using var probe = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            probe.CancelAfter(ProbeTimeout);
+            transport = await _sonos!.GetTransportStateAsync(probe.Token).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or SonosSoapException or System.Xml.XmlException && !ct.IsCancellationRequested)
+        {
+            _lastError = "El Sonos no responde en la red";
+            return ("UNREACHABLE", null);
+        }
+        if (transport is not ("PLAYING" or "TRANSITIONING")) return (transport, null);
+        try
+        {
+            // Separate from the transport probe: a failed position read must not turn PLAYING into UNREACHABLE.
+            using var probe = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            probe.CancelAfter(ProbeTimeout);
+            return (transport, await _sonos.GetRelTimeAsync(probe.Token).ConfigureAwait(false));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or SonosSoapException or System.Xml.XmlException && !ct.IsCancellationRequested)
+        {
+            return (transport, null);
+        }
+    }
+
+    /// <summary>Non-null (the reason) when the Sonos now plays another source or was paused from the Sonos app.</summary>
+    private async Task<string?> SpeakerTakenElsewhereAsync(string transport, CancellationToken ct)
+    {
+        string uri;
+        try
+        {
+            using var probe = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            probe.CancelAfter(ProbeTimeout);
+            uri = await _sonos!.GetCurrentUriAsync(probe.Token).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or SonosSoapException or System.Xml.XmlException && !ct.IsCancellationRequested)
+        {
+            return null; // unknown: unreachable speakers are retried
+        }
+        if (!PlaybackWatchdog.IsOurStream(uri, _server!.StreamUrl)) return "El Sonos está reproduciendo otra fuente";
+        // Sonos never pauses by itself (network trouble shows as STOPPED/TRANSITIONING): this was the user.
+        if (transport == "PAUSED_PLAYBACK") return "Se pausó desde la app de Sonos";
+        return null;
+    }
+
+    private void Note(string message)
+    {
+        try { _log?.WriteLine($"# {DateTime.Now:HH:mm:ss.fff} {message}"); } catch (IOException) { } catch (ObjectDisposedException) { }
+        Diagnostic?.Invoke(message);
     }
 
     private async Task FollowApplicationAsync()
@@ -357,8 +470,15 @@ public sealed class StreamingSession : IAsyncDisposable
         _sourceAvailable = false;
         if (_spec.ExePath is null) return;
         var again = AudioApps.FindByExe(_spec.ExePath, _spec.IsIsolatedYouTubeMusic);
-        if (again is not null && await SwitchSourceAsync(CaptureSpec.Application(again)).ConfigureAwait(false))
-            _lastError = null;
+        if (again is null) return;
+        try
+        {
+            if (await SwitchSourceAsync(CaptureSpec.Application(again)).ConfigureAwait(false)) _lastError = null;
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException or TimeoutException or PlatformNotSupportedException)
+        {
+            Note($"no se pudo volver a capturar «{_spec.DisplayName}»: {ex.Message}"); // retried on the next check
+        }
     }
 
     private void Publish(string transport, long sent, long lastSent, double? bufferEst)

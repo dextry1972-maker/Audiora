@@ -22,6 +22,9 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly DispatcherTimer _eqDebounce;
 
     private StreamingSession? _session;
+    private (StreamingSession Session, Task Start)? _starting;
+    private bool _cancelStart;
+    private bool _lastStartRetryable;
     private SonosClient? _control;
     private DateTime _lastUserVolumeChange = DateTime.MinValue;
     private DateTime _lastUserEqChange = DateTime.MinValue;
@@ -52,9 +55,9 @@ public sealed partial class MainViewModel : ObservableObject
             });
         };
 
-        ToggleStreamCommand = new RelayCommand(async () => await ToggleStreamAsync(), () => CanToggle);
-        RescanCommand = new RelayCommand(async () => await DiscoverAsync(), () => State is not (UiState.Discovering or UiState.Starting));
-        SelectSpeakerCommand = new RelayCommand(p => { if (p is SpeakerItem s) Select(s); }, _ => !IsStreaming);
+        ToggleStreamCommand = new RelayCommand(async () => { CancelStartupWait(); await ToggleStreamAsync(); }, () => CanToggle);
+        RescanCommand = new RelayCommand(async () => { CancelStartupWait(); await DiscoverAsync(); }, () => State is not (UiState.Discovering or UiState.Starting));
+        SelectSpeakerCommand = new RelayCommand(p => { if (p is SpeakerItem s) { CancelStartupWait(); Select(s); } }, _ => !IsStreaming);
         NavigateCommand = new RelayCommand(p => Page = p as string ?? "home");
         OpenLogsCommand = new RelayCommand(() =>
         {
@@ -276,8 +279,9 @@ public sealed partial class MainViewModel : ObservableObject
             StatusDetail = "Se restauró el sonido del PC tras un cierre inesperado";
         await DiscoverAsync();
         _poll.Start();
-        if (SelectedSpeaker is not null && (autoStart || (_settings.ResumeOnLaunch && _settings.WasStreaming)))
-            await StartAsync();
+        // At Windows sign-in the hotspot and the Sonos may need a while: wait for them (bounded) instead of giving up.
+        if (autoStart || (_settings.ResumeOnLaunch && _settings.WasStreaming))
+            await WaitForSpeakerAndStartAsync();
     }
 
     public async Task DiscoverAsync()
@@ -342,6 +346,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
         State = UiState.Starting;
+        _lastStartRetryable = false;
         AppLog.Write($"inicio solicitado → {speaker.Name} ({speaker.Address})");
         StatusDetail = $"Preparando el audio para {speaker.Name}";
         LastErrorText = "Ninguno";
@@ -358,19 +363,27 @@ public sealed partial class MainViewModel : ObservableObject
             AppLog.Write($"fuente activa: {src.DisplayName}");
         });
 
+        var start = session.StartAsync();
+        _starting = (session, start);
         try
         {
-            await session.StartAsync();
+            await start;
         }
         catch (Exception ex)
         {
+            if (_cancelStart) return; // StopAsync is disposing it
+            _starting = null;
             await session.DisposeAsync();
             State = UiState.Error;
             StatusDetail = Describe(ex);
+            _lastStartRetryable = ex is HttpRequestException or TaskCanceledException
+                or SocketException { SocketErrorCode: SocketError.AddressAlreadyInUse or SocketError.AddressNotAvailable or SocketError.NetworkUnreachable or SocketError.HostUnreachable };
             AppLog.Write($"inicio fallido: {StatusDetail} [{ex.GetType().Name}]");
             LastErrorText = StatusDetail;
-                return;
+            return;
         }
+        if (_cancelStart) return; // stopped (or the app is closing) while connecting: StopAsync disposes it
+        _starting = null;
 
         _session = session;
         Analyzer = session.Spectrum;
@@ -386,6 +399,16 @@ public sealed partial class MainViewModel : ObservableObject
 
     public async Task StopAsync(bool rememberStopped = true, string reason = "sin especificar")
     {
+        if (_starting is var (pending, startTask))
+        {
+            // Still connecting: let the start finish, then undo it, so nothing (a muted PC, the port) is left behind.
+            _cancelStart = true;
+            AppLog.Write($"detenido durante la conexión: {reason}");
+            try { await startTask; } catch (Exception) { }
+            await pending.DisposeAsync();
+            _starting = null;
+            _cancelStart = false;
+        }
         var session = _session;
         if (session is not null) AppLog.Write($"detenido: {reason}");
         _session = null;
@@ -403,6 +426,7 @@ public sealed partial class MainViewModel : ObservableObject
         BufferText = "—";
         TransportText = "—";
         ResetNetwork();
+        if (_sleepAt is not null) CancelSleep(log: true);
     }
 
     private void OnSessionState(SessionState s)
@@ -418,7 +442,19 @@ public sealed partial class MainViewModel : ObservableObject
             case SessionState.Failed:
                 _ = FailAsync();
                 break;
+            case SessionState.Released:
+                _ = ReleasedAsync();
+                break;
         }
+    }
+
+    /// <summary>The user took the Sonos for something else: stop quietly (not an error) and don't resume later.</summary>
+    private async Task ReleasedAsync()
+    {
+        var reason = LastErrorText;
+        await StopAsync(rememberStopped: true, reason: $"Sonos: {reason}");
+        StatusDetail = reason;
+        LastErrorText = "Ninguno";
     }
 
     private async Task FailAsync()
@@ -524,6 +560,7 @@ public sealed partial class MainViewModel : ObservableObject
     public async Task ShutdownAsync()
     {
         _poll.Stop();
+        CancelStartupWait();
         // Keep WasStreaming so "resume on launch" picks up where the user left off.
         await StopAsync(rememberStopped: false, reason: "cierre de la aplicación");
         _control?.Dispose();

@@ -424,6 +424,18 @@
                                         <TextBlock Text="{Binding StreamButtonText}" Style="{StaticResource T.Section}" HorizontalAlignment="Center" Margin="0,8,0,0" />
                                         <TextBlock Text="{Binding ElapsedText}" Style="{StaticResource T.Dim}" FontFamily="Cascadia Mono, Consolas" HorizontalAlignment="Center" Margin="0,4,0,0"
                                                    Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}" />
+                                        <!-- Sleep timer (this stream only) -->
+                                        <StackPanel HorizontalAlignment="Center" Margin="0,10,0,0" Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}">
+                                            <ComboBox Style="{StaticResource Combo.Flow}" Width="190" ItemsSource="{Binding SleepChoices}" SelectedValuePath="Key"
+                                                      SelectedValue="{Binding SleepKey}" AutomationProperties.Name="Temporizador de apagado"
+                                                      ToolTip="Detiene la transmisión pasado ese tiempo. Se cancela al detener.">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <TextBlock Text="{Binding SleepRemainingText}" Style="{StaticResource T.Dim}" FontSize="11.5" HorizontalAlignment="Center" Margin="0,4,0,0"
+                                                       Visibility="{Binding SleepActive, Converter={StaticResource BoolToVis}}" />
+                                        </StackPanel>
                                     </StackPanel>
 
                                     <!-- Volume + quick options -->

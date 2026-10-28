@@ -152,6 +152,32 @@ public sealed class WavStreamServerTests
     }
 
     [Fact]
+    public async Task A_player_that_stops_reading_is_detected_and_can_be_closed()
+    {
+        using var server = Server(0);
+        var events = new List<string>();
+        server.ConnectionEvent += e => { lock (events) events.Add(e); };
+        var (tcp, s, extra) = await ConnectAsync(server);
+        using var _ = tcp;
+        await WaitForClientAsync(server);
+
+        server.Write(Frames(0, FramesPer10Ms));
+        await ReadFramesAsync(s, extra, FramesPer10Ms);
+        Assert.True(server.SinceLastClientProgress < TimeSpan.FromMilliseconds(500), "a reading player shows progress");
+
+        // Stops reading: once the socket buffers are full the server's write blocks and progress stops.
+        for (int i = 0; i < 300; i++) server.Write(Frames(i * FramesPer10Ms, FramesPer10Ms));
+        await Task.Delay(1500);
+        Assert.True(server.SinceLastClientProgress > TimeSpan.FromSeconds(1), $"stalled for {server.SinceLastClientProgress}");
+
+        server.AbortClients(); // must also release a write blocked on the socket
+        for (int i = 0; i < 100 && server.ClientCount > 0; i++) await Task.Delay(20);
+        Assert.Equal(0, server.ClientCount);
+        for (int i = 0; i < 50; i++) { lock (events) if (events.Count == 2) break; await Task.Delay(20); }
+        lock (events) Assert.Contains("vigilante", events[^1]);
+    }
+
+    [Fact]
     public async Task Connections_and_disconnections_are_reported()
     {
         using var server = Server(0);

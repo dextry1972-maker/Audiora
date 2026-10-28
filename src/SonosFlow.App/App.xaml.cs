@@ -29,6 +29,7 @@ public partial class App : Application
     private TrayIcon? _tray;
     private MiniPlayerWindow? _mini;
     private GlobalHotkeys? _hotkeys;
+    private VolumeHudWindow? _hud;
     private bool _quitting;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -46,7 +47,8 @@ public partial class App : Application
 
         string? screenshot = Arg("--screenshot");
         string? miniShot = Arg("--screenshot-mini");
-        bool testCapture = screenshot is not null || miniShot is not null || Arg("--selftest-session") is not null;
+        string? hudShot = Arg("--screenshot-hud");
+        bool testCapture = screenshot is not null || miniShot is not null || hudShot is not null || Arg("--selftest-session") is not null;
         if (!testCapture && !AcquireSingleInstance()) return;
         if (testCapture) AppSettings.PersistenceEnabled = false;
 
@@ -58,6 +60,7 @@ public partial class App : Application
         _window.StateChanged += OnMainStateChanged;
         _mini = new MiniPlayerWindow(_vm);
         _vm.ShowMainRequested += ShowWindow;
+        _vm.HudRequested += (glyph, text, fraction) => { if (!_quitting) (_hud ??= new VolumeHudWindow()).Flash(glyph, text, fraction); };
         _vm.PropertyChanged += (_, pe) => { if (pe.PropertyName == nameof(MainViewModel.MiniVisible)) ApplyMiniVisibility(); };
         if (Arg("--page") is { } page) _vm.Page = page;
         if (testCapture && Arg("--size")?.Split('x') is [var w, var h] && double.TryParse(w, out var width) && double.TryParse(h, out var height))
@@ -87,6 +90,19 @@ public partial class App : Application
         {
             try { await SelfTest.RunAsync(_vm, tonePid, outFile); }
             finally { await QuitAsync("fin del autotest"); } // always stop the stream and restore the PC
+            return;
+        }
+
+        if (hudShot is not null)
+        {
+            try
+            {
+                _hud ??= new VolumeHudWindow();
+                _hud.Flash("", "Bedroom · 45 %", 0.45);
+                await Task.Delay(300);
+                _hud.SaveScreenshot(hudShot);
+            }
+            finally { await QuitAsync("fin del modo captura"); }
             return;
         }
 
@@ -207,6 +223,7 @@ public partial class App : Application
         if (_vm is not null) await _vm.ShutdownAsync(); // stops the stream and restores the PC speakers
         _tray?.Dispose();
         _hotkeys?.Dispose();
+        _hud?.Close();
         _mini?.CloseForShutdown();
         _window?.Close();
         Shutdown();
