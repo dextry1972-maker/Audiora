@@ -27,6 +27,20 @@
             <GradientStop Color="#0AFFFFFF" Offset="1" />
         </LinearGradientBrush>
 
+        <!-- Speaker status dot: accent when the Sonos answers -->
+        <Style x:Key="SpeakerDot" TargetType="Ellipse">
+            <Setter Property="Width" Value="7" />
+            <Setter Property="Height" Value="7" />
+            <Setter Property="Margin" Value="0,0,7,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Fill" Value="{StaticResource B.TextFaint}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SpeakerOnline}" Value="True">
+                    <Setter Property="Fill" Value="{StaticResource B.Accent}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="IconBtn" TargetType="Button">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="40" />
@@ -95,26 +109,41 @@
                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
 
-                    <!-- Source, status, speaker -->
-                    <StackPanel Grid.Column="1" Margin="16,0,8,0" VerticalAlignment="Center">
+                    <!-- Source, status, speaker (when nothing publishes a title) -->
+                    <StackPanel Grid.Column="1" Margin="16,0,8,0" VerticalAlignment="Center"
+                                Visibility="{Binding HasNowPlaying, Converter={StaticResource BoolToVisInv}}">
                         <TextBlock Text="{Binding SourceName}" Foreground="White" FontSize="16.5" FontWeight="SemiBold"
                                    FontFamily="{StaticResource F.Display}" TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding MiniStatusText}" Foreground="#FF9BA6AE" FontSize="13" Margin="0,1,0,0" TextTrimming="CharacterEllipsis" />
                         <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                            <Ellipse Width="7" Height="7" Margin="0,0,7,0" VerticalAlignment="Center">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="{StaticResource B.TextFaint}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding SpeakerOnline}" Value="True">
-                                                <Setter Property="Fill" Value="{StaticResource B.Accent}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
+                            <Ellipse Style="{StaticResource SpeakerDot}" />
                             <TextBlock Foreground="#FF9BA6AE" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="200">
                                 <Run Text="{Binding SelectedSpeaker.Model, Mode=OneWay, FallbackValue='Sin altavoz'}" /><Run Text=" · " /><Run Text="{Binding ConnectionText, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Now playing (from Windows' media info): title, artist (or the source), status and speaker -->
+                    <StackPanel Grid.Column="1" Margin="16,0,8,0" VerticalAlignment="Center" ToolTip="{Binding NowPlayingText}"
+                                Visibility="{Binding HasNowPlaying, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding NowPlayingTitle}" Foreground="White" FontSize="15.5" FontWeight="SemiBold"
+                                   FontFamily="{StaticResource F.Display}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Foreground="#FF9BA6AE" FontSize="13" Margin="0,1,0,0" TextTrimming="CharacterEllipsis">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="{Binding NowPlayingArtist}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding NowPlayingArtist}" Value="{x:Null}">
+                                            <Setter Property="Text" Value="{Binding SourceName}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                            <Ellipse Style="{StaticResource SpeakerDot}" />
+                            <TextBlock Foreground="#FF9BA6AE" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="200">
+                                <Run Text="{Binding MiniStatusText, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding SelectedSpeaker.Model, Mode=OneWay, FallbackValue='Sin altavoz'}" />
                             </TextBlock>
                         </StackPanel>
                     </StackPanel>

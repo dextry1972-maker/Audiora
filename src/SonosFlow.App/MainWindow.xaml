@@ -661,6 +661,18 @@
                                                     ToolTip="Abre YouTube Music en una ventana de navegador separada (perfil propio) para poder enviar solo su audio. Un navegador normal mezcla el audio de todas sus pestañas." />
                                         </StackPanel>
 
+                                        <!-- Now playing (Windows' media info for this source) -->
+                                        <Grid Margin="0,8,0,0" ToolTip="{Binding NowPlayingText}" Visibility="{Binding HasNowPlaying, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xEC4F;" FontFamily="{StaticResource F.Icons}" FontSize="11" Foreground="{StaticResource B.TextDim}"
+                                                       VerticalAlignment="Center" Margin="0,1,6,0" />
+                                            <TextBlock Grid.Column="1" Text="{Binding NowPlayingText}" Style="{StaticResource T.Dim}" FontSize="11.5"
+                                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                        </Grid>
+
                                         <TextBlock Text="{Binding SourceFormatText}" Style="{StaticResource T.Dim}" FontSize="11" Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
                                     </StackPanel>
                                 </Border>
