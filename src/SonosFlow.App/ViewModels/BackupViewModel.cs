@@ -4,20 +4,32 @@ using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using SonosFlow.App.Infrastructure;
+using SonosFlow.App.Localization;
 using SonosFlow.Backup;
 
 namespace SonosFlow.App.ViewModels;
 
 public sealed class BackupRow(BackupInfo info) : ObservableObject
 {
-    private string _status = info.IsReadable ? "Sin verificar" : info.Problem ?? "Ilegible";
+    // A key rather than text, so the row follows language changes. Unreadable backups show the library's reason.
+    private string? _statusKey = info.IsReadable ? "backup.row.status.unverified" : null;
 
     public BackupInfo Info { get; } = info;
     public string Id => Info.Id;
-    public string DateText => Info.Manifest?.CreatedLocal.ToString("dd/MM/yyyy HH:mm:ss") ?? "—";
-    public string Details => Info.Manifest is { } m ? $"{m.FileCount} archivos · {m.TotalBytes / 1024.0:0.#} KB" : "—";
+    public string DateText => Info.Manifest?.CreatedLocal.ToString(Loc.Instance.T("backup.row.dateFormat"), Loc.Instance.Culture) ?? "—";
+    public string Details => Info.Manifest is { } m
+        ? Loc.Instance.Plural("backup.row.details", m.FileCount, m.FileCount, m.TotalBytes / 1024.0)
+        : "—";
     public string Reason => Info.Manifest?.Reason ?? "";
-    public string Status { get => _status; set => Set(ref _status, value); }
+    public string Status => _statusKey is { } key ? Loc.Instance.T(key) : Info.Problem ?? Loc.Instance.T("backup.row.status.unreadable");
+
+    public void SetStatus(string key)
+    {
+        _statusKey = key;
+        OnPropertyChanged(nameof(Status));
+    }
+
+    public void RefreshText() => OnPropertyChanged(string.Empty);
 }
 
 /// <summary>"Copias de seguridad" in Settings: backups of the Sonos Flow project source (not of the audio settings).</summary>
@@ -43,6 +55,8 @@ public sealed class BackupViewModel : ObservableObject
         });
         RefreshCommand = new RelayCommand(Refresh, () => !Busy);
         Refresh();
+        // Lives as long as the app (owned by MainViewModel), so the subscription is never removed.
+        Loc.Instance.LanguageChanged += OnLanguageChanged;
     }
 
     public ObservableCollection<BackupRow> Items { get; } = [];
@@ -59,7 +73,7 @@ public sealed class BackupViewModel : ObservableObject
         get => _projectPath;
         private set { if (Set(ref _projectPath, value)) { OnPropertyChanged(nameof(ProjectText)); OnPropertyChanged(nameof(CanAct)); } }
     }
-    public string ProjectText => ProjectPath ?? "No encontrado — elige la carpeta que contiene SonosFlow.sln";
+    public string ProjectText => ProjectPath ?? Loc.Instance.T("backup.project.notFound");
 
     private string _backupRoot;
     public string BackupRoot { get => _backupRoot; private set => Set(ref _backupRoot, value); }
@@ -75,8 +89,21 @@ public sealed class BackupViewModel : ObservableObject
     }
     public bool CanAct => !Busy && ProjectPath is not null;
 
-    private string _statusText = "";
-    public string StatusText { get => _statusText; private set => Set(ref _statusText, value); }
+    // Kept as a function so the last message is re-rendered in the new language.
+    private Func<string>? _status;
+    public string StatusText => _status?.Invoke() ?? "";
+
+    private void SetStatus(Func<string> text)
+    {
+        _status = text;
+        OnPropertyChanged(nameof(StatusText));
+    }
+
+    private void OnLanguageChanged()
+    {
+        OnPropertyChanged(string.Empty);
+        foreach (var row in Items) row.RefreshText();
+    }
 
     private BackupService? Service => ProjectPath is null ? null : new BackupService(ProjectPath, BackupRoot);
 
@@ -87,17 +114,22 @@ public sealed class BackupViewModel : ObservableObject
         var list = (Service ?? new BackupService(Environment.CurrentDirectory, BackupRoot)).List();
         foreach (var b in list) Items.Add(new BackupRow(b));
         Selected = Items.FirstOrDefault(i => i.Id == keep) ?? Items.FirstOrDefault();
-        if (StatusText.Length == 0)
-            StatusText = list.Count switch { 0 => "Todavía no hay copias.", 1 => $"1 copia en {BackupRoot}", var n => $"{n} copias en {BackupRoot}" };
+        if (_status is null)
+        {
+            var count = list.Count;
+            SetStatus(() => count == 0
+                ? Loc.Instance.T("backup.status.none")
+                : Loc.Instance.Plural("backup.status.count", count, count, BackupRoot));
+        }
     }
 
     private void ChooseProject()
     {
-        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Carpeta del proyecto Audiora (contiene SonosFlow.sln)" };
+        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Loc.Instance.T("backup.dialog.chooseProject") };
         if (dialog.ShowDialog() != true) return;
         if (!File.Exists(Path.Combine(dialog.FolderName, "SonosFlow.sln")))
         {
-            Show("Esa carpeta no contiene SonosFlow.sln.", MessageBoxImage.Warning);
+            Show(Loc.Instance.T("backup.dialog.notProject"), MessageBoxImage.Warning);
             return;
         }
         ProjectPath = dialog.FolderName;
@@ -109,16 +141,18 @@ public sealed class BackupViewModel : ObservableObject
     {
         var service = Service!;
         Busy = true;
-        StatusText = "Creando copia…";
+        SetStatus(() => Loc.Instance.T("backup.status.creating"));
+        // The reason is stored in the backup manifest (shared with the CLI), so it stays language-independent.
         var r = await Task.Run(() => service.Create("Copia manual desde Ajustes"));
         Busy = false;
-        StatusText = r.Success
-            ? $"Copia {r.Id} creada y verificada ({r.Manifest!.FileCount} archivos) en {r.Directory}" + (r.Error is { } w ? $". AVISO: {w}" : "")
-            : $"Error al crear la copia: {r.Error}";
+        SetStatus(() => r.Success
+            ? Loc.Instance.Plural("backup.status.created", r.Manifest!.FileCount, r.Id, r.Manifest!.FileCount, r.Directory)
+              + (r.Error is { } w ? Loc.Instance.F("backup.status.createdWarning", w) : "")
+            : Loc.Instance.F("backup.status.createFailed", r.Error));
         Refresh();
         if (r.Success && Items.FirstOrDefault(i => i.Id == r.Id) is { } row)
         {
-            row.Status = "Íntegra (verificada al crear)";
+            row.SetStatus("backup.row.status.intactOnCreate");
             Selected = row;
         }
         if (!r.Success) Show(StatusText, MessageBoxImage.Error);
@@ -129,11 +163,11 @@ public sealed class BackupViewModel : ObservableObject
         var row = Selected!;
         var service = Service!;
         Busy = true;
-        StatusText = $"Verificando {row.Id}…";
+        SetStatus(() => Loc.Instance.F("backup.status.verifying", row.Id));
         var v = await Task.Run(() => service.Verify(row.Id));
         Busy = false;
-        row.Status = v.IsIntact ? "Íntegra" : "DAÑADA";
-        StatusText = $"{row.Id}: {v.Summary}";
+        row.SetStatus(v.IsIntact ? "backup.row.status.intact" : "backup.row.status.damaged");
+        SetStatus(() => Loc.Instance.F("backup.status.verified", row.Id, Summary(v)));
     }
 
     private async Task RestoreAsync()
@@ -141,14 +175,14 @@ public sealed class BackupViewModel : ObservableObject
         var row = Selected!;
         var service = Service!;
         Busy = true;
-        StatusText = $"Comprobando {row.Id}…";
+        SetStatus(() => Loc.Instance.F("backup.status.checking", row.Id));
         try
         {
             var v = await Task.Run(() => service.Verify(row.Id));
-            row.Status = v.IsIntact ? "Íntegra" : "DAÑADA";
+            row.SetStatus(v.IsIntact ? "backup.row.status.intact" : "backup.row.status.damaged");
             if (!v.IsIntact)
             {
-                StatusText = $"{row.Id}: {v.Summary}. No se puede restaurar.";
+                SetStatus(() => Loc.Instance.F("backup.status.cannotRestore", row.Id, Summary(v)));
                 Show(StatusText, MessageBoxImage.Error);
                 return;
             }
@@ -156,18 +190,19 @@ public sealed class BackupViewModel : ObservableObject
             var plan = await Task.Run(() => service.Plan(row.Id));
             if (plan.Changes == 0)
             {
-                StatusText = "El proyecto ya coincide con esa copia; no hay nada que restaurar.";
+                SetStatus(() => Loc.Instance.T("backup.status.nothingToRestore"));
                 Show(StatusText, MessageBoxImage.Information);
                 return;
             }
 
-            if (!Confirm(plan)) { StatusText = "Restauración cancelada. No se modificó nada."; return; }
+            if (!Confirm(plan)) { SetStatus(() => Loc.Instance.T("backup.status.restoreCancelled")); return; }
 
-            StatusText = "Restaurando…";
+            SetStatus(() => Loc.Instance.T("backup.status.restoring"));
             var r = await Task.Run(() => service.Restore(row.Id));
-            StatusText = r.Success
-                ? $"Restaurada {row.Id}: {r.Written} archivos escritos y verificados. Estado anterior guardado en {r.SafetyBackupId}. Recompila para aplicar."
-                : $"La restauración falló: {r.Error}" + (r.SafetyBackupId is null ? "" : $" El estado anterior está en {r.SafetyBackupId}.");
+            SetStatus(() => r.Success
+                ? Loc.Instance.Plural("backup.status.restored", r.Written, row.Id, r.Written, r.SafetyBackupId)
+                : Loc.Instance.F("backup.status.restoreFailed", r.Error)
+                  + (r.SafetyBackupId is null ? "" : Loc.Instance.F("backup.status.restoreFailedSafety", r.SafetyBackupId)));
             Show(StatusText, r.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
         }
         finally
@@ -177,23 +212,35 @@ public sealed class BackupViewModel : ObservableObject
         }
     }
 
+    /// <summary>Localized counterpart of <see cref="VerifyResult.Summary"/> (which stays Spanish for the backup log).</summary>
+    private static string Summary(VerifyResult v) =>
+        !v.ManifestReadable ? Loc.Instance.T("backup.summary.unreadable")
+        : v.IsIntact ? Loc.Instance.Plural("backup.summary.intact", v.Checked)
+        : Loc.Instance.F("backup.summary.damaged", v.Missing.Count, v.Corrupted.Count, v.MissingEssentials.Count);
+
     private static bool Confirm(RestorePlan plan)
     {
+        var loc = Loc.Instance;
         var sb = new StringBuilder();
-        sb.AppendLine($"Restaurar la copia {plan.BackupId} en:\n{plan.TargetRoot}\n");
-        sb.AppendLine($"• Se crearán: {plan.ToAdd.Count}");
-        sb.AppendLine($"• Se sobrescribirán: {plan.ToOverwrite.Count}");
-        sb.AppendLine($"• Sin cambios: {plan.Unchanged.Count}");
-        sb.AppendLine($"• No están en la copia y NO se tocan: {plan.NotInBackup.Count}\n");
+        sb.AppendLine(loc.F("backup.confirm.target", plan.BackupId));
+        sb.AppendLine(plan.TargetRoot);
+        sb.AppendLine();
+        sb.AppendLine(loc.F("backup.confirm.toAdd", plan.ToAdd.Count));
+        sb.AppendLine(loc.F("backup.confirm.toOverwrite", plan.ToOverwrite.Count));
+        sb.AppendLine(loc.F("backup.confirm.unchanged", plan.Unchanged.Count));
+        sb.AppendLine(loc.F("backup.confirm.notInBackup", plan.NotInBackup.Count));
+        sb.AppendLine();
         foreach (var f in plan.ToOverwrite.Take(12)) sb.AppendLine($"   ~ {f}");
         foreach (var f in plan.ToAdd.Take(Math.Max(0, 12 - plan.ToOverwrite.Count))) sb.AppendLine($"   + {f}");
-        if (plan.Changes > 12) sb.AppendLine($"   … y {plan.Changes - 12} más");
-        sb.AppendLine("\nAntes de escribir se guardará automáticamente una copia del estado actual. Ninguna copia anterior se elimina.");
-        sb.AppendLine("\n¿Restaurar?");
-        return MessageBox.Show(Application.Current.MainWindow, sb.ToString(), "Restaurar copia de seguridad",
+        if (plan.Changes > 12) sb.AppendLine("   " + loc.F("backup.confirm.more", plan.Changes - 12));
+        sb.AppendLine();
+        sb.AppendLine(loc.T("backup.confirm.safety"));
+        sb.AppendLine();
+        sb.AppendLine(loc.T("backup.confirm.question"));
+        return MessageBox.Show(Application.Current.MainWindow, sb.ToString(), loc.T("backup.confirm.title"),
             MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
     }
 
     private static void Show(string text, MessageBoxImage icon) =>
-        MessageBox.Show(Application.Current.MainWindow, text, "Copias de seguridad", MessageBoxButton.OK, icon);
+        MessageBox.Show(Application.Current.MainWindow, text, Loc.Instance.T("backup.dialog.title"), MessageBoxButton.OK, icon);
 }

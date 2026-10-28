@@ -4,12 +4,14 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:SonosFlow.App.ViewModels"
+             xmlns:loc="clr-namespace:SonosFlow.App.Localization"
              mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:MainViewModel}">
 
     <UserControl.Resources>
         <!-- One setting: title + description on the left, control on the right -->
         <Style x:Key="RowTitle" TargetType="TextBlock" BasedOn="{StaticResource T.Base}">
             <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style x:Key="RowHint" TargetType="TextBlock" BasedOn="{StaticResource T.Dim}">
             <Setter Property="FontSize" Value="12" />
@@ -27,29 +29,46 @@
     </UserControl.Resources>
 
     <StackPanel MaxWidth="760" Margin="32,8,32,40">
-        <TextBlock Text="Ajustes" Style="{StaticResource T.Title}" Margin="2,0,0,0" />
-        <TextBlock Text="Se guardan al momento. Las opciones de audio se aplican al iniciar la siguiente transmisión."
-                   Style="{StaticResource T.Dim}" FontSize="12.5" Margin="2,6,0,0" />
+        <TextBlock Text="{loc:T settings.title}" Style="{StaticResource T.Title}" Margin="2,0,0,0" />
+        <TextBlock Text="{loc:T settings.subtitle}"
+                   Style="{StaticResource T.Dim}" FontSize="12.5" TextWrapping="Wrap" Margin="2,6,0,0" />
+
+        <!-- Language -->
+        <TextBlock Text="{loc:T settings.language.section}" Style="{StaticResource Section}" />
+        <Border Style="{StaticResource Surface.Group}">
+            <Grid Style="{StaticResource Row}">
+                <StackPanel Margin="0,0,300,0">
+                    <TextBlock Text="{loc:T settings.language.title}" Style="{StaticResource RowTitle}" />
+                    <TextBlock Text="{loc:T settings.language.hint}" Style="{StaticResource RowHint}" />
+                </StackPanel>
+                <ComboBox Style="{StaticResource Combo.Flow}" Width="270" HorizontalAlignment="Right" VerticalAlignment="Center" ItemsSource="{Binding LanguageChoices}"
+                          SelectedValuePath="Code" SelectedValue="{Binding SelectedLanguageCode}" TextSearch.TextPath="Display" AutomationProperties.Name="{loc:T settings.language.title}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate><TextBlock Text="{Binding Display}" /></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+        </Border>
 
         <!-- General -->
-        <TextBlock Text="GENERAL" Style="{StaticResource Section}" />
+        <TextBlock Text="{loc:T settings.general.section}" Style="{StaticResource Section}" />
         <Border Style="{StaticResource Surface.Group}">
             <StackPanel>
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Iniciar con Windows" Style="{StaticResource RowTitle}" />
-                        <TextBlock Text="Se abre minimizada en la bandeja al iniciar sesión" Style="{StaticResource RowHint}" />
+                        <TextBlock Text="{loc:T settings.general.startWithWindows.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.general.startWithWindows.hint}" Style="{StaticResource RowHint}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding StartWithWindows}" AutomationProperties.Name="Iniciar con Windows" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding StartWithWindows}" AutomationProperties.Name="{loc:T settings.general.startWithWindows.title}" />
                 </Grid>
                 <Rectangle Style="{StaticResource Hairline}" />
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,300,0">
-                        <TextBlock Text="Al cerrar la ventana principal" Style="{StaticResource RowTitle}" />
-                        <TextBlock Text="Ocultar la ventana nunca detiene la transmisión" Style="{StaticResource RowHint}" />
+                        <TextBlock Text="{loc:T settings.general.closeAction.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.general.closeAction.hint}" Style="{StaticResource RowHint}" />
                     </StackPanel>
                     <ComboBox Style="{StaticResource Combo.Flow}" Width="270" HorizontalAlignment="Right" VerticalAlignment="Center" ItemsSource="{Binding CloseActions}"
-                              SelectedValuePath="Key" SelectedValue="{Binding CloseAction}" AutomationProperties.Name="Al cerrar la ventana principal">
+                              SelectedValuePath="Key" SelectedValue="{Binding CloseAction}" AutomationProperties.Name="{loc:T settings.general.closeAction.title}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
                         </ComboBox.ItemTemplate>
@@ -58,36 +77,36 @@
                 <Rectangle Style="{StaticResource Hairline}" />
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Reanudar la transmisión al abrir" Style="{StaticResource RowTitle}" />
-                        <TextBlock Text="Si estaba transmitiendo al cerrar. Espera hasta 5 min a la zona Wi-Fi y al Sonos." Style="{StaticResource RowHint}" />
+                        <TextBlock Text="{loc:T settings.general.resume.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.general.resume.hint}" Style="{StaticResource RowHint}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding ResumeOnLaunch}" AutomationProperties.Name="Reanudar al abrir" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding ResumeOnLaunch}" AutomationProperties.Name="{loc:T settings.general.resume.a11y}" />
                 </Grid>
             </StackPanel>
         </Border>
 
         <!-- Audio -->
-        <TextBlock Text="AUDIO" Style="{StaticResource Section}" />
+        <TextBlock Text="{loc:T settings.audio.section}" Style="{StaticResource Section}" />
         <Border Style="{StaticResource Surface.Group}">
             <StackPanel>
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Silenciar los altavoces del PC al transmitir" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.audio.muteLocal.title}" Style="{StaticResource RowTitle}" />
                         <TextBlock Style="{StaticResource RowHint}"
-                                   Text="En «Una aplicación» se silencia la salida donde suena esa app (y todo lo que suene en ella); el Sonos la sigue recibiendo. Se restaura al detener, al salir e incluso tras un cierre inesperado." />
+                                   Text="{loc:T settings.audio.muteLocal.hint}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MuteLocal}" IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="Silenciar el PC" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MuteLocal}" IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="{loc:T settings.audio.muteLocal.a11y}" />
                 </Grid>
                 <Rectangle Style="{StaticResource Hairline}" />
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,280,0">
-                        <TextBlock Text="Margen anti-cortes" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.audio.prebuffer.title}" Style="{StaticResource RowTitle}" />
                         <TextBlock Style="{StaticResource RowHint}"
-                                   Text="El Sonos recibe de golpe este tiempo de audio y reproduce con ese retraso: aguanta pausas cortas de la Wi-Fi. Más margen = más estable, más retraso." />
+                                   Text="{loc:T settings.audio.prebuffer.hint}" />
                     </StackPanel>
                     <ComboBox Style="{StaticResource Combo.Flow}" Width="250" HorizontalAlignment="Right" VerticalAlignment="Center"
                               ItemsSource="{Binding PrebufferChoices}" SelectedValuePath="Key" SelectedValue="{Binding PrebufferKey}"
-                              IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="Margen anti-cortes">
+                              IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="{loc:T settings.audio.prebuffer.title}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
                         </ComboBox.ItemTemplate>
@@ -96,98 +115,106 @@
                 <Rectangle Style="{StaticResource Hairline}" />
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Nivel completo" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.audio.fullLevel.title}" Style="{StaticResource RowTitle}" />
                         <TextBlock Style="{StaticResource RowHint}"
-                                   Text="Solo en «Todo el PC», donde Windows aplica su volumen al audio capturado: sube el volumen de Windows al 100 % mientras el PC está silenciado. Requiere «Silenciar el PC»." />
+                                   Text="{loc:T settings.audio.fullLevel.hint}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding FullLevel}" IsEnabled="{Binding FullLevelEnabled}" AutomationProperties.Name="Nivel completo" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding FullLevel}" IsEnabled="{Binding FullLevelEnabled}" AutomationProperties.Name="{loc:T settings.audio.fullLevel.title}" />
                 </Grid>
             </StackPanel>
         </Border>
 
         <!-- Mini player and shortcuts -->
-        <TextBlock Text="MINI REPRODUCTOR Y ATAJOS" Style="{StaticResource Section}" />
+        <TextBlock Text="{loc:T settings.mini.section}" Style="{StaticResource Section}" />
         <Border Style="{StaticResource Surface.Group}">
             <StackPanel>
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Mostrar el mini reproductor" Style="{StaticResource RowTitle}" />
-                        <TextBlock Text="Cápsula flotante con volumen, pausa y fuente. Ocultarla no detiene el audio" Style="{StaticResource RowHint}" />
+                        <TextBlock Text="{loc:T settings.mini.show.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.mini.show.hint}" Style="{StaticResource RowHint}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniVisible}" AutomationProperties.Name="Mostrar el mini reproductor" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniVisible}" AutomationProperties.Name="{loc:T settings.mini.show.title}" />
                 </Grid>
                 <Rectangle Style="{StaticResource Hairline}" />
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Siempre encima" Style="{StaticResource RowTitle}" />
-                        <TextBlock Text="Por encima de otras ventanas; nunca toma el foco del teclado (no interrumpe juegos)" Style="{StaticResource RowHint}" />
+                        <TextBlock Text="{loc:T settings.mini.topmost.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.mini.topmost.hint}" Style="{StaticResource RowHint}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniTopmost}" AutomationProperties.Name="Mini reproductor siempre encima" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniTopmost}" AutomationProperties.Name="{loc:T settings.mini.topmost.a11y}" />
                 </Grid>
                 <Rectangle Style="{StaticResource Hairline}" />
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Recordar su posición" Style="{StaticResource RowTitle}" />
-                        <TextBlock Text="Vuelve a aparecer donde lo dejaste, siempre dentro de la pantalla" Style="{StaticResource RowHint}" />
+                        <TextBlock Text="{loc:T settings.mini.rememberPosition.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.mini.rememberPosition.hint}" Style="{StaticResource RowHint}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniRememberPosition}" AutomationProperties.Name="Recordar la posición del mini reproductor" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniRememberPosition}" AutomationProperties.Name="{loc:T settings.mini.rememberPosition.a11y}" />
                 </Grid>
                 <Rectangle Style="{StaticResource Hairline}" />
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Al minimizar, mostrar el mini reproductor" Style="{StaticResource RowTitle}" />
-                        <TextBlock Text="La ventana principal se oculta y queda la cápsula" Style="{StaticResource RowHint}" />
+                        <TextBlock Text="{loc:T settings.mini.minimizeToMini.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.mini.minimizeToMini.hint}" Style="{StaticResource RowHint}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MinimizeToMini}" AutomationProperties.Name="Al minimizar mostrar el mini reproductor" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MinimizeToMini}" AutomationProperties.Name="{loc:T settings.mini.minimizeToMini.a11y}" />
                 </Grid>
                 <Rectangle Style="{StaticResource Hairline}" />
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Atenuar cuando no se use" Style="{StaticResource RowTitle}" />
-                        <TextBlock Text="Baja ligeramente la opacidad si el ratón no está encima" Style="{StaticResource RowHint}" />
+                        <TextBlock Text="{loc:T settings.mini.dimWhenIdle.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.mini.dimWhenIdle.hint}" Style="{StaticResource RowHint}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniDimWhenIdle}" AutomationProperties.Name="Atenuar el mini reproductor" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniDimWhenIdle}" AutomationProperties.Name="{loc:T settings.mini.dimWhenIdle.a11y}" />
                 </Grid>
                 <Rectangle Style="{StaticResource Hairline}" />
                 <Grid Style="{StaticResource Row}">
                     <StackPanel Margin="0,0,80,0">
-                        <TextBlock Text="Atajos de teclado globales" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.mini.hotkeys.title}" Style="{StaticResource RowTitle}" />
                         <TextBlock Text="{Binding HotkeysHelp}" Style="{StaticResource RowHint}" />
                         <TextBlock Text="{Binding HotkeysStatus}" Foreground="{StaticResource B.Warn}" FontSize="12" TextWrapping="Wrap" MaxWidth="520" HorizontalAlignment="Left" Margin="0,4,0,0"
                                    Visibility="{Binding HasHotkeysProblem, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding HotkeysEnabled}" AutomationProperties.Name="Atajos de teclado globales" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding HotkeysEnabled}" AutomationProperties.Name="{loc:T settings.mini.hotkeys.title}" />
                 </Grid>
             </StackPanel>
         </Border>
 
         <!-- Diagnostics -->
-        <TextBlock Text="DIAGNÓSTICO" Style="{StaticResource Section}" />
+        <TextBlock Text="{loc:T settings.diagnostics.section}" Style="{StaticResource Section}" />
         <Border Style="{StaticResource Surface.Group}">
             <Grid Style="{StaticResource Row}">
-                <StackPanel Margin="0,0,160,0">
-                    <TextBlock Text="Registros de transmisión" Style="{StaticResource RowTitle}" />
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" MinWidth="160" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="{loc:T settings.diagnostics.logs.title}" Style="{StaticResource RowTitle}" />
                     <TextBlock Text="{Binding LogsPath}" Style="{StaticResource RowHint}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
-                <Button Content="Abrir carpeta" Command="{Binding OpenLogsCommand}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Btn.Pill}" />
+                <Button Grid.Column="1" Content="{loc:T settings.diagnostics.logs.open}" Command="{Binding OpenLogsCommand}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Btn.Pill}" Margin="12,0,0,0" />
             </Grid>
         </Border>
 
         <!-- Advanced: project source backups (a developer tool) -->
-        <TextBlock Text="AVANZADO · COPIAS DEL CÓDIGO FUENTE" Style="{StaticResource Section}" />
+        <TextBlock Text="{loc:T settings.backup.section}" Style="{StaticResource Section}" />
         <Border Style="{StaticResource Surface.Group}" Padding="18,14" DataContext="{Binding Backups}">
             <StackPanel>
                 <Grid Margin="0,0,0,4">
-                    <TextBlock Style="{StaticResource RowHint}" Margin="0,0,280,0" VerticalAlignment="Center"
-                               Text="Copias del proyecto con fecha y hora, verificadas con SHA-256. Nunca se sobrescriben ni se borran; restaurar crea antes una copia del estado actual." />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button Content="Abrir carpeta" Command="{Binding OpenFolderCommand}" Style="{StaticResource Btn.Pill}" Margin="0,0,8,0" />
-                        <Button Content="Crear copia ahora" Command="{Binding CreateCommand}" Style="{StaticResource Btn.Pill}" />
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" MinWidth="280" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource RowHint}" Margin="0" VerticalAlignment="Center"
+                               Text="{loc:T settings.backup.hint}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="12,0,0,0">
+                        <Button Content="{loc:T settings.backup.openFolder}" Command="{Binding OpenFolderCommand}" Style="{StaticResource Btn.Pill}" Margin="0,0,8,0" />
+                        <Button Content="{loc:T settings.backup.create}" Command="{Binding CreateCommand}" Style="{StaticResource Btn.Pill}" />
                     </StackPanel>
                 </Grid>
                 <Grid Margin="0,10,0,10">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="Auto" MinWidth="90" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
@@ -195,14 +222,14 @@
                         <RowDefinition Height="26" />
                         <RowDefinition Height="26" />
                     </Grid.RowDefinitions>
-                    <TextBlock Text="Proyecto" Style="{StaticResource T.Dim}" FontSize="12" VerticalAlignment="Center" />
+                    <TextBlock Text="{loc:T settings.backup.project}" Style="{StaticResource T.Dim}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <TextBlock Grid.Column="1" Text="{Binding ProjectText}" Style="{StaticResource T.Base}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                    <Button Grid.Column="2" Content="Cambiar…" Command="{Binding ChooseProjectCommand}" Style="{StaticResource Btn.Quiet}" />
-                    <TextBlock Grid.Row="1" Text="Copias en" Style="{StaticResource T.Dim}" FontSize="12" VerticalAlignment="Center" />
+                    <Button Grid.Column="2" Content="{loc:T settings.backup.changeProject}" Command="{Binding ChooseProjectCommand}" Style="{StaticResource Btn.Quiet}" />
+                    <TextBlock Grid.Row="1" Text="{loc:T settings.backup.location}" Style="{StaticResource T.Dim}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0" />
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BackupRoot}" Style="{StaticResource T.Base}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                 </Grid>
                 <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0"
-                         MaxHeight="200" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Copias disponibles">
+                         MaxHeight="200" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="{loc:T settings.backup.list.a11y}">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
                             <Setter Property="Foreground" Value="{StaticResource B.Text}" />
@@ -248,10 +275,14 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
                 <Grid Margin="0,10,0,0">
-                    <TextBlock Text="{Binding StatusText}" Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" Margin="0,0,220,0" VerticalAlignment="Center" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Verificar" Command="{Binding VerifyCommand}" Style="{StaticResource Btn.Pill}" Margin="0,0,8,0" />
-                        <Button Content="Restaurar…" Command="{Binding RestoreCommand}" Style="{StaticResource Btn.Pill}" />
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" MinWidth="220" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding StatusText}" Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,0,0,0">
+                        <Button Content="{loc:T settings.backup.verify}" Command="{Binding VerifyCommand}" Style="{StaticResource Btn.Pill}" Margin="0,0,8,0" />
+                        <Button Content="{loc:T settings.backup.restore}" Command="{Binding RestoreCommand}" Style="{StaticResource Btn.Pill}" />
                     </StackPanel>
                 </Grid>
             </StackPanel>
@@ -265,11 +296,9 @@
                 <TextBlock Text="{Binding Version}" Style="{StaticResource T.Dim}" FontSize="12" />
             </StackPanel>
         </StackPanel>
-        <TextBlock Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" LineHeight="19" Margin="18,10,0,0">
-            Transmite el audio del PC a un altavoz Sonos por la red local (UPnP + HTTP). Todo el procesamiento es local:
-            no se envía audio ni datos a Internet y no se recopila información personal.
-            <LineBreak />Biblioteca de terceros: NAudio (licencia MIT).
-            <LineBreak />Proyecto personal, no afiliado ni respaldado por Sonos, Inc. «Sonos» es una marca de su titular.
-        </TextBlock>
+        <TextBlock Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" LineHeight="19" Margin="18,10,0,0"
+            ><Run Text="{loc:T settings.about.description}" /><LineBreak
+            /><Run Text="{loc:T settings.about.thirdParty}" /><LineBreak
+            /><Run Text="{loc:T settings.about.disclaimer}" /></TextBlock>
     </StackPanel>
 </UserControl>
