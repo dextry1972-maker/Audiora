@@ -100,7 +100,7 @@
                         <TextBlock Style="{StaticResource RowHint}"
                                    Text="Solo en «Todo el PC», donde Windows aplica su volumen al audio capturado: sube el volumen de Windows al 100 % mientras el PC está silenciado. Requiere «Silenciar el PC»." />
                     </StackPanel>
-                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding FullLevel}" IsEnabled="{Binding CanEditFullLevel}" AutomationProperties.Name="Nivel completo" />
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding FullLevel}" IsEnabled="{Binding FullLevelEnabled}" AutomationProperties.Name="Nivel completo" />
                 </Grid>
             </StackPanel>
         </Border>

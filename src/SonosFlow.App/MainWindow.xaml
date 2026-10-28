@@ -126,6 +126,7 @@
 
             <!-- Device selector -->
             <ToggleButton x:Name="DeviceToggle" Grid.Column="3" Style="{StaticResource Btn.Pill}" Padding="12,6,12,6" VerticalAlignment="Center"
+                          IsHitTestVisible="{Binding IsOpen, ElementName=DevicePopup, Converter={StaticResource InvertBool}}"
                           Margin="0,0,10,0" AutomationProperties.Name="Elegir altavoz Sonos" ToolTip="Altavoz Sonos">
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="7" Height="7" Margin="0,0,9,0" VerticalAlignment="Center">
@@ -148,7 +149,7 @@
                     <TextBlock Text="&#xE70D;" Style="{StaticResource T.Icon}" FontSize="9" Foreground="{StaticResource B.TextDim}" Margin="9,1,0,0" />
                 </StackPanel>
             </ToggleButton>
-            <Popup Grid.Column="3" PlacementTarget="{Binding ElementName=DeviceToggle}" Placement="Bottom" HorizontalOffset="-180"
+            <Popup x:Name="DevicePopup" Grid.Column="3" PlacementTarget="{Binding ElementName=DeviceToggle}" Placement="Bottom" HorizontalOffset="-180"
                    IsOpen="{Binding IsChecked, ElementName=DeviceToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                 <Border Style="{StaticResource Flyout}" Width="330" Padding="10">
                     <StackPanel>
@@ -219,10 +220,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="&#xE7BA;" Style="{StaticResource T.Icon}" Foreground="{StaticResource B.Danger}" VerticalAlignment="Top" Margin="0,2,12,0" />
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="No se pudo transmitir" Style="{StaticResource T.Base}" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding StatusDetail}" Style="{StaticResource T.Dim}" FontSize="12.5" TextWrapping="Wrap" Margin="0,2,0,0" />
-                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{Binding StatusDetail}" Style="{StaticResource T.Base}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
                                 <Button Content="Buscar altavoces" Command="{Binding RescanCommand}" Style="{StaticResource Btn.Quiet}" Margin="0,0,6,0" />
                                 <Button Content="Reintentar" Command="{Binding ToggleStreamCommand}" Style="{StaticResource Btn.Pill}" />
@@ -241,12 +239,42 @@
                             <Ellipse Style="{StaticResource StateDot}" VerticalAlignment="Center" Margin="0,1,8,0" />
                             <TextBlock Text="{Binding StatusTitle}" Style="{StaticResource T.Base}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
                         </StackPanel>
-                        <TextBlock Text="{Binding StatusDetail}" Style="{StaticResource T.Dim}" FontSize="13" HorizontalAlignment="Center" TextAlignment="Center"
-                                   TextWrapping="Wrap" MaxWidth="520" Margin="0,4,0,0" />
+                        <TextBlock Text="{Binding StatusDetail}" FontSize="13" HorizontalAlignment="Center" TextAlignment="Center"
+                                   TextWrapping="Wrap" MaxWidth="520" Margin="0,4,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource T.Dim}">
+                                    <Style.Triggers>
+                                        <!-- In error the banner above already shows it -->
+                                        <DataTrigger Binding="{Binding State}" Value="Error">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <!-- Secondary problems (e.g. no browser for YouTube Music, a setting the Sonos rejected) -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0" MaxWidth="560">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding LastErrorText}" Value="Ninguno">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="Error">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="&#xE7BA;" Style="{StaticResource T.Icon}" FontSize="12" Foreground="{StaticResource B.Warn}" Margin="0,1,7,0" VerticalAlignment="Top" />
+                            <TextBlock Text="{Binding LastErrorText}" Style="{StaticResource T.Base}" Foreground="{StaticResource B.Warn}" FontSize="12.5" TextWrapping="Wrap" MaxWidth="530" />
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- Stage: real spectrum ring around the stream button -->
-                    <Grid Grid.Row="2" Width="264" Height="264" Margin="0,6,0,0" HorizontalAlignment="Center">
+                    <Grid Grid.Row="2" Width="264" Height="264" Margin="0,6,0,0" HorizontalAlignment="Center" Background="Transparent"
+                          ToolTip="Espectro real del audio que se envía al Sonos (40 Hz – 16 kHz). Sin transmisión no se mueve.">
+
                         <Ellipse Width="264" Height="264" IsHitTestVisible="False" Opacity="{Binding Level, ElementName=Viz}">
                             <Ellipse.Fill>
                                 <RadialGradientBrush>
@@ -256,8 +284,7 @@
                                 </RadialGradientBrush>
                             </Ellipse.Fill>
                         </Ellipse>
-                        <ctl:RadialSpectrum x:Name="Viz" Analyzer="{Binding Analyzer}" IsHitTestVisible="False"
-                                            ToolTip="Espectro real del audio que se envía al Sonos (40 Hz – 16 kHz)" />
+                        <ctl:RadialSpectrum x:Name="Viz" Analyzer="{Binding Analyzer}" IsHitTestVisible="False" />
                         <Button x:Name="StreamButton" Width="104" Height="104" Command="{Binding ToggleStreamCommand}" Cursor="Hand"
                                 FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding StreamButtonText}"
                                 ToolTip="{Binding StreamButtonText}">
@@ -427,9 +454,11 @@
                         </Grid>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding MuteLocal}" IsEnabled="{Binding LocalOptionsEnabled}" AutomationProperties.Name="Silenciar el PC"
+                                      ToolTipService.ShowOnDisabled="True"
                                       ToolTip="Solo suena el Sonos. En «Una aplicación» silencia la salida donde suena esa app (y todo lo de esa salida). Se aplica al iniciar." />
                             <TextBlock Text="Silenciar el PC" Style="{StaticResource T.Dim}" FontSize="12.5" VerticalAlignment="Center" Margin="9,0,28,0" />
                             <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding FullLevel}" IsEnabled="{Binding FullLevelEnabled}" AutomationProperties.Name="Nivel completo"
+                                      ToolTipService.ShowOnDisabled="True"
                                       ToolTip="Solo «Todo el PC»: Windows al 100 % mientras está silenciado, para controlar el volumen desde el Sonos. Se aplica al iniciar." />
                             <TextBlock Text="Nivel completo" Style="{StaticResource T.Dim}" FontSize="12.5" VerticalAlignment="Center" Margin="9,0,0,0" />
                         </StackPanel>
@@ -534,13 +563,15 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <ToggleButton x:Name="SoundToggle" Style="{StaticResource Btn.Quiet}" AutomationProperties.Name="Sonido del Sonos">
+                    <ToggleButton x:Name="SoundToggle" Style="{StaticResource Btn.Quiet}" AutomationProperties.Name="Sonido del Sonos"
+                                  IsHitTestVisible="{Binding IsOpen, ElementName=SoundPopup, Converter={StaticResource InvertBool}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE9E9;" Style="{StaticResource T.Icon}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                             <TextBlock Text="Sonido" Margin="7,0,0,0" />
                         </StackPanel>
                     </ToggleButton>
-                    <ToggleButton x:Name="DetailsToggle" Style="{StaticResource Btn.Quiet}" Margin="4,0,0,0" AutomationProperties.Name="Detalles de la conexión">
+                    <ToggleButton x:Name="DetailsToggle" Style="{StaticResource Btn.Quiet}" Margin="4,0,0,0" AutomationProperties.Name="Detalles de la conexión"
+                                  IsHitTestVisible="{Binding IsOpen, ElementName=DetailsPopup, Converter={StaticResource InvertBool}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE946;" Style="{StaticResource T.Icon}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
                             <TextBlock Text="Detalles" Margin="7,0,0,0" />
@@ -549,7 +580,7 @@
                 </StackPanel>
 
                 <!-- Sonos sound (EQ applied by the speaker itself) -->
-                <Popup PlacementTarget="{Binding ElementName=SoundToggle}" Placement="Top" HorizontalOffset="-250"
+                <Popup x:Name="SoundPopup" PlacementTarget="{Binding ElementName=SoundToggle}" Placement="Top" HorizontalOffset="-250"
                        IsOpen="{Binding IsChecked, ElementName=SoundToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                     <Border Style="{StaticResource Flyout}" Width="340">
                         <StackPanel>
@@ -566,7 +597,7 @@
                                 <TextBlock Text="Graves" Style="{StaticResource T.Base}" VerticalAlignment="Center" />
                                 <Slider Grid.Column="1" Style="{StaticResource Slider.Flow}" Minimum="-10" Maximum="10" Value="{Binding Bass, Mode=TwoWay}"
                                         IsSnapToTickEnabled="True" TickFrequency="1" IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="Graves" />
-                                <TextBlock Grid.Column="2" Text="{Binding Bass}" Style="{StaticResource T.Dim}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="{Binding Bass, StringFormat={}{0:+0;-0;0}}" Style="{StaticResource T.Dim}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                             <Grid Margin="0,0,0,12">
                                 <Grid.ColumnDefinitions>
@@ -577,7 +608,7 @@
                                 <TextBlock Text="Agudos" Style="{StaticResource T.Base}" VerticalAlignment="Center" />
                                 <Slider Grid.Column="1" Style="{StaticResource Slider.Flow}" Minimum="-10" Maximum="10" Value="{Binding Treble, Mode=TwoWay}"
                                         IsSnapToTickEnabled="True" TickFrequency="1" IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="Agudos" />
-                                <TextBlock Grid.Column="2" Text="{Binding Treble}" Style="{StaticResource T.Dim}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="{Binding Treble, StringFormat={}{0:+0;-0;0}}" Style="{StaticResource T.Dim}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                             <Grid>
                                 <StackPanel>
@@ -592,7 +623,7 @@
                 </Popup>
 
                 <!-- Connection details -->
-                <Popup PlacementTarget="{Binding ElementName=DetailsToggle}" Placement="Top" HorizontalOffset="-330"
+                <Popup x:Name="DetailsPopup" PlacementTarget="{Binding ElementName=DetailsToggle}" Placement="Top" HorizontalOffset="-330"
                        IsOpen="{Binding IsChecked, ElementName=DetailsToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                     <Border Style="{StaticResource Flyout}" Width="440">
                         <StackPanel>
