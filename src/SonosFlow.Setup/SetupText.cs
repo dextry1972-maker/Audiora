@@ -25,7 +25,11 @@ internal static class SetupText
         return key;
     }
 
-    public static string F(string key, params object[] args) => string.Format(CultureInfo.CurrentCulture, T(key), args);
+    public static string F(string key, params object[] args)
+    {
+        try { return string.Format(CultureInfo.CurrentCulture, T(key), args); }
+        catch (System.FormatException) { return T(key); } // a broken translation must never stop an installation
+    }
 
     private static string Pick(string tag)
     {

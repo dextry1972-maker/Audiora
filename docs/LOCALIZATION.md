@@ -29,6 +29,8 @@ No se usaron `.resx` porque los JSON planos son fáciles de revisar, de comparar
 | Arranque normal con el idioma ya guardado | Se usa el idioma guardado y no aparece la bienvenida. |
 | Actualización desde una versión anterior sin idiomas (hay `settings.json` pero no tiene `Language`) | Se sigue en **español**, que era el idioma de la app, y se guarda. No aparece la bienvenida. |
 | Valor guardado inválido o idioma retirado | Se repara con el idioma soportado más cercano (o con la sugerencia del sistema) y se guarda. |
+| `settings.json` existe pero no se puede leer (dañado o truncado) | Esos ajustes ya estaban perdidos (la app arranca con los valores por defecto, como antes). Se guarda una copia del archivo dañado (`settings.unreadable-<fecha>.json`) y se vuelve a mostrar la bienvenida, en lugar de imponer el español. |
+| Volver a una versión anterior y luego actualizar otra vez | La versión anterior reescribe `settings.json` sin el idioma. Al actualizar de nuevo se aplica el caso «actualización»: español, sin bienvenida. El idioma se cambia en Ajustes. |
 | Desinstalar y reinstalar | La desinstalación **no** borra `settings.json` (solo accesos directos, entradas HKCU y la carpeta del programa), así que se conservan el idioma y los demás ajustes. Para volver a ver la bienvenida hay que borrar ese archivo a mano; la app nunca lo hace. |
 | Se cierra la bienvenida (X o Esc) | Se usa el idioma sugerido, se guarda y la app se abre con normalidad. |
 | Modos de prueba (`--screenshot*`, `--selftest-*`, `--lang`) | Nunca muestran la bienvenida ni guardan el idioma. |
@@ -91,7 +93,8 @@ Todos los idiomas incluyen todas las claves (las pruebas lo exigen). Fechas y n�
 - **Cobertura** (`LocalizationCoverageTests`): el registro coincide con los idiomas incrustados; cada idioma tiene exactamente las claves del inglés; los marcadores coinciden y el formato es seguro; están todas las categorías de plural; no hay claves duplicadas entre áreas; toda clave usada en el código existe; el texto Unicode (árabe, CJK, devanagari, cirílico) se carga real; y la longitud en idiomas largos es razonable.
 - **Comportamiento** (`LocalizationBehaviourTests`): clave ausente, cambio de idioma/cultura/dirección, notificaciones, plurales, mensajes codificados y respaldo.
 - **Resolución y arranque** (`LanguageResolutionTests`, `LanguageStartupTests`): etiquetas de Windows y todos los casos de instalación.
-- **Prueba real con el Sonos** (`SelfTest`, comprobación 1e): durante la transmisión cambia a árabe → japonés → alemán → idioma original y comprueba que no hay reconexiones, que sigue en PLAYING, que siguen llegando bytes, que hay una sola captura y que no se pierden claves.
+- **Prueba real con el Sonos** (`SelfTest`, comprobación 1e): con la página de Ajustes abierta y durante la transmisión, cambia a árabe → japonés → alemán → idioma original. Comprueba que no hay reconexiones, que sigue en PLAYING, que siguen llegando bytes y que hay una sola captura. Comprueba además que no cambian la acción al cerrar, el margen anti-cortes, el temporizador, el altavoz, el volumen ni el modo de fuente: las listas de opciones son estables y sus elementos se comparan por clave, así que un cambio de idioma no puede vaciar una selección ni escribir null en un ajuste.
+- **Instalador:** `Installer_texts_are_strict_json` comprueba que los `setup.json` no tienen comentarios ni comas finales, que el lector del instalador (.NET Framework) no admite.
 
 ## Limitaciones conocidas
 

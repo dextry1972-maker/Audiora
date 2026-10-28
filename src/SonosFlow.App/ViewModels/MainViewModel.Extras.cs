@@ -63,12 +63,12 @@ public sealed partial class MainViewModel
 
     // ── Sleep timer ────────────────────────────────────────────
 
-    public IReadOnlyList<ChoiceItem> SleepChoices =>
+    public IReadOnlyList<ChoiceItem> SleepChoices { get; } =
     [
-        new("0", L.T("choices.sleep.off")),
-        new("30", L.F("choices.sleep.after", 30)),
-        new("60", L.F("choices.sleep.after", 60)),
-        new("90", L.F("choices.sleep.after", 90)),
+        new("0", () => L.T("choices.sleep.off")),
+        new("30", () => L.F("choices.sleep.after", 30)),
+        new("60", () => L.F("choices.sleep.after", 60)),
+        new("90", () => L.F("choices.sleep.after", 90)),
     ];
 
     private System.Windows.Threading.DispatcherTimer? _sleepTimer;

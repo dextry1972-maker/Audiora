@@ -15,6 +15,23 @@ public sealed class LocalizationBehaviourTests : IDisposable
     public void Dispose() => Loc.Instance.SetLanguage(_before);
 
     [Fact]
+    public void Choice_items_keep_their_identity_and_relabel_live()
+    {
+        // A ComboBox keeps its selection across a language change only if the items are the same (by Key).
+        Loc.Instance.SetLanguage("en");
+        var item = new ViewModels.ChoiceItem("tray", () => Loc.Instance.T("choices.close.tray"));
+        string english = item.Label;
+        bool raised = false;
+        item.PropertyChanged += (_, e) => raised |= e.PropertyName == nameof(ViewModels.ChoiceItem.Label);
+        Loc.Instance.SetLanguage("de");
+        item.RefreshText();
+        Assert.True(raised);
+        Assert.NotEqual(english, item.Label);
+        Assert.Equal(new ViewModels.ChoiceItem("tray", () => "other label"), item);
+        Assert.NotEqual(new ViewModels.ChoiceItem("mini", () => item.Label), item);
+    }
+
+    [Fact]
     public void Unknown_key_is_visible_and_recorded_never_a_crash()
     {
         Loc.Instance.SetLanguage("en");

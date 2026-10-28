@@ -38,5 +38,6 @@ public sealed partial class MainViewModel
     {
         OnPropertyChanged(string.Empty);
         foreach (var a in Apps) a.RefreshText();
+        foreach (var c in CloseActions.Concat(PrebufferChoices).Concat(SleepChoices)) c.RefreshText();
     }
 }

@@ -71,13 +71,20 @@ public static class SelfTest
         Check($"1d. Una sola captura activa (capturas={LoopbackSource.ActiveCount})", LoopbackSource.ActiveCount == 1);
 
         // Changing the UI language mid-stream only swaps text: same session, no reconnect, audio keeps flowing.
-        string lang0 = L.Code;
+        // Done on the Settings page, whose ComboBoxes are bound two-way to settings (a cleared selection would write null back).
+        string lang0 = L.Code, page0 = vm.Page;
+        var choices0 = (vm.CloseAction, vm.PrebufferKey, vm.SleepKey, vm.SelectedSpeaker, vm.Volume, vm.IsAppMode);
+        vm.Page = "settings";
+        await Task.Delay(800);
         long sentBeforeLang = vm.LastStats?.BytesSent ?? 0;
         foreach (var code in new[] { "ar", "ja", "de", lang0 }) { vm.SelectedLanguageCode = code; await Task.Delay(700); }
         await Task.Delay(1500);
         var sl = vm.LastStats;
-        Check($"1e. Cambiar de idioma en directo (ar → ja → de → {lang0}) no toca la transmisión (reconexiones {sl?.Reconnects}, {sl?.TransportState}, idioma {L.Code}, sin claves perdidas: {L.MissingKeys.Count == 0})",
-            sl is { Reconnects: 0, Clients: 1, TransportState: "PLAYING" } && sl.BytesSent > sentBeforeLang && L.Code == lang0 && LoopbackSource.ActiveCount == 1);
+        var choices1 = (vm.CloseAction, vm.PrebufferKey, vm.SleepKey, vm.SelectedSpeaker, vm.Volume, vm.IsAppMode);
+        vm.Page = page0;
+        Check($"1e. Cambiar de idioma en directo (ar → ja → de → {lang0}) no toca la transmisión ni los ajustes (reconexiones {sl?.Reconnects}, {sl?.TransportState}, idioma {L.Code}, cierre/margen/temporizador/altavoz/volumen/modo iguales: {choices0 == choices1})",
+            sl is { Reconnects: 0, Clients: 1, TransportState: "PLAYING" } && sl.BytesSent > sentBeforeLang && L.Code == lang0
+            && LoopbackSource.ActiveCount == 1 && choices0 == choices1);
         vm.MiniVisible = true;
 
         await vm.RefreshAppsNowAsync();

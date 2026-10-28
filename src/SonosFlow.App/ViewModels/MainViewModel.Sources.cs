@@ -7,7 +7,19 @@ using SonosFlow.Core.Streaming;
 
 namespace SonosFlow.App.ViewModels;
 
-public sealed record ChoiceItem(string Key, string Label);
+/// <summary>
+/// An option whose label follows the UI language. The lists are created once and items compare by Key, so a language
+/// change never empties a ComboBox selection (which would write null back into the bound setting).
+/// </summary>
+public sealed class ChoiceItem(string key, Func<string> label) : ObservableObject
+{
+    public string Key { get; } = key;
+    public string Label => label();
+    public void RefreshText() => OnPropertyChanged(nameof(Label));
+    public override bool Equals(object? obj) => obj is ChoiceItem other && other.Key == Key;
+    public override int GetHashCode() => Key.GetHashCode();
+    public override string ToString() => Label;
+}
 
 /// <summary>
 /// Source selection (whole PC or one application), pause, and the state shared with the mini player.
@@ -266,11 +278,11 @@ public sealed partial class MainViewModel
     private bool _minimizeToMini;
     public bool MinimizeToMini { get => _minimizeToMini; set { if (Set(ref _minimizeToMini, value)) { _settings.MinimizeToMini = value; _settings.Save(); } } }
 
-    public IReadOnlyList<ChoiceItem> CloseActions =>
+    public IReadOnlyList<ChoiceItem> CloseActions { get; } =
     [
-        new("tray", L.T("choices.close.tray")),
-        new("mini", L.T("choices.close.mini")),
-        new("exit", L.T("choices.close.exit")),
+        new("tray", () => L.T("choices.close.tray")),
+        new("mini", () => L.T("choices.close.mini")),
+        new("exit", () => L.T("choices.close.exit")),
     ];
 
     private string _closeAction = "tray";
@@ -279,7 +291,7 @@ public sealed partial class MainViewModel
         get => _closeAction;
         set
         {
-            if (!Set(ref _closeAction, value)) return;
+            if (value is null || !Set(ref _closeAction, value)) return;
             _settings.CloseAction = value;
             _settings.MinimizeToTray = value != "exit"; // keep the older switch consistent
             _settings.Save();
@@ -296,12 +308,12 @@ public sealed partial class MainViewModel
         _settings.Save();
     }
 
-    public IReadOnlyList<ChoiceItem> PrebufferChoices =>
+    public IReadOnlyList<ChoiceItem> PrebufferChoices { get; } =
     [
-        new("0", L.T("choices.prebuffer.none")),
-        new("1000", L.T("choices.prebuffer.recommended")),
-        new("2000", L.F("choices.prebuffer.seconds", 2)),
-        new("3000", L.F("choices.prebuffer.seconds", 3)),
+        new("0", () => L.T("choices.prebuffer.none")),
+        new("1000", () => L.T("choices.prebuffer.recommended")),
+        new("2000", () => L.F("choices.prebuffer.seconds", 2)),
+        new("3000", () => L.F("choices.prebuffer.seconds", 3)),
     ];
 
     /// <summary>"Margen anti-cortes", applied when a stream starts.</summary>

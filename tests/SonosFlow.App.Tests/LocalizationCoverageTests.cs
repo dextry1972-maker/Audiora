@@ -25,6 +25,21 @@ public sealed class LocalizationCoverageTests
         foreach (var e in embedded) Assert.True(Languages.All.Any(l => l.Code.Equals(e, StringComparison.OrdinalIgnoreCase)), $"files for unregistered language {e}");
     }
 
+    [Fact]
+    public void Installer_texts_are_strict_json()
+    {
+        // The installer (.NET Framework, JavaScriptSerializer) cannot read comments or trailing commas: it would fail to start.
+        var asm = typeof(Loc).Assembly;
+        var setupFiles = asm.GetManifestResourceNames().Where(n => n.Replace('\\', '/').EndsWith("/setup.json")).ToList();
+        Assert.Equal(Languages.All.Count, setupFiles.Count);
+        foreach (var name in setupFiles)
+        {
+            using var reader = new StreamReader(asm.GetManifestResourceStream(name)!);
+            var ex = Record.Exception(() => JsonDocument.Parse(reader.ReadToEnd(), new JsonDocumentOptions()).Dispose());
+            Assert.True(ex is null, $"{name}: {ex?.Message}");
+        }
+    }
+
     [Theory]
     [MemberData(nameof(ShippedLanguages))]
     public void Every_language_has_exactly_the_english_keys(string code)

@@ -39,6 +39,11 @@
   "source.status.appClosedWaiting": "La aplicación se cerró — esperando a que vuelva",
 
   "stats.buffer": "≈ {0:0.0} s (estimado)",
+  "stats.transport.playing": "Reproduciendo",
+  "stats.transport.loading": "Cargando",
+  "stats.transport.paused": "En pausa",
+  "stats.transport.stopped": "Detenido",
+  "stats.transport.unreachable": "Sin respuesta",
   "net.stable": "Estable",
   "net.stalls.one": "{0} atasco · máx {1:0.0} s",
   "net.stalls.other": "{0} atascos · máx {1:0.0} s",

@@ -72,7 +72,7 @@ public partial class App : Application
             return;
         }
         ChooseLanguage(settings, forced: Arg("--lang"), allowWelcome: !testCapture);
-        Loc.Instance.LanguageChanged += ApplyHotkeys; // the "in use" note is text
+        Loc.Instance.LanguageChanged += ShowHotkeysStatus; // only the "in use" note is text: no re-registration
         _vm = new MainViewModel(settings);
         _window = new MainWindow(_vm);
         _window.Closing += OnWindowClosing;
@@ -169,7 +169,8 @@ public partial class App : Application
             Loc.Instance.SetLanguage(forced);
             return;
         }
-        var decision = LanguageStartup.Decide(AppSettings.LastLoadFoundFile, settings.Language, settings.LanguageOnboardingDone,
+        // An unreadable file lost its settings anyway (a copy is kept): ask again instead of forcing Spanish.
+        var decision = LanguageStartup.Decide(AppSettings.LastLoadFoundFile && !AppSettings.LastLoadUnreadable, settings.Language, settings.LanguageOnboardingDone,
             Languages.SuggestFromSystem());
         string language = decision.Language;
         if (decision.ShowWelcome && allowWelcome)
@@ -229,12 +230,22 @@ public partial class App : Application
         if (!_vm.HotkeysEnabled)
         {
             _hotkeys.Disable();
-            _vm.HotkeysStatus = "";
+            _hotkeysTaken = [];
+            ShowHotkeysStatus();
             return;
         }
         var taken = _hotkeys.Enable();
-        _vm.HotkeysStatus = taken.Count == 0 ? "" : Loc.Instance.F("hotkeys.taken", string.Join(", ", taken));
+        _hotkeysTaken = taken;
+        ShowHotkeysStatus();
         if (taken.Count > 0) AppLog.Write($"atajos no registrados: {string.Join(", ", taken)}");
+    }
+
+    private IReadOnlyList<string> _hotkeysTaken = [];
+
+    private void ShowHotkeysStatus()
+    {
+        if (_vm is null) return;
+        _vm.HotkeysStatus = _hotkeysTaken.Count == 0 ? "" : Loc.Instance.F("hotkeys.taken", string.Join(", ", _hotkeysTaken));
     }
 
     private void OnMainStateChanged(object? sender, EventArgs e)

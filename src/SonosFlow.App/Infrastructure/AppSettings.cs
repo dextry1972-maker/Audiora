@@ -49,15 +49,25 @@ public sealed class AppSettings
     /// </summary>
     public static bool LastLoadFoundFile { get; private set; }
 
+    /// <summary>The last <see cref="Load"/> found a file it could not read; a copy was kept next to it.</summary>
+    public static bool LastLoadUnreadable { get; private set; }
+
     public static AppSettings Load()
     {
         LastLoadFoundFile = File.Exists(AppPaths.SettingsFile);
+        LastLoadUnreadable = false;
         try
         {
             if (LastLoadFoundFile)
                 return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(AppPaths.SettingsFile)) ?? new();
         }
-        catch (Exception ex) when (ex is IOException or JsonException) { }
+        catch (Exception ex) when (ex is IOException or JsonException)
+        {
+            LastLoadUnreadable = true;
+            // Keep the damaged file for inspection; it is about to be replaced by the defaults.
+            try { File.Copy(AppPaths.SettingsFile, Path.ChangeExtension(AppPaths.SettingsFile, $".unreadable-{DateTime.Now:yyyyMMdd-HHmmss}.json")); }
+            catch (Exception copy) when (copy is IOException or UnauthorizedAccessException) { }
+        }
         return new();
     }
 

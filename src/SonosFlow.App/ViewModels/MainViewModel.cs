@@ -265,8 +265,24 @@ public sealed partial class MainViewModel : ObservableObject
     public string SourceFormatText { get => _sourceFormatText; private set => Set(ref _sourceFormatText, value); }
     private string _bufferText = "—";
     public string BufferText { get => _bufferText; private set => Set(ref _bufferText, value); }
-    private string _transportText = "—";
-    public string TransportText { get => _transportText; private set => Set(ref _transportText, value); }
+    private string? _transportState;
+    /// <summary>The Sonos's own transport state, translated live.</summary>
+    public string TransportText => _transportState switch
+    {
+        null => "—",
+        "PLAYING" => L.T("stats.transport.playing"),
+        "TRANSITIONING" => L.T("stats.transport.loading"),
+        "PAUSED_PLAYBACK" => L.T("stats.transport.paused"),
+        "STOPPED" => L.T("stats.transport.stopped"),
+        "UNREACHABLE" => L.T("stats.transport.unreachable"),
+        var other => other,
+    };
+    private void SetTransport(string? state)
+    {
+        if (_transportState == state) return;
+        _transportState = state;
+        OnPropertyChanged(nameof(TransportText));
+    }
     private string _dropsText = "0";
     public string DropsText { get => _dropsText; private set => Set(ref _dropsText, value); }
     private string _reconnectsText = "0";
@@ -364,6 +380,7 @@ public sealed partial class MainViewModel : ObservableObject
         AppLog.Write($"inicio solicitado → {speaker.Name} ({speaker.Address})");
         Detail(() => L.F("status.detail.preparing", speaker.Name));
         LastError(null);
+        _lastErrorCode = null; // a new session may report the same problem again
 
         var session = new StreamingSession(speaker.Device, Speakers.Select(s => s.Device.Address), spec,
             new StreamOptions(_settings.Port, MuteLocal, FullLevel, AppPaths.Logs, PrebufferMs), AppPaths.GuardStateFile);
@@ -444,7 +461,7 @@ public sealed partial class MainViewModel : ObservableObject
         State = SelectedSpeaker is null ? UiState.NoSpeaker : UiState.Ready;
         RateText = "—";
         BufferText = "—";
-        TransportText = "—";
+        SetTransport(null);
         ResetNetwork();
         if (_sleepAt is not null) CancelSleep(log: true);
     }
@@ -517,15 +534,7 @@ public sealed partial class MainViewModel : ObservableObject
         RememberStats(s);
         ElapsedText = s.Elapsed.ToString(@"hh\:mm\:ss");
         RateText = $"{s.SendRateKBps:0} kB/s";
-        TransportText = s.TransportState switch
-        {
-            "PLAYING" => "Reproduciendo",
-            "TRANSITIONING" => "Cargando",
-            "PAUSED_PLAYBACK" => "En pausa",
-            "STOPPED" => "Detenido",
-            "UNREACHABLE" => "Sin respuesta",
-            var other => other,
-        };
+        SetTransport(s.TransportState);
         BufferText = s.BufferEstimateSeconds is { } b ? L.F("stats.buffer", Math.Max(0, b)) : "—";
         DropsText = s.DroppedChunks.ToString();
         ReconnectsText = s.Reconnects.ToString();
