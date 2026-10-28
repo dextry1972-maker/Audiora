@@ -1,0 +1,21 @@
+{
+  "setup.window.title": "Instalar Audiora",
+  "setup.subtitle": "Transmite el audio de tu PC a tu Sonos por Wi-Fi",
+  "setup.location": "Se instalará para tu usuario en:\n{0}\nNo necesita permisos de administrador.",
+  "setup.desktopShortcut": "Crear acceso directo en el escritorio",
+  "setup.launchWhenDone": "Abrir Audiora al terminar",
+  "setup.install": "Instalar",
+  "setup.cancel": "Cancelar",
+  "setup.finish": "Finalizar",
+  "setup.failed": "La instalación no se completó.",
+  "setup.done": "Listo. Audiora está instalado.",
+  "setup.noPayload": "Este instalador no contiene la aplicación (se compiló sin el paquete).",
+  "setup.appRunning": "Audiora está abierto. Ciérralo (también desde la bandeja del sistema) y vuelve a intentarlo.",
+  "setup.folderNotOurs": "La carpeta {0} ya existe y no contiene Audiora. No se sobrescribirá.",
+  "setup.step.prepare": "Preparando la carpeta…",
+  "setup.step.copy": "Copiando archivos… {0}/{1}",
+  "setup.step.shortcuts": "Creando accesos directos…",
+  "setup.step.register": "Registrando en Aplicaciones instaladas…",
+  "setup.step.complete": "Instalación completada",
+  "setup.shortcut.description": "Transmite el audio del PC a tu Sonos"
+}
