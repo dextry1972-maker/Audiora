@@ -73,8 +73,8 @@ public partial class MiniPlayerWindow : Window
         }
         else
         {
-            Left = area.Left + (area.Width - 804) / 2; // capsule + shadow margins
-            Top = area.Bottom - 170;
+            Left = area.Left + (area.Width - 644) / 2; // capsule + shadow margins
+            Top = area.Bottom - 150;
         }
         Show();
         EnsureOnScreen();

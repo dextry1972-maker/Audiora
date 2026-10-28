@@ -50,9 +50,9 @@ public sealed class VolumeHudWindow : Window
         {
             Margin = new Thickness(16), // room for the shadow
             Padding = new Thickness(18, 14, 18, 14),
-            CornerRadius = new CornerRadius(16),
-            Background = new SolidColorBrush(Color.FromArgb(0xEE, 0x16, 0x1B, 0x20)),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF)),
+            CornerRadius = new CornerRadius(18),
+            Background = new SolidColorBrush(Color.FromArgb(0xF5, 0x12, 0x15, 0x18)), // same near-black as the mini player
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)),
             BorderThickness = new Thickness(1),
             Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 18, ShadowDepth = 3, Opacity = 0.45 },
             Child = panel,
