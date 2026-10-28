@@ -37,31 +37,34 @@ Lo cubre `tests/SonosFlow.App.Tests/LanguageStartupTests.cs`.
 
 ## Matriz de idiomas
 
-Todos los idiomas incluyen todas las claves (las pruebas lo exigen). Las traducciones distintas del español original las hizo IA y **necesitan revisión nativa** antes de considerarse definitivas.
+Todos los idiomas incluyen todas las claves (las pruebas lo exigen). Fechas y números usan la cultura del idioma, siempre con calendario gregoriano (`Languages.CultureFor`). Las traducciones distintas del español original las hizo IA y **necesitan revisión nativa** antes de considerarse definitivas.
 
-| Código | Idioma | Nombre nativo | Locale de formato | Dirección | Completitud | Plurales | Notas de fuente | Revisión nativa |
+| Código | Idioma | Nombre nativo | Cultura de formato | Dirección | Completitud | Plurales | Notas de fuente | Revisión nativa |
 |---|---|---|---|---|---|---|---|---|
-| es | Spanish | Español | es-ES | LTR | 100 % (original) | one/other | Segoe UI | Texto original |
-| en | English | English | en-US | LTR | 100 % | one/other | Segoe UI | Recomendable |
+| es | Spanish | Español | es | LTR | 100 % (original) | one/other | Segoe UI | Texto original |
+| en | English | English | en | LTR | 100 % | one/other | Segoe UI | Recomendable |
 | pt-BR | Portuguese (Brazil) | Português (Brasil) | pt-BR | LTR | 100 % (IA) | one/other | Segoe UI | **Sí** |
-| fr | French | Français | fr-FR | LTR | 100 % (IA) | one/other | Segoe UI | **Sí** |
-| de | German | Deutsch | de-DE | LTR | 100 % (IA) | one/other | Segoe UI; textos ~30 % más largos | **Sí** |
-| it | Italian | Italiano | it-IT | LTR | 100 % (IA) | one/other | Segoe UI | **Sí** |
-| ru | Russian | Русский | ru-RU | LTR | 100 % (IA) | one/few/many | Segoe UI (cirílico) | **Sí** |
-| zh-Hans | Chinese (Simplified) | 简体中文 | zh-CN | LTR | 100 % (IA) | other | Microsoft YaHei UI (sustitución automática de WPF) | **Sí** |
-| ja | Japanese | 日本語 | ja-JP | LTR | 100 % (IA) | other | Yu Gothic UI (sustitución automática) | **Sí** |
-| ko | Korean | 한국어 | ko-KR | LTR | 100 % (IA) | other | Malgun Gothic (sustitución automática) | **Sí** |
-| hi | Hindi | हिन्दी | hi-IN | LTR | 100 % (IA) | one/other | Nirmala UI (sustitución automática) | **Sí** |
-| ar | Arabic | العربية | ar-SA | **RTL** | 100 % (IA) | zero/one/two/few/many/other | Segoe UI (árabe incluido) | **Sí** |
+| fr | French | Français | fr | LTR | 100 % (IA) | one/other | Segoe UI | **Sí** |
+| de | German | Deutsch | de | LTR | 100 % (IA) | one/other | Segoe UI; textos ~30 % más largos | **Sí** |
+| it | Italian | Italiano | it | LTR | 100 % (IA) | one/other | Segoe UI | **Sí** |
+| ru | Russian | Русский | ru | LTR | 100 % (IA) | one/few/many | Segoe UI (cirílico) | **Sí** |
+| zh-Hans | Chinese (Simplified) | 简体中文 | zh-Hans | LTR | 100 % (IA) | other | Microsoft YaHei UI (sustitución automática de WPF) | **Sí** |
+| ja | Japanese | 日本語 | ja | LTR | 100 % (IA) | other | Yu Gothic UI (sustitución automática) | **Sí** |
+| ko | Korean | 한국어 | ko | LTR | 100 % (IA) | other | Malgun Gothic (sustitución automática) | **Sí** |
+| hi | Hindi | हिन्दी | hi | LTR | 100 % (IA) | one/other | Nirmala UI (sustitución automática) | **Sí** |
+| ar | Arabic | العربية | ar (gregoriano) | **RTL** | 100 % (IA) | zero/one/two/few/many/other | Segoe UI (árabe incluido) | **Sí** |
 
 **No incluidos por ahora** (candidatos razonables): bengalí, indonesio, urdu (RTL), turco, vietnamita, tailandés, persa (RTL) y chino tradicional. Se prefirió entregar 12 idiomas completos antes que muchos a medias. Mientras no exista una traducción propia, zh-TW/zh-HK caen en la sugerencia de inglés en lugar de recibir chino simplificado.
 
 ## Derecha a izquierda (árabe)
 
-- Cada ventana enlaza `FlowDirection` a `Loc.Instance.FlowDirection`, así que el diseño se refleja en vivo.
-- Se mantienen de izquierda a derecha a propósito: el botón de transmitir, el anillo del espectro, los iconos de volumen, los controles de reproducción del mini reproductor, los números y los atajos de teclado.
+- Cada ventana enlaza `FlowDirection` a `Loc.Instance.FlowDirection`, así que el diseño se refleja en vivo: la navegación y el logo pasan a la derecha y los botones de la ventana a la izquierda.
+- **Las imágenes nunca se reflejan** (logo, carátula, iconos de apps): un estilo implícito en `App.xaml` y la carátula del mini reproductor fijan `LeftToRight`. La carátula de la ventana principal usa un `ImageBrush`, porque un `Image` con `UniformToFill` se recortaba mal en RTL.
+- **Textos que no son de la app** (título y artista de la canción, nombres de idiomas) toman la dirección de su primer carácter fuerte (`Localization/AutoDirection.cs`, como `dir="auto"` en HTML). Así «Português (Brasil)» o «(Video Oficial)» no pierden los paréntesis de sitio. Las marcas Unicode LRE/RLE no sirven en WPF; se probó y no cambian nada.
+- Se mantienen de izquierda a derecha a propósito: el botón de transmitir, el anillo del espectro y los controles de reproducción del mini reproductor. El deslizador de volumen sí se refleja (en RTL se llena de derecha a izquierda, como en Windows en árabe).
 - El instalador usa `RightToLeft` y `RightToLeftLayout` cuando Windows está en árabe.
-- **Limitaciones:** la verificación visual se hizo con capturas, no con un usuario nativo. Los textos mixtos (árabe con nombres latinos como «Sonos» o «YouTube Music») dependen del algoritmo bidi de WPF. Los menús nativos de Windows (menú de la bandeja del sistema) siguen la dirección del sistema, no la de la app.
+- **Verificación:** capturas de la ventana principal, Ajustes, el mini reproductor y la bienvenida en árabe, cotejadas con una captura real de la pantalla. `RenderTargetBitmap` dibujaba invertida la captura del contenido de la ventana principal; `Infrastructure/Snapshot.cs` la corrige para que las capturas de prueba coincidan con la pantalla.
+- **Limitaciones:** no lo ha revisado un usuario nativo. Las frases árabes que incluyen nombres latinos («Sonos», «YouTube Music», atajos como Ctrl+Alt+↑) dependen del algoritmo bidi de WPF. El menú de la bandeja del sistema sigue la dirección de Windows. El instalador en árabe no se ha visto en pantalla, porque necesitaría Windows en árabe.
 
 ## Accesibilidad y teclado
 
