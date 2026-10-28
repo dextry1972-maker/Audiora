@@ -281,7 +281,7 @@
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding LastErrorText}" Value="Ninguno">
+                                        <DataTrigger Binding="{Binding HasLastError}" Value="False">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Error">
