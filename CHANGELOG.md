@@ -2,7 +2,15 @@
 
 Formato: lo que cambia para quien usa Audiora, con el commit. Más reciente arriba.
 
-## Sin publicar (rama `i18n/sistema-multilingue`)
+## Sin publicar (rama `motor/audio-selectivo`)
+
+### Silenciar en el PC solo la app que transmites
+- En «Una aplicación», **«Silenciar el PC» ya no silencia el dispositivo**: Windows envía solo esa app a una salida que nadie oye (Steam Streaming Speakers). El Sonos la sigue recibiendo, y Chrome, los juegos y las demás apps siguen sonando en el PC. Al detener, cambiar de fuente o salir vuelve a su salida, y también tras un cierre inesperado.
+- Si la app no cambia de salida en caliente, si el PC no tiene esa salida o si Windows es anterior a 21H2, se silencia su salida como antes; queda anotado en el registro.
+- Diagnóstico: el hilo de captura usa prioridad de audio de Windows (MMCSS) y `stream-*.csv` añade `capture_gaps` (huecos que Windows marca en la captura).
+- Detalles y mediciones: `docs/MOTOR-AUDIO-SELECTIVO.md`.
+
+## Fusionado en main (rama `i18n/sistema-multilingue`)
 
 ### Idiomas
 - **12 idiomas:** español, inglés, portugués (Brasil), francés, alemán, italiano, ruso, chino simplificado, japonés, coreano, hindi y árabe (de derecha a izquierda). Todas las pantallas, tooltips, nombres de accesibilidad, mensajes de error, la bandeja y el instalador. Las traducciones que no son del español original las hizo IA y necesitan revisión nativa (`docs/LOCALIZATION.md`).

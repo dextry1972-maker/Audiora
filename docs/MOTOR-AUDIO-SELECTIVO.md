@@ -85,6 +85,21 @@ Métricas existentes: `dropped_chunks`, `backlog_ms`, `buffer_est_s`, `silence_k
 - Apps que no siguen el cambio de salida en caliente (las que fijan un dispositivo concreto) seguirían sonando en local hasta reiniciar su audio. Chromium sí lo sigue (medido).
 - `Application Loopback` está documentado desde la build 20348; Audiora lo usa desde la 19041 (2004), donde funciona según la comunidad.
 
-## 6. Pruebas
+## 6. Pruebas (28/10/2026)
 
-Ver la sección «Resultados» del informe final de la rama (CHANGELOG) y `docs/TESTING.md`.
+**Automáticas** (`dotnet test`): 35 de Core (4 nuevas de la redirección), 86 de la app, 12 de copias: todas correctas.
+
+**CaptureCheck** (tonos en salidas que nadie oye o a −60 dBFS; nada audible):
+
+| Prueba | Resultado |
+|---|---|
+| Aislamiento (por defecto) | A −12,0 / B −91,9 dBFS: solo llega la app elegida |
+| `local-silence` | silenciar la sesión silencia la captura (−163 dBFS) → descartado |
+| `route-browser` (Chrome propio) | cambia de salida en caliente; captura sin cambios; predeterminada en silencio |
+| `redirect-crash` (Chrome propio, el hijo muere sin restaurar) | sigue apartado tras el «cuelgue»; `RecoverPending` lo devuelve a su salida y borra el registro |
+| `follow-check` (app WASAPI de dispositivo fijo) | NO sigue el cambio → Audiora lo detecta y aplica el plan B |
+| `soak 30 --margin 1000` | 30 min, 0 cortes en «Una aplicación» y «Todo el PC»; 1802,3 s de audio en 1802,5 s; hueco máx. 11,8 ms; 0 descartes |
+
+**Con el Sonos Five** (`--selftest-session`): **31/31**. La primera ejecución dio 30/31: con una app WASAPI de dispositivo fijo, Windows la redirigía pero seguía sonando en local (17c). De ahí la comprobación posterior a la redirección (`VerifyRedirect`) y el cambio de la parte B2 a una instancia de Chrome. Resultado de la parte B2: Chrome en la salida predeterminada (−61,1 dBFS) → apartado a Steam Streaming, el Sonos lo recibe (−59,7 dBFS), en el PC baja a −86,1 dBFS sin silenciar ninguna salida, y al detener vuelve a su salida. Después: ninguna salida silenciada, puerto libre, sin archivos de estado.
+
+**Pendiente:** la prueba de aceptación con el Brave y el Chrome reales del usuario (música en Brave → Sonos; otro contenido en Chrome por los altavoces) y una transmisión real de 30 min con el Sonos.
