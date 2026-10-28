@@ -15,9 +15,10 @@ namespace SonosFlow.App.Localization;
 /// </summary>
 public sealed class Loc : INotifyPropertyChanged
 {
-    public static Loc Instance { get; } = new();
-
+    // Before Instance: static fields initialise in order, and the constructor already reads a table.
     private static readonly JsonSerializerOptions Json = new() { ReadCommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+
+    public static Loc Instance { get; } = new();
     private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _tables = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _missing = [];
 

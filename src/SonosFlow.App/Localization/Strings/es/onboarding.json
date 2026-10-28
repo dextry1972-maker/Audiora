@@ -1,0 +1,13 @@
+{
+  // Pantalla de bienvenida (solo en una instalación nueva)
+  "onboarding.title": "Te damos la bienvenida a Audiora",
+  "onboarding.subtitle": "El audio de tu PC, en tu Sonos. Elige el idioma de la aplicación para empezar.",
+  "onboarding.search.label": "Buscar idioma",
+  "onboarding.search.placeholder": "Buscar idioma…",
+  "onboarding.search.noResults": "Ningún idioma coincide con la búsqueda",
+  "onboarding.list.label": "IDIOMAS",
+  "onboarding.suggested": "Sugerido",
+  "onboarding.changeLater": "Puedes cambiarlo cuando quieras en Ajustes.",
+  "onboarding.confirm": "Continuar",
+  "onboarding.close.tooltip": "Cerrar y usar el idioma sugerido"
+}

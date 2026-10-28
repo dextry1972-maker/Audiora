@@ -9,6 +9,11 @@ namespace SonosFlow.App.ViewModels;
 /// </summary>
 public sealed partial class MainViewModel
 {
+    private static Loc L => Loc.Instance;
+
+    /// <summary>Last coded problem received from the session (language-independent, for logs and de-duplication).</summary>
+    private string? _lastErrorCode;
+
     public IReadOnlyList<LanguageInfo> LanguageChoices => Languages.All;
 
     public string SelectedLanguageCode

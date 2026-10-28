@@ -14,6 +14,8 @@ namespace SonosFlow.App.Infrastructure;
 /// </summary>
 public static class SelfTest
 {
+    private static Localization.Loc L => Localization.Loc.Instance;
+
     public static async Task<int> RunAsync(MainViewModel vm, int tonePid, string outFile)
     {
         var lines = new List<string>();
@@ -67,6 +69,15 @@ public static class SelfTest
         Check($"1c. Mostrar/ocultar ventanas no reinicia la transmisión (oculto={mini?.IsVisible == false}, reconexiones {sw?.Reconnects}, {sw?.TransportState})",
             mini?.IsVisible == false && sw is { Reconnects: 0, Clients: 1, TransportState: "PLAYING" } && sw.BytesSent > bytes0);
         Check($"1d. Una sola captura activa (capturas={LoopbackSource.ActiveCount})", LoopbackSource.ActiveCount == 1);
+
+        // Changing the UI language mid-stream only swaps text: same session, no reconnect, audio keeps flowing.
+        string lang0 = L.Code;
+        long sentBeforeLang = vm.LastStats?.BytesSent ?? 0;
+        foreach (var code in new[] { "ar", "ja", "de", lang0 }) { vm.SelectedLanguageCode = code; await Task.Delay(700); }
+        await Task.Delay(1500);
+        var sl = vm.LastStats;
+        Check($"1e. Cambiar de idioma en directo (ar → ja → de → {lang0}) no toca la transmisión (reconexiones {sl?.Reconnects}, {sl?.TransportState}, idioma {L.Code}, sin claves perdidas: {L.MissingKeys.Count == 0})",
+            sl is { Reconnects: 0, Clients: 1, TransportState: "PLAYING" } && sl.BytesSent > sentBeforeLang && L.Code == lang0 && LoopbackSource.ActiveCount == 1);
         vm.MiniVisible = true;
 
         await vm.RefreshAppsNowAsync();
@@ -83,14 +94,14 @@ public static class SelfTest
             Check($"4. Llega solo el tono de la aplicación (pico {Peak(s1?.PeakDbfs ?? double.NegativeInfinity)} dBFS, esperado ≈ −60; fuente «{s1?.SourceName}»)",
                 s1 is { PeakDbfs: > -66 and < -54 } && s1.SourceName == app.Name);
             Check($"5. Mini reproductor y ventana comparten estado: «{vm.SourceName}» · {vm.MiniStatusText}",
-                vm.SourceName == app.Name && vm.MiniStatusText == "Transmitiendo audio");
+                vm.SourceName == app.Name && vm.MiniStatusText == L.T("status.mini.streaming"));
             Check($"5b. Tras cambiar de fuente sigue habiendo una sola captura (capturas={LoopbackSource.ActiveCount})", LoopbackSource.ActiveCount == 1);
 
             vm.PauseResumeCommand.Execute(null);
             await Task.Delay(3000);
             var s2 = vm.LastStats;
             Check($"6. Pausa: silencio sin desconectar (pico {Peak(s2?.PeakDbfs ?? 0)}, {s2?.SendRateKBps:0} kB/s, {s2?.TransportState}, estado «{vm.MiniStatusText}»)",
-                s2 is { Clients: 1, SendRateKBps: > 150 } && double.IsNegativeInfinity(s2.PeakDbfs) && vm.MiniStatusText == "En pausa");
+                s2 is { Clients: 1, SendRateKBps: > 150 } && double.IsNegativeInfinity(s2.PeakDbfs) && vm.MiniStatusText == L.T("status.mini.paused"));
             vm.PauseResumeCommand.Execute(null);
             await Task.Delay(3000);
             Check($"7. Reanudar: vuelve el audio (pico {Peak(vm.LastStats?.PeakDbfs ?? double.NegativeInfinity)} dBFS)", vm.LastStats?.PeakDbfs > -66);
@@ -173,7 +184,7 @@ public static class SelfTest
             await Task.Delay(6000);
             var afterPause = await sonos.GetTransportStateAsync();
             Check($"18. Pausa desde la app de Sonos: Audiora se retira («{vm.StatusDetail}») y no reemite (Sonos {afterPause})",
-                released && vm.StatusDetail.Contains("pausó") && afterPause == "PAUSED_PLAYBACK");
+                released && vm.StatusDetail == L.Message(SonosFlow.Core.Streaming.SessionMessages.PausedFromSonos) && afterPause == "PAUSED_PLAYBACK");
 
             await vm.StartAsync();
             await Task.Delay(8000);
@@ -186,7 +197,7 @@ public static class SelfTest
             await Task.Delay(6000);
             var afterStop = await sonos.GetTransportStateAsync();
             Check($"20. Stop repetido: Audiora se retira («{vm.StatusDetail}») y el Sonos sigue detenido ({afterStop})",
-                gaveWay && vm.StatusDetail.Contains("detuvo") && afterStop == "STOPPED");
+                gaveWay && vm.StatusDetail == L.Message(SonosFlow.Core.Streaming.SessionMessages.StoppedFromSonos) && afterStop == "STOPPED");
             if (vm.IsStreaming) await vm.StopAsync(reason: "fin del autotest (parte C)");
             Check($"21. Nada queda activo: capturas={LoopbackSource.ActiveCount}, puerto libre={!System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(e => e.Port == 8780)}",
                 LoopbackSource.ActiveCount == 0 && !System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(e => e.Port == 8780));

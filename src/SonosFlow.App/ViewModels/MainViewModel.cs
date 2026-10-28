@@ -123,20 +123,22 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string StatusTitle => State switch
     {
-        UiState.Discovering => "Buscando altavoces…",
-        UiState.NoSpeaker => "No se encontró ningún Sonos",
-        UiState.Ready => "Listo para transmitir",
-        UiState.Starting => "Conectando…",
-        UiState.Streaming => "Transmitiendo",
-        UiState.Recovering => "Reconectando…",
-        UiState.Error => "No se pudo transmitir",
+        UiState.Discovering => L.T("status.title.discovering"),
+        UiState.NoSpeaker => L.T("status.title.noSpeaker"),
+        UiState.Ready => L.T("status.title.ready"),
+        UiState.Starting => L.T("status.title.starting"),
+        UiState.Streaming => L.T("status.title.streaming"),
+        UiState.Recovering => L.T("status.title.recovering"),
+        UiState.Error => L.T("status.title.error"),
         _ => "",
     };
 
-    public string StreamButtonText => IsStreaming ? "Detener" : "Transmitir";
+    public string StreamButtonText => L.T(IsStreaming ? "status.button.stop" : "status.button.start");
 
-    private string _statusDetail = "Buscando dispositivos Sonos en tu red local";
-    public string StatusDetail { get => _statusDetail; private set => Set(ref _statusDetail, value); }
+    // Stored as "how to build the text", so a language change also translates the message already on screen.
+    private Func<string> _statusDetail = () => L.T("status.detail.searching");
+    public string StatusDetail => _statusDetail();
+    private void Detail(Func<string> text) { _statusDetail = text; OnPropertyChanged(nameof(StatusDetail)); }
 
     private string _page = "home";
     public string Page { get => _page; set => Set(ref _page, value); }
@@ -157,7 +159,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     private bool _speakerOnline;
     public bool SpeakerOnline { get => _speakerOnline; private set { if (Set(ref _speakerOnline, value)) OnPropertyChanged(nameof(ConnectionText)); } }
-    public string ConnectionText => SelectedSpeaker is null ? "—" : SpeakerOnline ? "En línea" : "Sin conexión";
+    public string ConnectionText => SelectedSpeaker is null ? "—" : L.T(SpeakerOnline ? "status.connection.online" : "status.connection.offline");
 
     private int _volume;
     public int Volume
@@ -246,7 +248,7 @@ public sealed partial class MainViewModel : ObservableObject
         set { WindowsIntegration.StartsWithWindows = value; OnPropertyChanged(); }
     }
 
-    public string Version => $"Versión {typeof(MainViewModel).Assembly.GetName().Version?.ToString(3)}";
+    public string Version => L.F("app.version", typeof(MainViewModel).Assembly.GetName().Version?.ToString(3));
     public string LogsPath => AppPaths.Logs;
 
     // ── Live stats (real values; estimates are labelled) ───────
@@ -257,7 +259,7 @@ public sealed partial class MainViewModel : ObservableObject
     public string ElapsedText { get => _elapsedText; private set => Set(ref _elapsedText, value); }
     private string _rateText = "—";
     public string RateText { get => _rateText; private set => Set(ref _rateText, value); }
-    private string _formatText = "WAV PCM · 16 bit · estéreo";
+    private string _formatText = "WAV PCM · 16 bit · 2 ch";
     public string FormatText { get => _formatText; private set => Set(ref _formatText, value); }
     private string _sourceFormatText = "—";
     public string SourceFormatText { get => _sourceFormatText; private set => Set(ref _sourceFormatText, value); }
@@ -269,8 +271,16 @@ public sealed partial class MainViewModel : ObservableObject
     public string DropsText { get => _dropsText; private set => Set(ref _dropsText, value); }
     private string _reconnectsText = "0";
     public string ReconnectsText { get => _reconnectsText; private set => Set(ref _reconnectsText, value); }
-    private string _lastErrorText = "Ninguno";
-    public string LastErrorText { get => _lastErrorText; private set => Set(ref _lastErrorText, value); }
+    private Func<string>? _lastError;
+    /// <summary>Last problem worth telling the user (translated live); "none" text when there is none.</summary>
+    public string LastErrorText => _lastError?.Invoke() ?? L.T("status.noError");
+    public bool HasLastError => _lastError is not null;
+    private void LastError(Func<string>? text)
+    {
+        _lastError = text;
+        OnPropertyChanged(nameof(LastErrorText));
+        OnPropertyChanged(nameof(HasLastError));
+    }
     private string _streamUrl = "—";
     public string StreamUrl { get => _streamUrl; private set => Set(ref _streamUrl, value); }
 
@@ -279,7 +289,7 @@ public sealed partial class MainViewModel : ObservableObject
     public async Task InitializeAsync(bool autoStart, bool allowResume = true)
     {
         if (LocalOutputGuard.RecoverPending(AppPaths.GuardStateFile))
-            StatusDetail = "Se restauró el sonido del PC tras un cierre inesperado";
+            Detail(() => L.T("status.detail.restoredAfterCrash"));
         await DiscoverAsync();
         _poll.Start();
         // At Windows sign-in the hotspot and the Sonos may need a while: wait for them (bounded) instead of giving up.
@@ -291,7 +301,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (IsStreaming) return;
         State = UiState.Discovering;
-        StatusDetail = "Buscando dispositivos Sonos en tu red local";
+        Detail(() => L.T("status.detail.searching"));
         IReadOnlyList<SonosDevice> found;
         try { found = await SonosDiscovery.DiscoverAsync(TimeSpan.FromSeconds(3)); }
         catch (Exception ex) when (ex is SocketException or InvalidOperationException) { found = []; }
@@ -306,12 +316,13 @@ public sealed partial class MainViewModel : ObservableObject
         {
             SelectedSpeaker = null;
             State = UiState.NoSpeaker;
-            StatusDetail = "Comprueba que el PC y el Sonos están en la misma red y que la red es privada";
+            Detail(() => L.T("status.detail.noSpeakerHint"));
             return;
         }
         Select(pick);
         State = UiState.Ready;
-        StatusDetail = $"{Speakers.Count} altavoz{(Speakers.Count == 1 ? "" : "es")} en la red";
+        int speakerCount = Speakers.Count;
+        Detail(() => L.Plural("status.detail.speakersFound", speakerCount));
     }
 
     private void Select(SpeakerItem item)
@@ -346,13 +357,13 @@ public sealed partial class MainViewModel : ObservableObject
         if (CurrentSpec() is not { } spec)
         {
             State = UiState.Error;
-            StatusDetail = "Elige la aplicación que quieres transmitir (o cambia a «Todo el PC»)";
+            Detail(() => L.T("status.detail.chooseApp"));
             return;
         }
         State = UiState.Starting;
         AppLog.Write($"inicio solicitado → {speaker.Name} ({speaker.Address})");
-        StatusDetail = $"Preparando el audio para {speaker.Name}";
-        LastErrorText = "Ninguno";
+        Detail(() => L.F("status.detail.preparing", speaker.Name));
+        LastError(null);
 
         var session = new StreamingSession(speaker.Device, Speakers.Select(s => s.Device.Address), spec,
             new StreamOptions(_settings.Port, MuteLocal, FullLevel, AppPaths.Logs, PrebufferMs), AppPaths.GuardStateFile);
@@ -379,12 +390,12 @@ public sealed partial class MainViewModel : ObservableObject
             _starting = null;
             await session.DisposeAsync();
             State = UiState.Error;
-            StatusDetail = Describe(ex);
+            Detail(() => Describe(ex));
             _lastStartRetryable = ex is HttpRequestException or TaskCanceledException
                 or SonosSoapException { UpnpErrorCode: not 800 } // e.g. HTTP 500 while the Sonos boots; 800 = grouped speaker
                 or SocketException { SocketErrorCode: SocketError.AddressAlreadyInUse or SocketError.AddressNotAvailable or SocketError.NetworkUnreachable or SocketError.HostUnreachable };
-            AppLog.Write($"inicio fallido: {StatusDetail} [{ex.GetType().Name}]");
-            LastErrorText = StatusDetail;
+            AppLog.Write($"inicio fallido: {ex.GetType().Name}: {ex.Message}");
+            LastError(() => Describe(ex));
             return;
         }
         if (pending.Cancelled) return; // stopped (or the app is closing) while connecting: StopAsync disposes it
@@ -398,7 +409,7 @@ public sealed partial class MainViewModel : ObservableObject
         _settings.WasStreaming = true;
         _settings.Save();
         State = UiState.Streaming;
-        StatusDetail = $"{spec.DisplayName} → {speaker.Name}";
+        Detail(() => L.F("status.detail.streaming", SourceName, speaker.Name));
         AppLog.Write($"transmitiendo {spec.DisplayName}: {session.StreamUrl}");
     }
 
@@ -429,7 +440,7 @@ public sealed partial class MainViewModel : ObservableObject
             _settings.WasStreaming = false;
             _settings.Save();
         }
-        if (State is not UiState.Error) StatusDetail = SelectedSpeaker is null ? "" : "Transmisión detenida";
+        if (State is not UiState.Error) Detail(() => SelectedSpeaker is null ? "" : L.T("status.detail.stopped"));
         State = SelectedSpeaker is null ? UiState.NoSpeaker : UiState.Ready;
         RateText = "—";
         BufferText = "—";
@@ -472,7 +483,7 @@ public sealed partial class MainViewModel : ObservableObject
             case SessionState.Streaming: State = UiState.Streaming; break;
             case SessionState.Recovering:
                 State = UiState.Recovering;
-                StatusDetail = "El Sonos dejó de recibir el audio; reenviando la transmisión";
+                Detail(() => L.T("status.detail.recovering"));
                 break;
             case SessionState.Failed:
                 _ = FailAsync();
@@ -486,18 +497,18 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>The user took the Sonos for something else: stop quietly (not an error) and don't resume later.</summary>
     private async Task ReleasedAsync()
     {
-        var reason = LastErrorText;
-        await StopAsync(rememberStopped: true, reason: $"Sonos: {reason}");
-        StatusDetail = reason;
-        LastErrorText = "Ninguno";
+        var reason = _lastError ?? (() => "");
+        await StopAsync(rememberStopped: true, reason: $"Sonos: {_lastErrorCode}");
+        Detail(reason);
+        LastError(null);
     }
 
     private async Task FailAsync()
     {
-        var reason = LastErrorText;
-        await StopAsync(rememberStopped: false, reason: $"error: {reason}");
+        var reason = _lastError ?? (() => L.T("status.title.error"));
+        await StopAsync(rememberStopped: false, reason: $"error: {_lastErrorCode}");
         State = UiState.Error;
-        StatusDetail = reason;
+        Detail(reason);
     }
 
     private void OnStats(StreamStats s)
@@ -515,11 +526,11 @@ public sealed partial class MainViewModel : ObservableObject
             "UNREACHABLE" => "Sin respuesta",
             var other => other,
         };
-        BufferText = s.BufferEstimateSeconds is { } b ? $"≈ {Math.Max(0, b):0.0} s (estimado)" : "—";
+        BufferText = s.BufferEstimateSeconds is { } b ? L.F("stats.buffer", Math.Max(0, b)) : "—";
         DropsText = s.DroppedChunks.ToString();
         ReconnectsText = s.Reconnects.ToString();
         UpdateNetwork(s);
-        if (s.LastError is { } err) LastErrorText = err;
+        if (s.LastError is { } err && err != _lastErrorCode) { _lastErrorCode = err; LastError(() => L.Message(err)); }
         if (_sourceAvailable != s.SourceAvailable) { _sourceAvailable = s.SourceAvailable; SourceChangedNotify(); }
         SpeakerOnline = s.TransportState != "UNREACHABLE";
         if (SelectedSpeaker is { } sp) sp.IsOnline = SpeakerOnline;
@@ -574,21 +585,22 @@ public sealed partial class MainViewModel : ObservableObject
         try { await action(_control); }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or SonosSoapException)
         {
-            LastErrorText = $"No se pudo aplicar el ajuste al Sonos: {ex.Message}";
+            LastError(() => L.F("errors.sonosSettingFailed", ex.Message));
         }
     }
 
     private string Describe(Exception ex) => ex switch
     {
         SocketException { SocketErrorCode: SocketError.AddressAlreadyInUse } =>
-            $"El puerto {_settings.Port} ya está en uso (¿hay otra transmisión abierta?)",
+            L.F("errors.portInUse", _settings.Port),
         SonosSoapException { UpnpErrorCode: 800 } =>
-            "El altavoz está agrupado y no es el principal del grupo. Sácalo del grupo en la app de Sonos o elige el principal.",
-        SonosSoapException soap => $"El Sonos rechazó la orden: {soap.Message}",
-        HttpRequestException or TaskCanceledException => "El Sonos no responde. Comprueba que está encendido y en la misma red.",
-        NotSupportedException ns => ns.Message,
+            L.T("errors.groupedSpeaker"),
+        SonosSoapException soap => L.F("errors.sonosRejected", soap.Message),
+        HttpRequestException or TaskCanceledException => L.T("errors.sonosNotResponding"),
+        PlatformNotSupportedException => L.T("errors.appCaptureUnsupported"),
+        NotSupportedException ns => L.F("errors.formatUnsupported", ns.Message),
         System.Runtime.InteropServices.COMException when IsAppMode =>
-            $"No se pudo capturar «{SourceName}». Comprueba que la aplicación sigue abierta. ({ex.Message})",
+            L.F("errors.appCaptureFailed", SourceName, ex.Message),
         _ => ex.Message,
     };
 

@@ -1,0 +1,30 @@
+{
+  // Problemas mostrados al usuario. {0}, {1} = datos de la situación (nombre, mensaje técnico, número)
+  "errors.portInUse": "El puerto {0} ya está en uso (¿hay otra transmisión abierta?)",
+  "errors.groupedSpeaker": "El altavoz está agrupado y no es el principal del grupo. Sácalo del grupo en la app de Sonos o elige el principal.",
+  "errors.sonosRejected": "El Sonos rechazó la orden: {0}",
+  "errors.sonosNotResponding": "El Sonos no responde. Comprueba que está encendido y en la misma red.",
+  "errors.appCaptureUnsupported": "La captura por aplicación requiere Windows 10 versión 2004 o posterior.",
+  "errors.appCaptureFailed": "No se pudo capturar «{0}». Comprueba que la aplicación sigue abierta. ({1})",
+  "errors.formatUnsupported": "Formato de audio no soportado: {0}",
+  "errors.sonosSettingFailed": "No se pudo aplicar el ajuste al Sonos: {0}",
+  "errors.switchSource": "No se pudo cambiar a «{0}»: {1}",
+  "errors.noBrowserForYouTubeMusic": "No se encontró Brave, Edge ni Chrome para abrir YouTube Music aislado.",
+  "errors.youTubeMusicLaunch": "No se pudo abrir YouTube Music: {0}",
+
+  // Mensajes que envía el motor (SonosFlow.Core/Streaming/SessionMessages.cs)
+  "core.speakerUnreachable": "El Sonos no responde en la red",
+  "core.captureStopped": "La captura de audio se detuvo: {0}",
+  "core.retryFailed": "Reintento fallido: {0}",
+  "core.gaveUp": "El Sonos no recupera la transmisión tras {0} intentos",
+  "core.internalError": "Error interno de la transmisión: {0}",
+  "core.otherSource": "El Sonos está reproduciendo otra fuente",
+  "core.pausedFromSonos": "Se pausó desde la app de Sonos",
+  "core.stoppedFromSonos": "Se detuvo desde la app de Sonos",
+
+  // Diálogos de la aplicación
+  "app.uninstall.title": "Audiora",
+  "app.uninstall.confirm": "¿Desinstalar Audiora?\n\nSe eliminarán el programa y sus accesos directos. Tus ajustes y registros se conservan.",
+  "app.uninstall.done": "Audiora se ha desinstalado.",
+  "app.unexpectedError": "Se produjo un error inesperado:\n{0}\n\nDetalles en la carpeta de registros."
+}

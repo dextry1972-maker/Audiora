@@ -90,7 +90,7 @@ public sealed class LoopbackSource : IDisposable
         int bytesPerSample = fmt.BitsPerSample / 8;
         bool isFloat = fmt.Encoding == WaveFormatEncoding.IeeeFloat
                        || (fmt is WaveFormatExtensible ext && ext.SubFormat == KsDataFormatSubtypeIeeeFloat);
-        var description = $"{fmt.SampleRate} Hz, {fmt.BitsPerSample} bit {(isFloat ? "float" : "PCM")}, {fmt.Channels} canales";
+        var description = $"{fmt.SampleRate} Hz, {fmt.BitsPerSample} bit {(isFloat ? "float" : "PCM")}, {fmt.Channels} ch";
         if (!isFloat && bytesPerSample != 2)
             throw new NotSupportedException($"Formato de captura no soportado: {description}");
         return (fmt.Channels, bytesPerSample, isFloat, description, new WaveFormat(fmt.SampleRate, 16, 2));
