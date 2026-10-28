@@ -89,6 +89,64 @@ if (args is ["route-browser", var browserExe, var pageFile])
     }
 }
 
+if (args is ["redirect-and-crash", var rPid, var rExe, var rTarget, var rState])
+{
+    // Child of redirect-crash: redirect like Audiora does, then die without restoring (simulated crash).
+    _ = new AppOutputRedirect(int.Parse(rPid), rExe, rTarget, rState);
+    Environment.Exit(3);
+}
+
+if (args is ["redirect-crash", var crashBrowser, var crashPage])
+{
+    // Audiora's own redirect (AppOutputRedirect) on a private browser instance that is playing: a child process
+    // redirects it and dies without restoring; RecoverPending must then put the browser back where it was.
+    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    using var silentDev = AudioDevices.Resolve(silent.Id);
+    using var defaultDev = AudioDevices.Resolve(null);
+    var state = Path.Combine(Path.GetTempPath(), $"sf-redirect-crash-{Environment.ProcessId}.json");
+    var profile = Path.Combine(Path.GetTempPath(), "sf-route-browser-" + Environment.ProcessId);
+    using var browser = Process.Start(new ProcessStartInfo(crashBrowser,
+        $"--user-data-dir=\"{profile}\" --no-first-run --no-default-browser-check --autoplay-policy=no-user-gesture-required " +
+        $"--window-position=-32000,-32000 --window-size=300,200 --app=\"{new Uri(crashPage).AbsoluteUri}\"") { UseShellExecute = false })!;
+    int root = browser.Id, sessionPid = 0, fails = 0;
+    string? before = null;
+    void R(string what, bool ok) { if (!ok) fails++; Console.WriteLine($"{(ok ? "OK   " : "FALLO")} {what}"); }
+    (double App, double Silent, double Default) Levels() =>
+        (Measure(LoopbackSource.ForProcess(root, "A", 48000)).A, Measure(new LoopbackSource(silentDev)).A, Measure(new LoopbackSource(defaultDev)).A);
+    try
+    {
+        for (int i = 0; i < 40 && sessionPid == 0; i++) { Thread.Sleep(250); sessionPid = SessionPidUnder(root); }
+        if (sessionPid == 0) { Console.WriteLine("FALLO el navegador no abrió una sesión de audio"); return 1; }
+        Thread.Sleep(1000);
+        before = AppOutputRouting.Get(sessionPid);
+        var l0 = Levels();
+        R($"Antes: suena en la predeterminada ({l0.Default:0.0} dBFS), captura {l0.App:0.0}", l0.Default > -66 && l0.App > -66);
+        using (var child = Process.Start(new ProcessStartInfo(Environment.ProcessPath!,
+                   $"redirect-and-crash {sessionPid} \"{crashBrowser}\" \"{silent.Id}\" \"{state}\"") { UseShellExecute = false, CreateNoWindow = true })!)
+            child.WaitForExit(15000);
+        Thread.Sleep(1500);
+        var l1 = Levels();
+        R($"Tras el «cuelgue»: sigue apartada (predeterminada {l1.Default:0.0}, {silent.Name} {l1.Silent:0.0}), captura {l1.App:0.0}, registro pendiente={File.Exists(state)}",
+            l1.Default < l0.Default - 6 && l1.Silent > -66 && l1.App > -66 && File.Exists(state)); // other audio may be playing on the default output
+        bool recovered = AppOutputRedirect.RecoverPending(state);
+        Thread.Sleep(1500);
+        var l2 = Levels();
+        string? after = AppOutputRouting.Get(sessionPid);
+        R($"RecoverPending={recovered}: vuelve a la predeterminada ({l2.Default:0.0} dBFS), salida por aplicación {after ?? "(predeterminada)"} = antes {before ?? "(predeterminada)"}, sin registro={!File.Exists(state)}",
+            recovered && l2.Default > -66 && after == before && !File.Exists(state));
+        return fails == 0 ? 0 : 1;
+    }
+    finally
+    {
+        if (sessionPid != 0) { try { AppOutputRouting.Set(sessionPid, before); } catch (Exception) { } } // never leave it redirected
+        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(crashBrowser)))
+            if (AudioApps.RootProcessId(p.Id) == root) { try { p.Kill(); } catch (Exception) { } }
+        Thread.Sleep(500);
+        try { File.Delete(state); } catch (IOException) { }
+        try { Directory.Delete(profile, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    }
+}
+
 if (args is ["policy-get", .. var pids])
 {
     // Read-only: the per-app output Windows has for each PID (or the error it answers).
