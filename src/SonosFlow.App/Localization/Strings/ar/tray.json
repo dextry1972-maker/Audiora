@@ -1,0 +1,9 @@
+{
+  "tray.open": "فتح Audiora (النافذة الرئيسية)",
+  "tray.quit": "إنهاء Audiora",
+  "tray.stream.start": "بدء البث",
+  "tray.stream.stop": "إيقاف البث",
+  "tray.mini.show": "إظهار المشغل المصغر",
+  "tray.mini.hide": "إخفاء المشغل المصغر",
+  "tray.tooltip.streaming": "Audiora — جارٍ البث إلى {0}"
+}

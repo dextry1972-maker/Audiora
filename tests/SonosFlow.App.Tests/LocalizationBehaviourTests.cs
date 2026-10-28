@@ -148,6 +148,17 @@ public sealed class LanguageResolutionTests
         Assert.True(Languages.Get("ar").IsRightToLeft);
         Assert.Single(Languages.All, l => l.IsRightToLeft);
     }
+
+    [Fact]
+    public void Every_language_formats_dates_with_the_gregorian_calendar()
+    {
+        foreach (var lang in Languages.All)
+        {
+            var culture = Languages.CultureFor(lang.Code);
+            Assert.IsType<GregorianCalendar>(culture.DateTimeFormat.Calendar);
+            Assert.Contains("2026", new DateTime(2026, 10, 28).ToString("G", culture));
+        }
+    }
 }
 
 /// <summary>Every installation case for the first-launch language choice.</summary>

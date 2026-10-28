@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — मिनी प्लेयर",
+  "mini.volume.name": "Sonos वॉल्यूम",
+  "mini.pause.name": "पॉज़ करें या फिर से शुरू करें",
+  "mini.pause.tooltip": "पॉज़: Sonos कनेक्ट रहता है और उसे साइलेंस मिलता है। फिर से शुरू करना तुरंत होता है। अगर स्ट्रीमिंग नहीं हो रही है, तो स्ट्रीमिंग शुरू करता है।",
+  "mini.sources.toggle": "ऑडियो स्रोत बदलें",
+  "mini.showMain": "मुख्य विंडो खोलें",
+  "mini.hide.tooltip": "मिनी प्लेयर छिपाएँ (ऑडियो चलता रहेगा)",
+  "mini.hide.name": "मिनी प्लेयर छिपाएँ",
+  "mini.sources.title": "Sonos को भेजें",
+  "mini.sources.system": "पीसी का सारा ऑडियो"
+}

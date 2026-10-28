@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — 迷你播放器",
+  "mini.volume.name": "Sonos 音量",
+  "mini.pause.name": "暂停或继续",
+  "mini.pause.tooltip": "暂停：Sonos 保持连接并接收静音。继续播放即时生效。如果未在传输，则开始传输。",
+  "mini.sources.toggle": "更改音频源",
+  "mini.showMain": "打开主窗口",
+  "mini.hide.tooltip": "隐藏迷你播放器（音频继续播放）",
+  "mini.hide.name": "隐藏迷你播放器",
+  "mini.sources.title": "发送到 SONOS",
+  "mini.sources.system": "电脑的全部音频"
+}

@@ -1,0 +1,12 @@
+{
+  "onboarding.title": "Willkommen bei Audiora",
+  "onboarding.subtitle": "Der Ton deines PCs auf deinem Sonos. Wähle zum Start die Sprache der App.",
+  "onboarding.search.label": "Sprachen durchsuchen",
+  "onboarding.search.placeholder": "Sprachen durchsuchen…",
+  "onboarding.search.noResults": "Keine Sprache passt zu deiner Suche",
+  "onboarding.list.label": "SPRACHEN",
+  "onboarding.suggested": "Empfohlen",
+  "onboarding.changeLater": "Du kannst sie jederzeit in den Einstellungen ändern.",
+  "onboarding.confirm": "Weiter",
+  "onboarding.close.tooltip": "Schließen und die empfohlene Sprache verwenden"
+}

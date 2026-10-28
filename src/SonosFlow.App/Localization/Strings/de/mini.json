@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — Miniplayer",
+  "mini.volume.name": "Sonos-Lautstärke",
+  "mini.pause.name": "Pausieren oder fortsetzen",
+  "mini.pause.tooltip": "Pause: Der Sonos bleibt verbunden und empfängt Stille. Fortsetzen geht sofort. Läuft kein Streaming, wird es gestartet.",
+  "mini.sources.toggle": "Audioquelle wechseln",
+  "mini.showMain": "Hauptfenster öffnen",
+  "mini.hide.tooltip": "Miniplayer ausblenden (Audio läuft weiter)",
+  "mini.hide.name": "Miniplayer ausblenden",
+  "mini.sources.title": "AN SONOS SENDEN",
+  "mini.sources.system": "Gesamter PC-Ton"
+}

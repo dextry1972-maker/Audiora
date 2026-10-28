@@ -1,0 +1,21 @@
+{
+  "setup.window.title": "تثبيت Audiora",
+  "setup.subtitle": "بث صوت الكمبيوتر إلى Sonos عبر Wi-Fi",
+  "setup.location": "سيتم التثبيت لمستخدمك في:\n{0}\nلا يلزم امتلاك حقوق المسؤول.",
+  "setup.desktopShortcut": "إنشاء اختصار على سطح المكتب",
+  "setup.launchWhenDone": "فتح Audiora عند الانتهاء",
+  "setup.install": "تثبيت",
+  "setup.cancel": "إلغاء",
+  "setup.finish": "إنهاء",
+  "setup.failed": "لم يكتمل التثبيت.",
+  "setup.done": "تم. تم تثبيت Audiora.",
+  "setup.noPayload": "لا يحتوي برنامج التثبيت هذا على التطبيق (تم إنشاؤه بدون الحزمة).",
+  "setup.appRunning": "Audiora مفتوح. أغلقه (بما في ذلك من علبة النظام) وحاول مرة أخرى.",
+  "setup.folderNotOurs": "المجلد {0} موجود بالفعل ولا يحتوي على Audiora. لن يتم استبداله.",
+  "setup.step.prepare": "جارٍ تحضير المجلد…",
+  "setup.step.copy": "جارٍ نسخ الملفات… {0}/{1}",
+  "setup.step.shortcuts": "جارٍ إنشاء الاختصارات…",
+  "setup.step.register": "جارٍ التسجيل في التطبيقات المثبتة…",
+  "setup.step.complete": "اكتمل التثبيت",
+  "setup.shortcut.description": "بث صوت الكمبيوتر إلى Sonos"
+}

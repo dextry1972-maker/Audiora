@@ -1,0 +1,9 @@
+{
+  "tray.open": "Открыть Audiora (главное окно)",
+  "tray.quit": "Выйти из Audiora",
+  "tray.stream.start": "Начать трансляцию",
+  "tray.stream.stop": "Остановить трансляцию",
+  "tray.mini.show": "Показать мини-плеер",
+  "tray.mini.hide": "Скрыть мини-плеер",
+  "tray.tooltip.streaming": "Audiora — трансляция на {0}"
+}

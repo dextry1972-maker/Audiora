@@ -595,12 +595,15 @@ public sealed partial class MainViewModel : ObservableObject
             L.F("errors.portInUse", _settings.Port),
         SonosSoapException { UpnpErrorCode: 800 } =>
             L.T("errors.groupedSpeaker"),
-        SonosSoapException soap => L.F("errors.sonosRejected", soap.Message),
+        // Technical details are passed as codes: the Core's own exception text is not translated.
+        SonosSoapException soap => L.F("errors.sonosRejected", $"UPnP {soap.UpnpErrorCode?.ToString() ?? "?"}"),
         HttpRequestException or TaskCanceledException => L.T("errors.sonosNotResponding"),
         PlatformNotSupportedException => L.T("errors.appCaptureUnsupported"),
         NotSupportedException ns => L.F("errors.formatUnsupported", ns.Message),
-        System.Runtime.InteropServices.COMException when IsAppMode =>
-            L.F("errors.appCaptureFailed", SourceName, ex.Message),
+        System.Runtime.InteropServices.COMException com when IsAppMode =>
+            L.F("errors.appCaptureFailed", SourceName, $"0x{com.HResult:X8}"),
+        TimeoutException when IsAppMode =>
+            L.F("errors.appCaptureFailed", SourceName, "timeout"),
         _ => ex.Message,
     };
 

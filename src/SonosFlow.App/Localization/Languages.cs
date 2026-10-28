@@ -66,7 +66,15 @@ public static class Languages
     /// <summary>Culture used to format numbers and dates for a language.</summary>
     public static CultureInfo CultureFor(string code)
     {
-        try { return CultureInfo.GetCultureInfo(code); }
+        CultureInfo culture;
+        try { culture = CultureInfo.GetCultureInfo(code); }
         catch (CultureNotFoundException) { return CultureInfo.InvariantCulture; }
+        // Dates stay Gregorian (Arabic data may default to the Umm al-Qura calendar).
+        if (culture.Calendar is GregorianCalendar) return culture;
+        var gregorian = culture.OptionalCalendars.OfType<GregorianCalendar>().FirstOrDefault();
+        if (gregorian is null) return culture;
+        var copy = (CultureInfo)culture.Clone();
+        copy.DateTimeFormat.Calendar = gregorian;
+        return CultureInfo.ReadOnly(copy);
     }
 }

@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — ミニ プレーヤー",
+  "mini.volume.name": "Sonos の音量",
+  "mini.pause.name": "一時停止/再開",
+  "mini.pause.tooltip": "一時停止: Sonos は接続されたまま無音を受信します。再開はすぐに行われます。ストリーミングしていない場合は、ストリーミングを開始します。",
+  "mini.sources.toggle": "オーディオ ソースを変更",
+  "mini.showMain": "メイン ウィンドウを開く",
+  "mini.hide.tooltip": "ミニ プレーヤーを非表示（オーディオは再生を続けます）",
+  "mini.hide.name": "ミニ プレーヤーを非表示",
+  "mini.sources.title": "SONOS に送信",
+  "mini.sources.system": "PC のすべてのオーディオ"
+}

@@ -1,0 +1,12 @@
+{
+  "onboarding.title": "欢迎使用 Audiora",
+  "onboarding.subtitle": "让电脑的声音从 Sonos 播放。请选择应用语言以开始使用。",
+  "onboarding.search.label": "搜索语言",
+  "onboarding.search.placeholder": "搜索语言…",
+  "onboarding.search.noResults": "没有与搜索内容匹配的语言",
+  "onboarding.list.label": "语言",
+  "onboarding.suggested": "推荐",
+  "onboarding.changeLater": "你可以随时在“设置”中更改。",
+  "onboarding.confirm": "继续",
+  "onboarding.close.tooltip": "关闭并使用推荐的语言"
+}

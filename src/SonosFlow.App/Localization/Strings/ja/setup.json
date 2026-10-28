@@ -1,0 +1,21 @@
+{
+  "setup.window.title": "Audiora のインストール",
+  "setup.subtitle": "PC のオーディオを Wi-Fi 経由で Sonos にストリーミング",
+  "setup.location": "現在のユーザー用に次の場所へインストールします:\n{0}\n管理者権限は不要です。",
+  "setup.desktopShortcut": "デスクトップにショートカットを作成",
+  "setup.launchWhenDone": "完了後に Audiora を開く",
+  "setup.install": "インストール",
+  "setup.cancel": "キャンセル",
+  "setup.finish": "完了",
+  "setup.failed": "インストールは完了しませんでした。",
+  "setup.done": "完了しました。Audiora がインストールされました。",
+  "setup.noPayload": "このインストーラーにはアプリが含まれていません（パッケージなしでビルドされました）。",
+  "setup.appRunning": "Audiora が起動しています。終了してから（通知領域からも）もう一度お試しください。",
+  "setup.folderNotOurs": "フォルダー {0} は既に存在し、Audiora が含まれていません。上書きはしません。",
+  "setup.step.prepare": "フォルダーを準備しています…",
+  "setup.step.copy": "ファイルをコピーしています… {0}/{1}",
+  "setup.step.shortcuts": "ショートカットを作成しています…",
+  "setup.step.register": "[インストールされているアプリ] に登録しています…",
+  "setup.step.complete": "インストールが完了しました",
+  "setup.shortcut.description": "PC のオーディオを Sonos にストリーミング"
+}

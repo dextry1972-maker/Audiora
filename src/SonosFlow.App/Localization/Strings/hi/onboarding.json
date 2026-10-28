@@ -1,0 +1,12 @@
+{
+  "onboarding.title": "Audiora में आपका स्वागत है",
+  "onboarding.subtitle": "आपके पीसी का ऑडियो, आपके Sonos पर। शुरू करने के लिए ऐप की भाषा चुनें।",
+  "onboarding.search.label": "भाषाएँ खोजें",
+  "onboarding.search.placeholder": "भाषाएँ खोजें…",
+  "onboarding.search.noResults": "आपकी खोज से कोई भाषा मेल नहीं खाती",
+  "onboarding.list.label": "भाषाएँ",
+  "onboarding.suggested": "सुझाई गई",
+  "onboarding.changeLater": "आप इसे सेटिंग्स में कभी भी बदल सकते हैं।",
+  "onboarding.confirm": "जारी रखें",
+  "onboarding.close.tooltip": "बंद करें और सुझाई गई भाषा इस्तेमाल करें"
+}

@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — мини-плеер",
+  "mini.volume.name": "Громкость Sonos",
+  "mini.pause.name": "Пауза или продолжение",
+  "mini.pause.tooltip": "Пауза: Sonos остаётся подключённым и получает тишину. Продолжение — мгновенное. Если трансляция не идёт, запускает её.",
+  "mini.sources.toggle": "Сменить источник звука",
+  "mini.showMain": "Открыть главное окно",
+  "mini.hide.tooltip": "Скрыть мини-плеер (звук продолжит играть)",
+  "mini.hide.name": "Скрыть мини-плеер",
+  "mini.sources.title": "ОТПРАВИТЬ НА SONOS",
+  "mini.sources.system": "Весь звук ПК"
+}

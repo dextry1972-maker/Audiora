@@ -1,0 +1,9 @@
+{
+  "tray.open": "打开 Audiora（主窗口）",
+  "tray.quit": "退出 Audiora",
+  "tray.stream.start": "开始传输",
+  "tray.stream.stop": "停止传输",
+  "tray.mini.show": "显示迷你播放器",
+  "tray.mini.hide": "隐藏迷你播放器",
+  "tray.tooltip.streaming": "Audiora — 正在传输到 {0}"
+}

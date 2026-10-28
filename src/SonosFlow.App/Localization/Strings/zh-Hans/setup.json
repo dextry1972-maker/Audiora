@@ -1,0 +1,21 @@
+{
+  "setup.window.title": "安装 Audiora",
+  "setup.subtitle": "通过 Wi-Fi 将电脑音频传输到 Sonos",
+  "setup.location": "将为当前用户安装到：\n{0}\n无需管理员权限。",
+  "setup.desktopShortcut": "创建桌面快捷方式",
+  "setup.launchWhenDone": "完成后打开 Audiora",
+  "setup.install": "安装",
+  "setup.cancel": "取消",
+  "setup.finish": "完成",
+  "setup.failed": "安装未完成。",
+  "setup.done": "完成。Audiora 已安装。",
+  "setup.noPayload": "此安装程序不包含应用（生成时未包含程序包）。",
+  "setup.appRunning": "Audiora 正在运行。请将其关闭（包括系统托盘中的图标）后重试。",
+  "setup.folderNotOurs": "文件夹 {0} 已存在且不包含 Audiora，不会覆盖它。",
+  "setup.step.prepare": "正在准备文件夹…",
+  "setup.step.copy": "正在复制文件… {0}/{1}",
+  "setup.step.shortcuts": "正在创建快捷方式…",
+  "setup.step.register": "正在注册到“已安装的应用”…",
+  "setup.step.complete": "安装完成",
+  "setup.shortcut.description": "将电脑音频传输到 Sonos"
+}
