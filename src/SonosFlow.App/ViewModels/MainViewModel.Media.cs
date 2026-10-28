@@ -1,4 +1,7 @@
 using System.ComponentModel;
+using System.IO;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using SonosFlow.App.Infrastructure;
 
 namespace SonosFlow.App.ViewModels;
@@ -33,6 +36,19 @@ public sealed partial class MainViewModel
     public string NowPlayingText => NowPlayingTitle is not { } title ? ""
         : NowPlayingArtist is { } artist ? $"{title} — {artist}" : title;
 
+    private ImageSource? _nowPlayingArtwork;
+    /// <summary>Cover published by the app (decoded to 256 px wide, frozen); null when there is none or it cannot be decoded.</summary>
+    public ImageSource? NowPlayingArtwork
+    {
+        get => _nowPlayingArtwork;
+        private set { if (Set(ref _nowPlayingArtwork, value)) OnPropertyChanged(nameof(HasArtwork)); }
+    }
+
+    public bool HasArtwork => NowPlayingArtwork is not null;
+
+    /// <summary>The info the current <see cref="NowPlayingArtwork"/> was decoded from (avoids re-decoding an unchanged cover).</summary>
+    private NowPlaying? _artworkFrom;
+
     private void NowPlayingNotify()
     {
         OnPropertyChanged(nameof(HasNowPlaying));
@@ -64,6 +80,43 @@ public sealed partial class MainViewModel
     {
         NowPlayingTitle = info?.Title;
         NowPlayingArtist = info is null ? null : CleanArtist(info.Artist);
+        ShowArtwork(info);
+    }
+
+    private void ShowArtwork(NowPlaying? info)
+    {
+        if (info?.Artwork is null)
+        {
+            _artworkFrom = null;
+            NowPlayingArtwork = null;
+            return;
+        }
+        if (_artworkFrom is not null && info.SameArtwork(_artworkFrom)) return; // same cover, new title/artist
+        _artworkFrom = info;
+        NowPlayingArtwork = DecodeArtwork(info.Artwork);
+    }
+
+    /// <summary>UI thread. Undecodable or unsupported data gives null (no cover), never an exception.</summary>
+    internal static ImageSource? DecodeArtwork(byte[]? bytes)
+    {
+        if (bytes is not { Length: > 0 }) return null;
+        try
+        {
+            using var stream = new MemoryStream(bytes, writable: false);
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad; // decode now, so the stream can be closed
+            image.DecodePixelWidth = 256;
+            image.StreamSource = stream;
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch (Exception ex) // corrupt or exotic image formats throw a variety of types; a cover is never worth a crash
+        {
+            AppLog.Write($"medios: carátula no válida ({ex.GetType().Name}: {ex.Message})");
+            return null;
+        }
     }
 
     /// <summary>YouTube's auto-generated music channels are named "Artista - Topic".</summary>
