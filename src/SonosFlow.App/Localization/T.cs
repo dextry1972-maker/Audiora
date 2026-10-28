@@ -4,7 +4,7 @@ using System.Windows.Markup;
 namespace SonosFlow.App.Localization;
 
 /// <summary>
-/// XAML: <c>Text="{loc:T main.stream.start}"</c>. Produces a binding to <see cref="Loc"/>'s indexer, so the text
+/// XAML: <c>Text="{loc:T main.nav.home}"</c>. Produces a binding to <see cref="Loc"/>'s indexer, so the text
 /// follows language changes live. Works on any dependency property, including Run.Text, ToolTip and
 /// AutomationProperties.Name.
 /// </summary>
