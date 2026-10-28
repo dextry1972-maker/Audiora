@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — mini player",
+  "mini.volume.name": "Sonos volume",
+  "mini.pause.name": "Pause or resume",
+  "mini.pause.tooltip": "Pause: the Sonos stays connected and receives silence. Resuming is instant. If not streaming, starts streaming.",
+  "mini.sources.toggle": "Change audio source",
+  "mini.showMain": "Open main window",
+  "mini.hide.tooltip": "Hide the mini player (audio keeps playing)",
+  "mini.hide.name": "Hide the mini player",
+  "mini.sources.title": "SEND TO SONOS",
+  "mini.sources.system": "All PC audio"
+}
