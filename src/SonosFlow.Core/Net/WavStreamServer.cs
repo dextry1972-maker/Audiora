@@ -128,7 +128,12 @@ public sealed class WavStreamServer : IDisposable
             TcpClient tcp;
             try { tcp = await _listener.AcceptTcpClientAsync(ct); }
             catch (Exception) when (ct.IsCancellationRequested) { return; }
-            catch (SocketException) { continue; }
+            catch (SocketException)
+            {
+                // Transient (e.g. the adapter is reconfiguring): don't spin.
+                try { await Task.Delay(100, ct); } catch (OperationCanceledException) { return; }
+                continue;
+            }
 
             var peer = ((IPEndPoint)tcp.Client.RemoteEndPoint!).Address;
             if (!_allowed.Contains(peer))
@@ -175,12 +180,13 @@ public sealed class WavStreamServer : IDisposable
 
         await stream.WriteAsync(BuildWavHeader(_format), ct);
 
-        // ~2 s of 10 ms chunks (plus the prebuffer); a full queue means the player stopped reading.
-        var client = new Client(Channel.CreateBounded<byte[]>(new BoundedChannelOptions(200)
+        // 200 chunks (≈2 s of 10 ms app-capture chunks, more with larger device packets) plus the prebuffer;
+        // a full queue means the player stopped reading.
+        using var client = new Client(Channel.CreateBounded<byte[]>(new BoundedChannelOptions(200)
         {
             SingleReader = true,
             FullMode = BoundedChannelFullMode.DropWrite
-        }));
+        }), CancellationTokenSource.CreateLinkedTokenSource(ct));
         lock (_clients)
         {
             // Prebuffer and live audio are queued under the same lock: no gap and no duplicate between them.
@@ -191,17 +197,19 @@ public sealed class WavStreamServer : IDisposable
         string reason = "fin normal";
         try
         {
-            await foreach (var chunk in client.Queue.Reader.ReadAllAsync(ct))
+            await foreach (var chunk in client.Queue.Reader.ReadAllAsync(client.Abort.Token))
             {
-                await stream.WriteAsync(chunk, ct);
+                await stream.WriteAsync(chunk, client.Abort.Token);
+                Interlocked.Exchange(ref client.LastProgressTicks, Environment.TickCount64);
                 Interlocked.Add(ref client.PendingBytes, -chunk.Length);
                 Interlocked.Add(ref BytesSent, chunk.Length);
             }
         }
         catch (Exception ex) when (ex is IOException or SocketException or OperationCanceledException or ObjectDisposedException)
         {
-            // Player closed the connection (stop, track change or network drop).
-            reason = ex is OperationCanceledException ? "detenido" : ex.GetBaseException().Message;
+            // Player closed the connection (stop, track change or network drop), or we aborted a stuck one.
+            reason = ex is not OperationCanceledException ? ex.GetBaseException().Message
+                : ct.IsCancellationRequested ? "detenido" : "cerrada por el vigilante (no recogía audio)";
         }
         finally
         {
@@ -275,9 +283,41 @@ public sealed class WavStreamServer : IDisposable
             foreach (var c in _clients) c.Queue.Writer.TryComplete();
     }
 
-    private sealed class Client(Channel<byte[]> queue)
+    /// <summary>
+    /// Time since any connected player last took audio (a socket write completed). Grows only when the
+    /// network or the player stops reading — never during silence, which is sent like any other audio.
+    /// </summary>
+    public TimeSpan SinceLastClientProgress
+    {
+        get
+        {
+            lock (_clients)
+            {
+                if (_clients.Count == 0) return TimeSpan.Zero;
+                long newest = _clients.Max(c => Interlocked.Read(ref c.LastProgressTicks));
+                return TimeSpan.FromMilliseconds(Math.Max(0, Environment.TickCount64 - newest));
+            }
+        }
+    }
+
+    /// <summary>Closes every player connection (including one stuck in a socket write) so the stream can be re-issued.</summary>
+    public void AbortClients()
+    {
+        List<Client> clients;
+        lock (_clients) clients = [.. _clients];
+        foreach (var c in clients)
+        {
+            // Outside the lock: cancellation callbacks may run inline. A client that just ended is already disposed.
+            try { c.Abort.Cancel(); } catch (ObjectDisposedException) { }
+        }
+    }
+
+    private sealed class Client(Channel<byte[]> queue, CancellationTokenSource abort) : IDisposable
     {
         public Channel<byte[]> Queue { get; } = queue;
+        public CancellationTokenSource Abort { get; } = abort;
         public long PendingBytes; // queued for this player but not yet written to its socket
+        public long LastProgressTicks = Environment.TickCount64;
+        public void Dispose() => Abort.Dispose();
     }
 }

@@ -152,6 +152,51 @@ public static class SelfTest
                 && Math.Abs(defaultDev.AudioEndpointVolume.MasterVolumeLevelScalar - defVol0) < 0.005 && LoopbackSource.ActiveCount == 0);
         }
 
+        // ── Part C: the user takes the Sonos from the Sonos app (simulated with the same transport commands the app
+        // sends; never volume or EQ). Audiora must step aside instead of re-issuing its stream.
+        if (vm.SelectedSpeaker is { } speaker)
+        try
+        {
+            using var sonos = new SonosFlow.Core.Sonos.SonosClient(speaker.Device.Address);
+            async Task<bool> WaitFor(Func<bool> condition, int seconds)
+            {
+                for (int i = 0; i < seconds * 4 && !condition(); i++) await Task.Delay(250);
+                return condition();
+            }
+
+            vm.MuteLocal = false;
+            vm.IsAppMode = false;
+            await vm.StartAsync();
+            await Task.Delay(8000);
+            await sonos.PauseAsync();
+            bool released = await WaitFor(() => !vm.IsStreaming, 20);
+            await Task.Delay(6000);
+            var afterPause = await sonos.GetTransportStateAsync();
+            Check($"18. Pausa desde la app de Sonos: Audiora se retira («{vm.StatusDetail}») y no reemite (Sonos {afterPause})",
+                released && vm.StatusDetail.Contains("pausó") && afterPause == "PAUSED_PLAYBACK");
+
+            await vm.StartAsync();
+            await Task.Delay(8000);
+            await sonos.StopAsync(); // once: could be the network → one re-issue
+            bool reissued = await WaitFor(() => vm.LastStats is { Reconnects: 1, TransportState: "PLAYING" }, 25);
+            Check($"19. Un Stop aislado se trata como fallo de red: se reemite una vez (reconexiones {vm.LastStats?.Reconnects}, {vm.LastStats?.TransportState})", reissued);
+            await Task.Delay(3000);
+            await sonos.StopAsync(); // again right after our re-issue → the user
+            bool gaveWay = await WaitFor(() => !vm.IsStreaming, 25);
+            await Task.Delay(6000);
+            var afterStop = await sonos.GetTransportStateAsync();
+            Check($"20. Stop repetido: Audiora se retira («{vm.StatusDetail}») y el Sonos sigue detenido ({afterStop})",
+                gaveWay && vm.StatusDetail.Contains("detuvo") && afterStop == "STOPPED");
+            if (vm.IsStreaming) await vm.StopAsync(reason: "fin del autotest (parte C)");
+            Check($"21. Nada queda activo: capturas={LoopbackSource.ActiveCount}, puerto libre={!System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(e => e.Port == 8780)}",
+                LoopbackSource.ActiveCount == 0 && !System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(e => e.Port == 8780));
+        }
+        catch (Exception ex) // e.g. the Sonos rejects Pause on a live stream: record it, keep the results of parts A and B
+        {
+            Check($"C. La parte C no pudo completarse: {ex.GetType().Name}: {ex.Message}", false);
+            if (vm.IsStreaming) await vm.StopAsync(reason: "autotest parte C interrumpida");
+        }
+
         lines.Add(fails == 0 ? "RESULTADO: todo correcto" : $"RESULTADO: {fails} fallos");
         await File.WriteAllLinesAsync(outFile, lines);
         return fails;

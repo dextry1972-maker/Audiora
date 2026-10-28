@@ -34,17 +34,107 @@ public sealed partial class MainViewModel
     public string HotkeysHelp =>
         $"{GlobalHotkeys.All[0].Label} / {GlobalHotkeys.All[1].Label} volumen del Sonos (±{HotkeyVolumeStep}) · {GlobalHotkeys.All[2].Label} pausa o reanuda · {GlobalHotkeys.All[3].Label} mini reproductor. Funcionan aunque estés en un juego y no toman el foco";
 
+    /// <summary>Asks the app to flash the on-screen indicator: icon glyph, text, optional 0..1 bar.</summary>
+    public event Action<string, string, double?>? HudRequested;
+
     public void HandleHotkey(HotkeyAction action)
     {
         switch (action)
         {
-            case HotkeyAction.VolumeUp when ControlsReady: Volume += HotkeyVolumeStep; break;
-            case HotkeyAction.VolumeDown when ControlsReady: Volume -= HotkeyVolumeStep; break;
+            case HotkeyAction.VolumeUp or HotkeyAction.VolumeDown:
+                if (!ControlsReady)
+                {
+                    HudRequested?.Invoke("", "Sonos sin conexión", null);
+                    break;
+                }
+                Volume += action == HotkeyAction.VolumeUp ? HotkeyVolumeStep : -HotkeyVolumeStep;
+                HudRequested?.Invoke(Volume == 0 ? "" : "", $"{SelectedSpeaker?.Name ?? "Sonos"} · {Volume} %", Volume / 100.0);
+                break;
             case HotkeyAction.PauseResume:
-                if (PauseResumeCommand.CanExecute(null)) PauseResumeCommand.Execute(null);
+                if (!PauseResumeCommand.CanExecute(null)) break;
+                bool wasStreaming = IsStreaming;
+                PauseResumeCommand.Execute(null); // the pause toggle itself is synchronous
+                HudRequested?.Invoke(!wasStreaming ? "" : IsPaused ? "" : "",
+                    !wasStreaming ? "Conectando con el Sonos…" : IsPaused ? "En pausa" : "Reanudado", null);
                 break;
             case HotkeyAction.ToggleMini: MiniVisible = !MiniVisible; break;
         }
+    }
+
+    // ── Sleep timer ────────────────────────────────────────────
+
+    public IReadOnlyList<ChoiceItem> SleepChoices { get; } =
+    [
+        new("0", "Sin temporizador"),
+        new("30", "Detener en 30 min"),
+        new("60", "Detener en 60 min"),
+        new("90", "Detener en 90 min"),
+    ];
+
+    private System.Windows.Threading.DispatcherTimer? _sleepTimer;
+    private DateTime? _sleepAt;
+    private string _sleepKey = "0";
+
+    /// <summary>Stops the stream after the chosen minutes; "0" cancels. Not persisted: it applies to this stream only.</summary>
+    public string SleepKey
+    {
+        get => _sleepKey;
+        set
+        {
+            if (!int.TryParse(value, out var minutes) || value == _sleepKey) return;
+            if (minutes <= 0 || State is not (UiState.Streaming or UiState.Recovering)) // not while still connecting
+            {
+                CancelSleep(log: minutes <= 0 && _sleepAt is not null);
+                return;
+            }
+            _sleepKey = value;
+            _sleepAt = DateTime.UtcNow.AddMinutes(minutes);
+            _sleepTimer ??= CreateSleepTimer();
+            _sleepTimer.Start();
+            AppLog.Write($"temporizador: detener en {minutes} min");
+            OnPropertyChanged();
+            UpdateSleepText();
+        }
+    }
+
+    private string _sleepRemainingText = "";
+    public string SleepRemainingText { get => _sleepRemainingText; private set { if (Set(ref _sleepRemainingText, value)) OnPropertyChanged(nameof(SleepActive)); } }
+    public bool SleepActive => SleepRemainingText.Length > 0;
+
+    private System.Windows.Threading.DispatcherTimer CreateSleepTimer()
+    {
+        var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        t.Tick += async (_, _) =>
+        {
+            if (_sleepAt is not { } at) return;
+            if (DateTime.UtcNow < at)
+            {
+                UpdateSleepText();
+                return;
+            }
+            CancelSleep(log: false);
+            await StopAsync(reason: "temporizador de apagado");
+            StatusDetail = "Detenida por el temporizador";
+        };
+        return t;
+    }
+
+    private void UpdateSleepText()
+    {
+        if (_sleepAt is not { } at) { SleepRemainingText = ""; return; }
+        var left = at - DateTime.UtcNow;
+        if (left < TimeSpan.Zero) left = TimeSpan.Zero;
+        SleepRemainingText = $"Se detiene en {(int)left.TotalMinutes}:{left.Seconds:00}";
+    }
+
+    private void CancelSleep(bool log)
+    {
+        _sleepTimer?.Stop();
+        _sleepAt = null;
+        if (log) AppLog.Write("temporizador cancelado");
+        _sleepKey = "0";
+        OnPropertyChanged(nameof(SleepKey));
+        SleepRemainingText = "";
     }
 
     // ── Network stability ──────────────────────────────────────

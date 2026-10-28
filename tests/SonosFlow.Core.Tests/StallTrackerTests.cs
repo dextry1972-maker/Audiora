@@ -42,6 +42,17 @@ public sealed class StallTrackerTests
     }
 
     [Fact]
+    public void A_reconnect_and_its_margin_burst_are_not_counted()
+    {
+        var t = new StallTracker(192, 1000);
+        t.RestartWarmup(TimeSpan.FromSeconds(100));
+        Assert.Null(t.Observe(Second(101, rate: 20, backlog: 1000)));
+        Assert.Null(t.Observe(Second(103, rate: 30)));
+        Assert.Equal(0, t.Count);
+        Assert.NotNull(t.Observe(Second(110, rate: 20)));
+    }
+
+    [Fact]
     public void Without_a_connected_player_nothing_is_counted()
     {
         var t = new StallTracker(192, 0);

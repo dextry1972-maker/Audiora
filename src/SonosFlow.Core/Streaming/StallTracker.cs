@@ -14,6 +14,14 @@ public sealed class StallTracker(double expectedKBps, int marginMs)
 
     private bool _inEpisode;
     private double _episodeWorst;
+    private double _warmupEnd = WarmupSeconds;
+
+    /// <summary>After the stream is re-issued: the reconnect and its margin burst are not network stalls.</summary>
+    public void RestartWarmup(TimeSpan elapsed)
+    {
+        _warmupEnd = elapsed.TotalSeconds + WarmupSeconds;
+        _inEpisode = false;
+    }
 
     public int Count { get; private set; }
     public double WorstMs { get; private set; }
@@ -25,7 +33,7 @@ public sealed class StallTracker(double expectedKBps, int marginMs)
     public double? Observe(StreamStats s)
     {
         double shortfall = 0;
-        if (s.Elapsed.TotalSeconds > WarmupSeconds && s.Clients > 0)
+        if (s.Elapsed.TotalSeconds > _warmupEnd && s.Clients > 0)
         {
             double rateDeficit = expectedKBps > 0 ? Math.Max(0, 1 - s.SendRateKBps / expectedKBps) * 1000 : 0;
             if (s.BacklogMaxMs > BacklogThresholdMs) shortfall = s.BacklogMaxMs;
