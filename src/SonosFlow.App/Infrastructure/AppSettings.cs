@@ -36,13 +36,25 @@ public sealed class AppSettings
     /// <summary>Closing the main window: "tray", "mini" or "exit". Null = follow the older MinimizeToTray switch.</summary>
     public string? CloseAction { get; set; }
 
+    /// <summary>UI language (BCP 47, see Localization/Languages.cs). Null in settings written before languages existed.</summary>
+    public string? Language { get; set; }
+    /// <summary>The first-launch language choice was made (or skipped); the welcome screen never shows again.</summary>
+    public bool LanguageOnboardingDone { get; set; }
+
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
+
+    /// <summary>
+    /// Whether the last <see cref="Load"/> found a settings file. False only on a genuinely fresh install: the file
+    /// survives updates and uninstall, so a reinstall keeps the user's choices.
+    /// </summary>
+    public static bool LastLoadFoundFile { get; private set; }
 
     public static AppSettings Load()
     {
+        LastLoadFoundFile = File.Exists(AppPaths.SettingsFile);
         try
         {
-            if (File.Exists(AppPaths.SettingsFile))
+            if (LastLoadFoundFile)
                 return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(AppPaths.SettingsFile)) ?? new();
         }
         catch (Exception ex) when (ex is IOException or JsonException) { }

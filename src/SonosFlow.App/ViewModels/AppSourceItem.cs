@@ -11,10 +11,13 @@ public sealed class AppSourceItem(AudioAppInfo info) : ObservableObject
     private bool _isSelected;
 
     public AudioAppInfo Info { get => _info; set { _info = value; OnPropertyChanged(nameof(IsActive)); OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(Name)); } }
-    public string Name => Info.Name;
+    public string Name => Info.IsIsolatedYouTubeMusic ? Localization.Loc.Instance.T("source.ytIsolated") : Info.Name;
     public string Key => Key_(Info.ExePath ?? Info.ExeName, Info.IsIsolatedYouTubeMusic);
     public bool IsActive => Info.IsActive;
-    public string StateText => Info.IsActive ? "Reproduciendo" : "En silencio";
+    public string StateText => Localization.Loc.Instance.T(Info.IsActive ? "source.app.playing" : "source.app.silent");
+
+    /// <summary>After a language change.</summary>
+    public void RefreshText() { OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(Name)); }
     public ImageSource? Icon { get; } = IconCache.Get(info.ExePath);
     public bool IsSelected { get => _isSelected; set => Set(ref _isSelected, value); }
 

@@ -70,6 +70,7 @@ public sealed partial class MainViewModel : ObservableObject
         LoadOutputs();
         InitSources();
         InitMedia();
+        Localization.Loc.Instance.LanguageChanged += OnLanguageChanged;
     }
 
     public BackupViewModel Backups { get; }
