@@ -94,6 +94,7 @@ Todos los idiomas incluyen todas las claves (las pruebas lo exigen). Fechas y n�
 - **Comportamiento** (`LocalizationBehaviourTests`): clave ausente, cambio de idioma/cultura/dirección, notificaciones, plurales, mensajes codificados y respaldo.
 - **Resolución y arranque** (`LanguageResolutionTests`, `LanguageStartupTests`): etiquetas de Windows y todos los casos de instalación.
 - **Prueba real con el Sonos** (`SelfTest`, comprobación 1e): con la página de Ajustes abierta y durante la transmisión, cambia a árabe → japonés → alemán → idioma original. Comprueba que no hay reconexiones, que sigue en PLAYING, que siguen llegando bytes y que hay una sola captura. Comprueba además que no cambian la acción al cerrar, el margen anti-cortes, el temporizador, el altavoz, el volumen ni el modo de fuente: las listas de opciones son estables y sus elementos se comparan por clave, así que un cambio de idioma no puede vaciar una selección ni escribir null en un ajuste.
+- **Última ejecución con el Sonos Five** (28/10/2026, rama `i18n/sistema-multilingue`, 108 s): **27/27**, incluida la 1e. Después: ninguna salida de audio silenciada, puerto 8780 libre y sin `output-guard.json`.
 - **Instalador:** `Installer_texts_are_strict_json` comprueba que los `setup.json` no tienen comentarios ni comas finales, que el lector del instalador (.NET Framework) no admite.
 
 ## Limitaciones conocidas
