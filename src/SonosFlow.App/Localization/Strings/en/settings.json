@@ -17,7 +17,7 @@
 
   "settings.audio.section": "AUDIO",
   "settings.audio.muteLocal.title": "Mute PC speakers while streaming",
-  "settings.audio.muteLocal.hint": "In “One app”, the output that app plays on is muted (along with anything else playing there); the Sonos still receives it. Restored when you stop, when you quit, and even after an unexpected shutdown.",
+  "settings.audio.muteLocal.hint": "In “One app”, only that app stops playing on the PC (Windows sends it to an output nobody hears); other apps and games keep their sound and the Sonos still receives it. If this PC has no such output, the app's output is muted instead. Restored when you stop, when you quit, and even after an unexpected shutdown.",
   "settings.audio.muteLocal.a11y": "Mute the PC",
   "settings.audio.prebuffer.title": "Dropout buffer",
   "settings.audio.prebuffer.hint": "The Sonos receives this much audio up front and plays with that delay, riding out short Wi-Fi hiccups. More buffer = more stable, more delay.",

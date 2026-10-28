@@ -22,7 +22,7 @@
   "main.sleep.tooltip": "Detiene la transmisión pasado ese tiempo. Se cancela al detener.",
   "main.volume.name": "Volumen del Sonos",
   "main.muteLocal.label": "Silenciar el PC",
-  "main.muteLocal.tooltip": "Solo suena el Sonos. En «Una aplicación» silencia la salida donde suena esa app (y todo lo de esa salida). Se aplica al iniciar.",
+  "main.muteLocal.tooltip": "Solo suena el Sonos. En «Una aplicación», solo esa app deja de sonar en el PC; lo demás sigue sonando. Se aplica al iniciar.",
   "main.fullLevel.label": "Nivel completo",
   "main.fullLevel.tooltip": "Solo «Todo el PC»: Windows al 100 % mientras está silenciado, para controlar el volumen desde el Sonos. Se aplica al iniciar.",
   "main.source.mode.system.label": "Todo el PC",

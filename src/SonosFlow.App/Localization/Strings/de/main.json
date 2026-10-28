@@ -22,7 +22,7 @@
   "main.sleep.tooltip": "Beendet das Streaming nach dieser Zeit. Wird beim Stoppen abgebrochen.",
   "main.volume.name": "Sonos-Lautstärke",
   "main.muteLocal.label": "PC stumm",
-  "main.muteLocal.tooltip": "Nur der Sonos spielt. Im Modus „Eine App“ wird das Ausgabegerät dieser App stummgeschaltet (samt allem anderen darauf). Gilt ab dem Start des Streamings.",
+  "main.muteLocal.tooltip": "Nur der Sonos spielt. Im Modus „Eine App“ verstummt nur diese App am PC; alles andere spielt weiter. Gilt ab dem Start des Streamings.",
   "main.fullLevel.label": "Voller Pegel",
   "main.fullLevel.tooltip": "Nur bei „Ganzer PC“: Windows steht während der Stummschaltung auf 100 %, die Lautstärke regelst du also am Sonos. Gilt ab dem Start des Streamings.",
   "main.source.mode.system.label": "Ganzer PC",

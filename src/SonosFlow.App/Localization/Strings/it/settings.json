@@ -14,7 +14,7 @@
   "settings.general.resume.a11y": "Riprendi all'avvio",
   "settings.audio.section": "AUDIO",
   "settings.audio.muteLocal.title": "Silenzia gli altoparlanti del PC durante la trasmissione",
-  "settings.audio.muteLocal.hint": "In «Una sola app» viene silenziata l'uscita su cui suona quell'app (insieme a tutto ciò che vi suona); il Sonos continua a riceverla. Viene ripristinata quando interrompi, quando esci e anche dopo una chiusura imprevista.",
+  "settings.audio.muteLocal.hint": "In «Una sola app», solo quell'app smette di suonare sul PC (Windows la invia a un'uscita che nessuno ascolta); le altre app e i giochi mantengono l'audio e il Sonos continua a riceverla. Se il PC non ha un'uscita del genere, viene silenziata l'uscita dell'app. Ripristinato quando interrompi, quando esci e anche dopo una chiusura imprevista.",
   "settings.audio.muteLocal.a11y": "Silenzia il PC",
   "settings.audio.prebuffer.title": "Margine anti-interruzioni",
   "settings.audio.prebuffer.hint": "Il Sonos riceve in anticipo questa quantità di audio e riproduce con quel ritardo, superando brevi intoppi del Wi-Fi. Più margine = più stabilità, più ritardo.",

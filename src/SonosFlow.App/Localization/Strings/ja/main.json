@@ -22,7 +22,7 @@
   "main.sleep.tooltip": "この時間が経過するとストリーミングを停止します。停止するとキャンセルされます。",
   "main.volume.name": "Sonos の音量",
   "main.muteLocal.label": "PC をミュート",
-  "main.muteLocal.tooltip": "Sonos だけで再生します。「1 つのアプリ」モードでは、そのアプリが使う出力デバイス（およびそこで再生中のほかの音）をミュートします。ストリーミング開始時に適用されます。",
+  "main.muteLocal.tooltip": "Sonos だけで再生します。「1 つのアプリ」モードでは、そのアプリだけが PC で鳴らなくなり、ほかの音はそのまま再生されます。ストリーミング開始時に適用されます。",
   "main.fullLevel.label": "最大レベル",
   "main.fullLevel.tooltip": "「PC 全体」のみ: ミュート中は Windows の音量を 100% にし、音量を Sonos 側で調整できるようにします。ストリーミング開始時に適用されます。",
   "main.source.mode.system.label": "PC 全体",

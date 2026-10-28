@@ -22,7 +22,7 @@
   "main.sleep.tooltip": "이 시간이 지나면 스트리밍을 중지합니다. 중지하면 취소됩니다.",
   "main.volume.name": "Sonos 볼륨",
   "main.muteLocal.label": "PC 음소거",
-  "main.muteLocal.tooltip": "Sonos에서만 소리가 납니다. “앱 하나” 모드에서는 해당 앱이 재생되는 출력 장치(와 그 장치의 다른 모든 소리)를 음소거합니다. 스트리밍을 시작할 때 적용됩니다.",
+  "main.muteLocal.tooltip": "Sonos에서만 소리가 납니다. “앱 하나” 모드에서는 해당 앱만 PC에서 소리가 나지 않고 나머지는 그대로 재생됩니다. 스트리밍을 시작할 때 적용됩니다.",
   "main.fullLevel.label": "최대 레벨",
   "main.fullLevel.tooltip": "“PC 전체” 전용: 음소거하는 동안 Windows 볼륨을 100%로 유지하여 Sonos에서 볼륨을 조절합니다. 스트리밍을 시작할 때 적용됩니다.",
   "main.source.mode.system.label": "PC 전체",

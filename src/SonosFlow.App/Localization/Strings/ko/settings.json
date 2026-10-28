@@ -14,7 +14,7 @@
   "settings.general.resume.a11y": "실행 시 재개",
   "settings.audio.section": "오디오",
   "settings.audio.muteLocal.title": "스트리밍하는 동안 PC 스피커 음소거",
-  "settings.audio.muteLocal.hint": "«앱 하나»에서는 해당 앱이 재생되는 출력 장치가 음소거되며(그 장치에서 재생되는 다른 소리도 함께), Sonos는 계속 소리를 받습니다. 중지하거나 종료할 때, 그리고 예기치 않게 종료된 후에도 복원됩니다.",
+  "settings.audio.muteLocal.hint": "«앱 하나»에서는 해당 앱만 PC에서 소리가 나지 않습니다(Windows가 아무도 듣지 않는 출력 장치로 보냅니다). 다른 앱과 게임은 그대로 소리가 나고 Sonos는 계속 소리를 받습니다. 그런 출력 장치가 없는 PC에서는 앱의 출력 장치를 음소거합니다. 중지하거나 종료할 때, 그리고 예기치 않게 종료된 후에도 복원됩니다.",
   "settings.audio.muteLocal.a11y": "PC 음소거",
   "settings.audio.prebuffer.title": "끊김 방지 버퍼",
   "settings.audio.prebuffer.hint": "Sonos가 이만큼의 오디오를 미리 받아 그만큼 늦게 재생하므로 짧은 Wi-Fi 끊김을 견딥니다. 버퍼가 클수록 안정적이지만 지연이 커집니다.",
