@@ -329,7 +329,7 @@ public sealed class StreamingSession : IAsyncDisposable
         var watchdog = new PlaybackWatchdog(_options.PrebufferMs);
         var policy = new RecoveryPolicy();
         var lastVerdict = PlaybackVerdict.Healthy;
-        TimeSpan? lastStoppedReissue = null;
+        TimeSpan? lastStoppedReissue = null, healthySince = null;
         watchdog.Reset(clock.Elapsed);
 
         while (!ct.IsCancellationRequested)
@@ -363,6 +363,9 @@ public sealed class StreamingSession : IAsyncDisposable
             lastVerdict = verdict;
             if (healthy && State == SessionState.Recovering) { SetState(SessionState.Streaming); _lastError = null; }
             if (transport != "UNREACHABLE" && _lastError == SpeakerUnreachable) _lastError = null; // a blip must not linger in the UI
+            // Two STOPs only mean "the user" when close together: after 30 s playing fine, start counting afresh.
+            healthySince = healthy ? healthySince ?? now : null;
+            if (healthySince is { } hs && now - hs >= RecoveryPolicy.HealthyReset) lastStoppedReissue = null;
 
             switch (policy.Observe(now, healthy))
             {

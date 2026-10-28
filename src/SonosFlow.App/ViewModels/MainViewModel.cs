@@ -69,6 +69,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         LoadOutputs();
         InitSources();
+        InitMedia();
     }
 
     public BackupViewModel Backups { get; }
@@ -411,7 +412,11 @@ public sealed partial class MainViewModel : ObservableObject
             AppLog.Write($"detenido durante la conexión: {reason}");
             _abortingStart = AbortStartAsync(pending);
         }
-        if (_abortingStart is { } aborting) await aborting;
+        if (_abortingStart is { } aborting)
+        {
+            await aborting;
+            if (_abortingStart == aborting) _abortingStart = null;
+        }
         var session = _session;
         if (session is not null) AppLog.Write($"detenido: {reason}");
         _session = null;

@@ -1,17 +1,17 @@
 # Hoja de ruta
 
-Estado a 27/10/2026, rama `mejoras/hitos-arquitectura`. Leyenda: ✅ hecho y verificado · 🟡 hecho, verificación parcial · ⏳ pendiente · ⛔ bloqueado.
+Estado a 28/10/2026, rama `mejoras/hitos-arquitectura` (sin fusionar en `main`, sin instalar). Leyenda: ✅ hecho y verificado · 🟡 hecho, verificación parcial · ⏳ pendiente · ⛔ bloqueado.
 «Verificado» indica cómo: **auto** (pruebas automáticas), **sim** (tubería local / CaptureCheck), **Sonos** (altavoz real).
 
 ## Hitos
 
 | # | Hito | Dueño | Estado | Criterio de aceptación | Verificación |
 |---|---|---|---|---|---|
-| 1 | Fiabilidad del audio (cortes ~6 min) | audio + red | 🟡 | Sin cortes audibles en uso normal; recuperación acotada; el silencio no es fallo | auto (vigilante, política, servidor); sim (soak); Sonos (autotest); falta uso real prolongado |
-| 2 | Título y artista en el mini reproductor | windows + ui | ver abajo | Muestra la pista de la app capturada; nada erróneo si no coincide | — |
+| 1 | Fiabilidad del audio (cortes ~6 min) | audio + red | 🟡 | Sin cortes audibles en uso normal; recuperación acotada; el silencio no es fallo; no pelear con el usuario | auto (42/42); sim (soak 8 + 6 min, 0 cortes); **Sonos (autotest 26/26, incl. pausa/Stop desde el Sonos)**; revisor: aprobado con reservas (resueltas); falta uso real prolongado y un corte de Wi-Fi real |
+| 2 | Título y artista en el mini reproductor | windows + ui | 🟡 | Muestra la pista de la app capturada; nada erróneo si no coincide | reglas de coincidencia probadas con sesiones reales y de prueba; capturas; falta verlo con YouTube Music sonando de verdad |
 | 3 | HUD de volumen | ui | 🟡 | Aparece al usar los atajos sin tomar el foco | captura `--screenshot-hud`; falta pulsarlo con el Sonos sonando |
-| 4 | Arranque fiable | red + windows | 🟡 | Espera acotada a la zona Wi-Fi y al Sonos; sin dobles inicios | compila; lógica revisada; falta prueba real de inicio con Windows |
-| 5 | Temporizador de apagado | ui | 🟡 | 30/60/90 min, cancelable | compila; falta prueba de expiración real |
+| 4 | Arranque fiable | red + windows | 🟡 | Espera acotada a la zona Wi-Fi y al Sonos; sin dobles inicios | auto/revisión de la lógica; detener durante «Conectando…» revisado; falta prueba real de inicio con Windows |
+| 5 | Temporizador de apagado | ui | 🟡 | 30/60/90 min, cancelable | compila y se ve en la interfaz; falta prueba de expiración real |
 | 6 | Evaluación de formato (FLAC) | audio | ✅ decisión | Decidir con datos | ver «Evaluación de formato» |
 
 ### Hito 1 — detalle

@@ -4,10 +4,20 @@ Formato: lo que cambia para quien usa Audiora, con el commit. Más reciente arri
 
 ## Sin publicar (rama `mejoras/hitos-arquitectura`)
 
+### Fiabilidad
+- **Vigilante de reproducción:** detecta un Sonos que dice «reproduciendo» pero no recoge audio o tiene la posición congelada, y reconecta solo. El silencio nunca cuenta como fallo.
+- **Reintentos acotados:** 5→60 s de espera, máximo 8 (antes: cada 5 s sin fin). Un fallo momentáneo del canal de control ya no corta el audio.
+- **No pelea con el usuario:** si el Sonos pasa a otra fuente, se pausa o se detiene (dos veces) desde la app de Sonos, Audiora se retira sin enviar Stop. Verificado con el Sonos Five.
+- **Arranque:** al reanudar al abrir espera hasta 5 min a la zona Wi-Fi y al Sonos.
+- Cambio de fuente sin hueco; la limpieza siempre restaura el PC y libera el puerto; detener o salir durante «Conectando…» ya no deja nada colgado.
+
 ### Añadido
+- **Título y artista** de lo que suena (información de reproducción de Windows) en el mini reproductor y en «Fuente de audio».
 - **Indicador de volumen en pantalla (HUD):** al usar los atajos aparece un momento «Bedroom · 45 %» (o «En pausa» / «Reanudado») abajo en el centro, sin tomar el foco. No se ve sobre juegos en pantalla completa exclusiva (limitación de Windows).
 - **Temporizador de apagado:** debajo del botón de transmitir, detener en 30, 60 o 90 min, con cuenta atrás; se cancela al elegir «Sin temporizador» o al detener.
 - Documentación de arquitectura, flujo de audio, red, pruebas y hoja de ruta (`docs/`), `AGENTS.md` y definiciones de agentes en `.claude/agents/`.
+- Evaluación de FLAC: se mantiene WAV (0 atascos medidos, 0,16 % de CPU); ver `docs/ROADMAP.md`.
+- El instalador crece ~6 MB (proyección de Windows para el título y artista).
 
 ## 2026-10-27
 

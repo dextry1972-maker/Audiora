@@ -29,3 +29,6 @@ Desktop.ini
 # Python cache from tools/
 __pycache__/
 *.pyc
+
+# Claude Code: worktrees temporales de agentes
+.claude/worktrees/
