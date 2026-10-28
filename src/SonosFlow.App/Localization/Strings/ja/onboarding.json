@@ -1,0 +1,12 @@
+{
+  "onboarding.title": "Audiora へようこそ",
+  "onboarding.subtitle": "PC のオーディオを Sonos で。まずアプリの言語を選択してください。",
+  "onboarding.search.label": "言語を検索",
+  "onboarding.search.placeholder": "言語を検索…",
+  "onboarding.search.noResults": "検索に一致する言語はありません",
+  "onboarding.list.label": "言語",
+  "onboarding.suggested": "おすすめ",
+  "onboarding.changeLater": "[設定] からいつでも変更できます。",
+  "onboarding.confirm": "続行",
+  "onboarding.close.tooltip": "閉じておすすめの言語を使用"
+}

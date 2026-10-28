@@ -27,7 +27,9 @@ public sealed class SetupForm : Form
     public SetupForm(InstallOptions options)
     {
         _options = options;
-        Text = "Instalar Audiora";
+        Text = SetupText.T("setup.window.title");
+        RightToLeft = SetupText.IsRightToLeft ? RightToLeft.Yes : RightToLeft.No;
+        RightToLeftLayout = SetupText.IsRightToLeft;
         Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
@@ -45,23 +47,23 @@ public sealed class SetupForm : Form
             Bounds = new Rectangle(32, 30, 48, 48),
         };
         var title = new Label { Text = "Audiora", Font = new Font("Segoe UI Semibold", 18f), AutoSize = true, Location = new Point(92, 28) };
-        var subtitle = new Label { Text = "Transmite el audio de tu PC a tu Sonos por Wi-Fi", ForeColor = TextDim, AutoSize = true, Location = new Point(94, 62) };
+        var subtitle = new Label { Text = SetupText.T("setup.subtitle"), ForeColor = TextDim, AutoSize = true, Location = new Point(94, 62) };
 
         var where = new Label
         {
-            Text = "Se instalará para tu usuario en:\n" + options.Directory + "\nNo necesita permisos de administrador.",
+            Text = SetupText.F("setup.location", options.Directory),
             ForeColor = TextDim, AutoSize = false, Bounds = new Rectangle(32, 104, 456, 58),
         };
 
-        _desktop = MakeCheck("Crear acceso directo en el escritorio", 172, options.DesktopShortcut);
-        _launch = MakeCheck("Abrir Audiora al terminar", 202, options.Launch);
+        _desktop = MakeCheck(SetupText.T("setup.desktopShortcut"), 172, options.DesktopShortcut);
+        _launch = MakeCheck(SetupText.T("setup.launchWhenDone"), 202, options.Launch);
 
         _bar = new ProgressBar { Bounds = new Rectangle(32, 250, 456, 6), Style = ProgressBarStyle.Continuous, Visible = false };
         _status = new Label { ForeColor = TextDim, AutoSize = false, Bounds = new Rectangle(32, 262, 456, 22) };
 
         _install = new Button
         {
-            Text = "Instalar",
+            Text = SetupText.T("setup.install"),
             Bounds = new Rectangle(358, 296, 130, 40),
             FlatStyle = FlatStyle.Flat,
             BackColor = Accent,
@@ -74,7 +76,7 @@ public sealed class SetupForm : Form
 
         var cancel = new Button
         {
-            Text = "Cancelar",
+            Text = SetupText.T("setup.cancel"),
             Bounds = new Rectangle(240, 296, 108, 40),
             FlatStyle = FlatStyle.Flat,
             BackColor = Card,
@@ -128,15 +130,15 @@ public sealed class SetupForm : Form
         }
         catch (Exception ex)
         {
-            _status.Text = "La instalación no se completó.";
+            _status.Text = SetupText.T("setup.failed");
             MessageBox.Show(this, ex.Message, "Audiora", MessageBoxButtons.OK, MessageBoxIcon.Error);
             _install.Enabled = _desktop.Enabled = _launch.Enabled = true;
             return;
         }
 
         _finished = true;
-        _status.Text = "Listo. Audiora está instalado.";
-        _install.Text = "Finalizar";
+        _status.Text = SetupText.T("setup.done");
+        _install.Text = SetupText.T("setup.finish");
         _install.Enabled = true;
         if (_options.Launch) Process.Start(new ProcessStartInfo(Installer.ExePath(_options)) { UseShellExecute = true });
     }

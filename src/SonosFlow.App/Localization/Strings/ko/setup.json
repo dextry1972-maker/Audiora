@@ -1,0 +1,21 @@
+{
+  "setup.window.title": "Audiora 설치",
+  "setup.subtitle": "Wi-Fi를 통해 PC의 오디오를 Sonos로 스트리밍하세요",
+  "setup.location": "현재 사용자용으로 다음 위치에 설치됩니다:\n{0}\n관리자 권한이 필요하지 않습니다.",
+  "setup.desktopShortcut": "바탕 화면 바로 가기 만들기",
+  "setup.launchWhenDone": "완료되면 Audiora 열기",
+  "setup.install": "설치",
+  "setup.cancel": "취소",
+  "setup.finish": "마침",
+  "setup.failed": "설치가 완료되지 않았습니다.",
+  "setup.done": "완료되었습니다. Audiora가 설치되었습니다.",
+  "setup.noPayload": "이 설치 프로그램에는 앱이 포함되어 있지 않습니다(패키지 없이 빌드됨).",
+  "setup.appRunning": "Audiora가 열려 있습니다. 시스템 트레이를 포함해 앱을 닫은 후 다시 시도하세요.",
+  "setup.folderNotOurs": "{0} 폴더가 이미 있으며 Audiora가 들어 있지 않습니다. 덮어쓰지 않습니다.",
+  "setup.step.prepare": "폴더 준비 중…",
+  "setup.step.copy": "파일 복사 중… {0}/{1}",
+  "setup.step.shortcuts": "바로 가기 만드는 중…",
+  "setup.step.register": "설치된 앱에 등록하는 중…",
+  "setup.step.complete": "설치 완료",
+  "setup.shortcut.description": "PC의 오디오를 Sonos로 스트리밍"
+}

@@ -1,0 +1,21 @@
+{
+  "setup.window.title": "Install Audiora",
+  "setup.subtitle": "Stream your PC's audio to your Sonos over Wi-Fi",
+  "setup.location": "It will be installed for your user in:\n{0}\nNo administrator rights needed.",
+  "setup.desktopShortcut": "Create a desktop shortcut",
+  "setup.launchWhenDone": "Open Audiora when finished",
+  "setup.install": "Install",
+  "setup.cancel": "Cancel",
+  "setup.finish": "Finish",
+  "setup.failed": "The installation didn't complete.",
+  "setup.done": "Done. Audiora is installed.",
+  "setup.noPayload": "This installer doesn't contain the app (it was built without the package).",
+  "setup.appRunning": "Audiora is open. Close it (including from the system tray) and try again.",
+  "setup.folderNotOurs": "The folder {0} already exists and doesn't contain Audiora. It won't be overwritten.",
+  "setup.step.prepare": "Preparing the folder…",
+  "setup.step.copy": "Copying files… {0}/{1}",
+  "setup.step.shortcuts": "Creating shortcuts…",
+  "setup.step.register": "Registering in Installed apps…",
+  "setup.step.complete": "Installation complete",
+  "setup.shortcut.description": "Stream your PC's audio to your Sonos"
+}

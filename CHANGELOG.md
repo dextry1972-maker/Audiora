@@ -2,6 +2,15 @@
 
 Formato: lo que cambia para quien usa Audiora, con el commit. Más reciente arriba.
 
+## Sin publicar (rama `i18n/sistema-multilingue`)
+
+### Idiomas
+- **12 idiomas:** español, inglés, portugués (Brasil), francés, alemán, italiano, ruso, chino simplificado, japonés, coreano, hindi y árabe (de derecha a izquierda). Todas las pantallas, tooltips, nombres de accesibilidad, mensajes de error, la bandeja y el instalador. Las traducciones que no son del español original las hizo IA y necesitan revisión nativa (`docs/LOCALIZATION.md`).
+- **Bienvenida de idioma** solo en una instalación nueva: búsqueda, nombres nativos y el idioma de Windows sugerido. Quien actualiza desde una versión anterior sigue en español, sin bienvenida, y se conservan sus ajustes.
+- **Ajustes → Idioma:** cambia al instante sin cortar la transmisión ni tocar el altavoz, la fuente o el volumen.
+- El instalador aparece en el idioma de Windows.
+- Los registros (`app-events.log`, `stream-*.csv`) no cambian con el idioma.
+
 ## Sin publicar (rama `mejoras/hitos-arquitectura`)
 
 ### Fiabilidad

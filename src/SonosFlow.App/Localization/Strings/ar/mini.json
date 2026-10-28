@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — المشغل المصغر",
+  "mini.volume.name": "مستوى صوت Sonos",
+  "mini.pause.name": "إيقاف مؤقت أو استئناف",
+  "mini.pause.tooltip": "إيقاف مؤقت: يبقى Sonos متصلاً ويستقبل صمتًا. الاستئناف فوري. إذا لم يكن البث جاريًا، يبدأ البث.",
+  "mini.sources.toggle": "تغيير مصدر الصوت",
+  "mini.showMain": "فتح النافذة الرئيسية",
+  "mini.hide.tooltip": "إخفاء المشغل المصغر (يستمر تشغيل الصوت)",
+  "mini.hide.name": "إخفاء المشغل المصغر",
+  "mini.sources.title": "الإرسال إلى SONOS",
+  "mini.sources.system": "كل صوت الكمبيوتر"
+}

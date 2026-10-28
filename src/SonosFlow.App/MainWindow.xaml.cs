@@ -65,7 +65,7 @@ public partial class MainWindow : Window
         bmp.Render(bg);
         bmp.Render(root);
         var enc = new PngBitmapEncoder();
-        enc.Frames.Add(BitmapFrame.Create(bmp));
+        enc.Frames.Add(BitmapFrame.Create(Infrastructure.Snapshot.AsOnScreen(bmp, root)));
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         using var fs = File.Create(path);
         enc.Save(fs);

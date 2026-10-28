@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — 미니 플레이어",
+  "mini.volume.name": "Sonos 볼륨",
+  "mini.pause.name": "일시 중지 또는 재개",
+  "mini.pause.tooltip": "일시 중지: Sonos는 연결된 상태로 무음을 받습니다. 재개는 즉시 됩니다. 스트리밍 중이 아니면 스트리밍을 시작합니다.",
+  "mini.sources.toggle": "오디오 소스 변경",
+  "mini.showMain": "기본 창 열기",
+  "mini.hide.tooltip": "미니 플레이어 숨기기(오디오는 계속 재생됨)",
+  "mini.hide.name": "미니 플레이어 숨기기",
+  "mini.sources.title": "SONOS로 보내기",
+  "mini.sources.system": "PC 오디오 전체"
+}

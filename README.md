@@ -81,6 +81,10 @@ Las teclas multimedia del teclado no se tocan: siguen controlando el reproductor
 
 En **Estadísticas → Red**: «Estable» o el número de atascos (segundos en que la Wi-Fi o el Sonos dejaron de recoger el audio a tiempo) y el peor. En naranja si alguno superó el margen anti-cortes (probable corte audible). Cada atasco queda anotado con su hora en `app-events.log` y en `stream-*.csv`. Los atascos muy cortos los absorbe Windows y no se ven.
 
+## Idioma
+
+En el primer arranque de una instalación nueva, Audiora pide el idioma y sugiere el de Windows. Se puede cambiar cuando quieras en **Ajustes → Idioma**: el cambio es inmediato y no corta la transmisión. Incluye 12 idiomas, árabe (de derecha a izquierda) entre ellos. Las traducciones, salvo la española, son automáticas y pendientes de revisión nativa. Arquitectura y cómo añadir un idioma: [docs/LOCALIZATION.md](docs/LOCALIZATION.md).
+
 ## Mini reproductor
 
 Cápsula flotante con la fuente, el estado real, el Sonos, el volumen (el mismo que en la ventana principal), **pausa** (el Sonos sigue conectado y recibe silencio; reanudar es instantáneo), abrir la ventana principal, elegir la fuente y ocultar. Se abre con el botón de la barra de título, desde la bandeja o al minimizar/cerrar (según Ajustes). Se puede arrastrar, recuerda su posición, se mantiene dentro de la pantalla, puede quedarse siempre encima y **nunca toma el foco del teclado** (no interrumpe juegos). Ocultarlo o cambiar de ventana no detiene ni reinicia el audio.

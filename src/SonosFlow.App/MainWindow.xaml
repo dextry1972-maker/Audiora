@@ -6,15 +6,17 @@
         xmlns:vm="clr-namespace:SonosFlow.App.ViewModels"
         xmlns:ctl="clr-namespace:SonosFlow.App.Controls"
         xmlns:views="clr-namespace:SonosFlow.App.Views"
+        xmlns:loc="clr-namespace:SonosFlow.App.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:MainViewModel}"
-        Title="Audiora" Width="1280" Height="840" MinWidth="1080" MinHeight="720"
+        Title="{loc:T main.window.title}" Width="1280" Height="840" MinWidth="1080" MinHeight="720"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource B.Bg0}"
         Foreground="{StaticResource B.Text}"
         FontFamily="{StaticResource F.Text}"
         TextOptions.TextFormattingMode="Ideal"
-        UseLayoutRounding="True">
+        UseLayoutRounding="True"
+        FlowDirection="{Binding FlowDirection, Source={x:Static loc:Loc.Instance}}">
 
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="56" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False" />
@@ -115,19 +117,19 @@
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Image Source="/Assets/SonosFlow.png" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality" />
-                <TextBlock Text="Audiora" Style="{StaticResource T.Base}" FontFamily="{StaticResource F.Display}" FontSize="15" FontWeight="SemiBold" Margin="9,0,0,1" VerticalAlignment="Center" />
+                <TextBlock Text="{loc:T main.header.brand}" Style="{StaticResource T.Base}" FontFamily="{StaticResource F.Display}" FontSize="15" FontWeight="SemiBold" Margin="9,0,0,1" VerticalAlignment="Center" />
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="30,0,0,0" VerticalAlignment="Center">
-                <RadioButton x:Name="NavHome" Style="{StaticResource Nav.Tab}" GroupName="nav" IsChecked="True" Content="Inicio"
+                <RadioButton x:Name="NavHome" Style="{StaticResource Nav.Tab}" GroupName="nav" IsChecked="True" Content="{loc:T main.nav.home}"
                              Command="{Binding NavigateCommand}" CommandParameter="home" />
-                <RadioButton x:Name="NavSettings" Style="{StaticResource Nav.Tab}" GroupName="nav" Content="Ajustes"
+                <RadioButton x:Name="NavSettings" Style="{StaticResource Nav.Tab}" GroupName="nav" Content="{loc:T main.nav.settings}"
                              Command="{Binding NavigateCommand}" CommandParameter="settings" />
             </StackPanel>
 
             <!-- Device selector -->
             <ToggleButton x:Name="DeviceToggle" Grid.Column="3" Style="{StaticResource Btn.Pill}" Padding="12,6,12,6" VerticalAlignment="Center"
                           IsHitTestVisible="{Binding IsOpen, ElementName=DevicePopup, Converter={StaticResource InvertBool}}"
-                          Margin="0,0,10,0" AutomationProperties.Name="Elegir altavoz Sonos" ToolTip="Altavoz Sonos">
+                          Margin="0,0,10,0" AutomationProperties.Name="{loc:T main.header.speakerPicker.name}" ToolTip="{loc:T main.header.speakerPicker.tooltip}">
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Width="7" Height="7" Margin="0,0,9,0" VerticalAlignment="Center">
                         <Ellipse.Style>
@@ -145,7 +147,18 @@
                         </Ellipse.Style>
                     </Ellipse>
                     <TextBlock Text="&#xE7F5;" Style="{StaticResource T.Icon}" FontSize="13" Margin="0,0,7,0" />
-                    <TextBlock Text="{Binding SelectedSpeaker.Name, FallbackValue='Buscar altavoz'}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock FontWeight="SemiBold" VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text" Value="{Binding SelectedSpeaker.Name}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedSpeaker, FallbackValue={x:Null}}" Value="{x:Null}">
+                                        <Setter Property="Text" Value="{loc:T main.header.speakerPicker.empty}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                     <TextBlock Text="&#xE70D;" Style="{StaticResource T.Icon}" FontSize="9" Foreground="{StaticResource B.TextDim}" Margin="9,1,0,0" />
                 </StackPanel>
             </ToggleButton>
@@ -153,9 +166,9 @@
                    IsOpen="{Binding IsChecked, ElementName=DeviceToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                 <Border Style="{StaticResource Flyout}" Width="330" Padding="10">
                     <StackPanel>
-                        <TextBlock Text="ALTAVOCES EN LA RED" Style="{StaticResource T.Kicker}" Margin="10,4,0,8" />
+                        <TextBlock Text="{loc:T main.speakers.title}" Style="{StaticResource T.Kicker}" Margin="10,4,0,8" />
                         <ItemsControl ItemsSource="{Binding Speakers}" ItemTemplate="{StaticResource SpeakerTemplate}" />
-                        <TextBlock Text="Ningún Sonos encontrado todavía" Margin="10,6" FontSize="12">
+                        <TextBlock Text="{loc:T main.speakers.empty}" Margin="10,6" FontSize="12" TextWrapping="Wrap">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource T.Dim}">
                                     <Setter Property="Visibility" Value="Collapsed" />
@@ -171,7 +184,7 @@
                         <Button Command="{Binding RescanCommand}" Style="{StaticResource Btn.Quiet}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE72C;" Style="{StaticResource T.Icon}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                                <TextBlock Text="Buscar altavoces en la red" Margin="9,0,0,0" />
+                                <TextBlock Text="{loc:T main.speakers.rescan}" Margin="9,0,0,0" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -179,11 +192,11 @@
             </Popup>
 
             <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Top">
-                <Button Style="{StaticResource Btn.Caption}" Height="40" Content="&#xE8A7;" Command="{Binding ToggleMiniCommand}" ToolTip="Mini reproductor (Ctrl+Alt+O)"
-                        AutomationProperties.Name="Mostrar u ocultar el mini reproductor" />
-                <Button Style="{StaticResource Btn.Caption}" Height="40" Content="&#xE921;" Click="Minimize_Click" ToolTip="Minimizar" AutomationProperties.Name="Minimizar" />
-                <Button x:Name="MaxButton" Style="{StaticResource Btn.Caption}" Height="40" Content="&#xE922;" Click="Maximize_Click" ToolTip="Maximizar" AutomationProperties.Name="Maximizar" />
-                <Button Style="{StaticResource Btn.CaptionClose}" Height="40" Content="&#xE8BB;" Click="Close_Click" ToolTip="Cerrar" AutomationProperties.Name="Cerrar" />
+                <Button Style="{StaticResource Btn.Caption}" Height="40" Content="&#xE8A7;" Command="{Binding ToggleMiniCommand}" ToolTip="{loc:T main.caption.mini.tooltip}"
+                        AutomationProperties.Name="{loc:T main.caption.mini.name}" />
+                <Button Style="{StaticResource Btn.Caption}" Height="40" Content="&#xE921;" Click="Minimize_Click" ToolTip="{loc:T main.caption.minimize}" AutomationProperties.Name="{loc:T main.caption.minimize}" />
+                <Button x:Name="MaxButton" Style="{StaticResource Btn.Caption}" Height="40" Content="&#xE922;" Click="Maximize_Click" ToolTip="{loc:T main.caption.maximize}" AutomationProperties.Name="{loc:T main.caption.maximize}" />
+                <Button Style="{StaticResource Btn.CaptionClose}" Height="40" Content="&#xE8BB;" Click="Close_Click" ToolTip="{loc:T main.caption.close}" AutomationProperties.Name="{loc:T main.caption.close}" />
             </StackPanel>
         </Grid>
 
@@ -222,8 +235,8 @@
                             <TextBlock Text="&#xE7BA;" Style="{StaticResource T.Icon}" Foreground="{StaticResource B.Danger}" VerticalAlignment="Top" Margin="0,2,12,0" />
                             <TextBlock Grid.Column="1" Text="{Binding StatusDetail}" Style="{StaticResource T.Base}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
-                                <Button Content="Buscar altavoces" Command="{Binding RescanCommand}" Style="{StaticResource Btn.Quiet}" Margin="0,0,6,0" />
-                                <Button Content="Reintentar" Command="{Binding ToggleStreamCommand}" Style="{StaticResource Btn.Pill}" />
+                                <Button Content="{loc:T main.error.rescan}" Command="{Binding RescanCommand}" Style="{StaticResource Btn.Quiet}" Margin="0,0,6,0" />
+                                <Button Content="{loc:T main.error.retry}" Command="{Binding ToggleStreamCommand}" Style="{StaticResource Btn.Pill}" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -234,7 +247,18 @@
                                    Visibility="{Binding HasSpeaker, Converter={StaticResource BoolToVis}}">
                             <Run Text="{Binding SelectedSpeaker.Model, Mode=OneWay, FallbackValue='Sonos'}" /><Run Text="  ·  " /><Run Text="{Binding ConnectionText, Mode=OneWay}" />
                         </TextBlock>
-                        <TextBlock Text="{Binding SelectedSpeaker.Name, FallbackValue='Sin altavoz'}" Style="{StaticResource T.Hero}" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                        <TextBlock HorizontalAlignment="Center" Margin="0,2,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource T.Hero}">
+                                    <Setter Property="Text" Value="{Binding SelectedSpeaker.Name}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedSpeaker, FallbackValue={x:Null}}" Value="{x:Null}">
+                                            <Setter Property="Text" Value="{loc:T main.speaker.none}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
                             <Ellipse Style="{StaticResource StateDot}" VerticalAlignment="Center" Margin="0,1,8,0" />
                             <TextBlock Text="{Binding StatusTitle}" Style="{StaticResource T.Base}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -257,7 +281,7 @@
                             <StackPanel.Style>
                                 <Style TargetType="StackPanel">
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding LastErrorText}" Value="Ninguno">
+                                        <DataTrigger Binding="{Binding HasLastError}" Value="False">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding State}" Value="Error">
@@ -273,7 +297,7 @@
 
                     <!-- Stage: real spectrum ring around the stream button -->
                     <Grid Grid.Row="2" Width="264" Height="264" Margin="0,6,0,0" HorizontalAlignment="Center" Background="Transparent"
-                          ToolTip="Espectro real del audio que se envía al Sonos (40 Hz – 16 kHz). Sin transmisión no se mueve.">
+                          ToolTip="{loc:T main.stage.tooltip}">
 
                         <Ellipse Width="264" Height="264" IsHitTestVisible="False" Opacity="{Binding Level, ElementName=Viz}">
                             <Ellipse.Fill>
@@ -285,7 +309,7 @@
                             </Ellipse.Fill>
                         </Ellipse>
                         <ctl:RadialSpectrum x:Name="Viz" Analyzer="{Binding Analyzer}" IsHitTestVisible="False" />
-                        <Button x:Name="StreamButton" Width="104" Height="104" Command="{Binding ToggleStreamCommand}" Cursor="Hand"
+                        <Button x:Name="StreamButton" Width="104" Height="104" Command="{Binding ToggleStreamCommand}" Cursor="Hand" FlowDirection="LeftToRight"
                                 FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding StreamButtonText}"
                                 ToolTip="{Binding StreamButtonText}">
                             <Button.Template>
@@ -372,14 +396,15 @@
                         <Border Width="52" Height="52" CornerRadius="10" Background="{StaticResource B.CardHi}" ClipToBounds="True">
                             <Grid>
                                 <TextBlock Text="&#xEC4F;" Style="{StaticResource T.Icon}" FontSize="20" Foreground="{StaticResource B.TextDim}" HorizontalAlignment="Center" />
-                                <Image Source="{Binding NowPlayingArtwork}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"
-                                       Visibility="{Binding HasArtwork, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
-                                    <Image.Clip><RectangleGeometry Rect="0,0,52,52" RadiusX="10" RadiusY="10" /></Image.Clip>
-                                </Image>
+                                <!-- A brush fills the slot exactly (an overflowing UniformToFill Image is mis-clipped in right-to-left) -->
+                                <Border CornerRadius="10" FlowDirection="LeftToRight" RenderOptions.BitmapScalingMode="HighQuality"
+                                        Visibility="{Binding HasArtwork, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+                                    <Border.Background><ImageBrush ImageSource="{Binding NowPlayingArtwork}" Stretch="UniformToFill" /></Border.Background>
+                                </Border>
                             </Grid>
                         </Border>
                         <StackPanel Grid.Column="1" Margin="14,0,12,0" VerticalAlignment="Center" ToolTip="{Binding NowPlayingText}">
-                            <TextBlock FontSize="15" TextTrimming="CharacterEllipsis">
+                            <TextBlock FontSize="15" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" FlowDirection="{Binding Text, RelativeSource={RelativeSource Self}, Converter={x:Static loc:AutoDirection.Instance}}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource T.Value}">
                                         <Setter Property="Text" Value="{Binding SourceName}" />
@@ -391,7 +416,7 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-                            <TextBlock FontSize="12.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis">
+                            <TextBlock FontSize="12.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" FlowDirection="{Binding Text, RelativeSource={RelativeSource Self}, Converter={x:Static loc:AutoDirection.Instance}}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource T.Dim}">
                                         <Setter Property="Text" Value="{Binding SourceStatusText}" />
@@ -413,8 +438,8 @@
                         </StackPanel>
                         <StackPanel Grid.Column="2" VerticalAlignment="Center" Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}">
                             <ComboBox Style="{StaticResource Combo.Flow}" Width="186" Height="34" FontSize="12" ItemsSource="{Binding SleepChoices}" SelectedValuePath="Key"
-                                      SelectedValue="{Binding SleepKey}" AutomationProperties.Name="Temporizador de apagado"
-                                      ToolTip="Detiene la transmisión pasado ese tiempo. Se cancela al detener.">
+                                      SelectedValue="{Binding SleepKey}" AutomationProperties.Name="{loc:T main.sleep.name}"
+                                      ToolTip="{loc:T main.sleep.tooltip}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
                                 </ComboBox.ItemTemplate>
@@ -433,11 +458,11 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="56" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="&#xE992;" Style="{StaticResource T.Icon}" FontSize="14" Foreground="{StaticResource B.TextDim}" />
+                            <TextBlock Text="&#xE992;" Style="{StaticResource T.Icon}" FontSize="14" Foreground="{StaticResource B.TextDim}" FlowDirection="LeftToRight" />
                             <Slider Grid.Column="1" Style="{StaticResource Slider.Volume}" Minimum="0" Maximum="100" Margin="14,0"
                                     Value="{Binding Volume, Mode=TwoWay}" SmallChange="1" LargeChange="5"
-                                    IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="Volumen del Sonos" ToolTip="Volumen del Sonos" />
-                            <TextBlock Grid.Column="2" Text="&#xE995;" Style="{StaticResource T.Icon}" FontSize="14" Foreground="{StaticResource B.TextDim}" />
+                                    IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="{loc:T main.volume.name}" ToolTip="{loc:T main.volume.name}" />
+                            <TextBlock Grid.Column="2" Text="&#xE995;" Style="{StaticResource T.Icon}" FontSize="14" Foreground="{StaticResource B.TextDim}" FlowDirection="LeftToRight" />
                             <TextBlock Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="20" FontWeight="Normal">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource T.Value}">
@@ -453,14 +478,14 @@
                             </TextBlock>
                         </Grid>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
-                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding MuteLocal}" IsEnabled="{Binding LocalOptionsEnabled}" AutomationProperties.Name="Silenciar el PC"
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding MuteLocal}" IsEnabled="{Binding LocalOptionsEnabled}" AutomationProperties.Name="{loc:T main.muteLocal.label}"
                                       ToolTipService.ShowOnDisabled="True"
-                                      ToolTip="Solo suena el Sonos. En «Una aplicación» silencia la salida donde suena esa app (y todo lo de esa salida). Se aplica al iniciar." />
-                            <TextBlock Text="Silenciar el PC" Style="{StaticResource T.Dim}" FontSize="12.5" VerticalAlignment="Center" Margin="9,0,28,0" />
-                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding FullLevel}" IsEnabled="{Binding FullLevelEnabled}" AutomationProperties.Name="Nivel completo"
+                                      ToolTip="{loc:T main.muteLocal.tooltip}" />
+                            <TextBlock Text="{loc:T main.muteLocal.label}" Style="{StaticResource T.Dim}" FontSize="12.5" VerticalAlignment="Center" Margin="9,0,28,0" />
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding FullLevel}" IsEnabled="{Binding FullLevelEnabled}" AutomationProperties.Name="{loc:T main.fullLevel.label}"
                                       ToolTipService.ShowOnDisabled="True"
-                                      ToolTip="Solo «Todo el PC»: Windows al 100 % mientras está silenciado, para controlar el volumen desde el Sonos. Se aplica al iniciar." />
-                            <TextBlock Text="Nivel completo" Style="{StaticResource T.Dim}" FontSize="12.5" VerticalAlignment="Center" Margin="9,0,0,0" />
+                                      ToolTip="{loc:T main.fullLevel.tooltip}" />
+                            <TextBlock Text="{loc:T main.fullLevel.label}" Style="{StaticResource T.Dim}" FontSize="12.5" VerticalAlignment="Center" Margin="9,0,0,0" />
                         </StackPanel>
                     </StackPanel>
 
@@ -468,19 +493,19 @@
                     <StackPanel Grid.Row="6" HorizontalAlignment="Center">
                         <Border Style="{StaticResource SegTrack}" HorizontalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
-                                <RadioButton Style="{StaticResource Seg}" Content="Todo el PC" GroupName="srcmode" IsChecked="{Binding IsAppMode, Converter={StaticResource InvertBool}, Mode=TwoWay}"
-                                             AutomationProperties.Name="Transmitir todo el audio del PC" />
-                                <RadioButton Style="{StaticResource Seg}" Content="Una aplicación" GroupName="srcmode" IsChecked="{Binding IsAppMode, Mode=TwoWay}"
-                                             AutomationProperties.Name="Transmitir una sola aplicación" />
+                                <RadioButton Style="{StaticResource Seg}" Content="{loc:T main.source.mode.system.label}" GroupName="srcmode" IsChecked="{Binding IsAppMode, Converter={StaticResource InvertBool}, Mode=TwoWay}"
+                                             AutomationProperties.Name="{loc:T main.source.mode.system.name}" />
+                                <RadioButton Style="{StaticResource Seg}" Content="{loc:T main.source.mode.app.label}" GroupName="srcmode" IsChecked="{Binding IsAppMode, Mode=TwoWay}"
+                                             AutomationProperties.Name="{loc:T main.source.mode.app.name}" />
                             </StackPanel>
                         </Border>
 
                         <!-- Whole PC: which output -->
                         <StackPanel Margin="0,14,0,0" Width="420" Visibility="{Binding IsAppMode, Converter={StaticResource BoolToVisInv}}">
                             <ComboBox x:Name="SourceCombo" Style="{StaticResource Combo.Flow}" ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}"
-                                      IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="Dispositivo de salida a capturar" />
+                                      IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="{loc:T main.source.output.name}" />
                             <TextBlock Style="{StaticResource T.Dim}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0"
-                                       Text="Todo lo que suena en este dispositivo se envía al Sonos." />
+                                       Text="{loc:T main.source.output.hint}" />
                         </StackPanel>
 
                         <!-- One application: chips -->
@@ -504,13 +529,14 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="Ninguna aplicación está usando el audio ahora mismo" Style="{StaticResource T.Dim}" FontSize="12" HorizontalAlignment="Center" Margin="0,4"
+                            <TextBlock Text="{loc:T main.source.apps.empty}" Style="{StaticResource T.Dim}" FontSize="12" HorizontalAlignment="Center" Margin="0,4"
+                                       TextAlignment="Center" TextWrapping="Wrap"
                                        Visibility="{Binding Apps.Count, Converter={StaticResource ZeroToVis}}" />
                             <Button Command="{Binding LaunchYouTubeMusicCommand}" Style="{StaticResource Btn.Quiet}" HorizontalAlignment="Center" Margin="0,6,0,0"
-                                    ToolTip="Abre YouTube Music en una ventana con perfil propio (proceso separado) para enviar solo su audio. Un navegador normal mezcla todas sus pestañas.">
+                                    ToolTip="{loc:T main.source.ytMusic.tooltip}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE8A7;" Style="{StaticResource T.Icon}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                                    <TextBlock Text="Abrir YouTube Music aislado" Margin="8,0,0,0" />
+                                    <TextBlock Text="{loc:T main.source.ytMusic.label}" Margin="8,0,0,0" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -542,7 +568,7 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <TextBlock Text="Red" Style="{StaticResource FootLabel}" ToolTip="Atascos: segundos en que la Wi-Fi o el Sonos no recogieron el audio a tiempo. Naranja si alguno superó el margen anti-cortes." />
+                    <TextBlock Text="{loc:T main.footer.network.label}" Style="{StaticResource FootLabel}" ToolTip="{loc:T main.footer.network.tooltip}" />
                     <TextBlock Text="{Binding NetworkText}">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource FootValue}">
@@ -554,27 +580,27 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <TextBlock Text="Búfer" Style="{StaticResource FootLabel}" Margin="22,0,0,0" ToolTip="Audio entregado al Sonos menos su posición. Estimación de ±1 s." />
+                    <TextBlock Text="{loc:T main.footer.buffer.label}" Style="{StaticResource FootLabel}" Margin="22,0,0,0" ToolTip="{loc:T main.footer.buffer.tooltip}" />
                     <TextBlock Text="{Binding BufferText}" Style="{StaticResource FootValue}" />
-                    <TextBlock Text="Envío" Style="{StaticResource FootLabel}" Margin="22,0,0,0" />
+                    <TextBlock Text="{loc:T main.footer.rate.label}" Style="{StaticResource FootLabel}" Margin="22,0,0,0" />
                     <TextBlock Text="{Binding RateText}" Style="{StaticResource FootValue}" />
-                    <TextBlock Text="Sonos" Style="{StaticResource FootLabel}" Margin="22,0,0,0" />
+                    <TextBlock Text="{loc:T main.footer.transport.label}" Style="{StaticResource FootLabel}" Margin="22,0,0,0" />
                     <TextBlock Text="{Binding TransportText}" Style="{StaticResource FootValue}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <ToggleButton x:Name="SoundToggle" Style="{StaticResource Btn.Quiet}" AutomationProperties.Name="Sonido del Sonos"
+                    <ToggleButton x:Name="SoundToggle" Style="{StaticResource Btn.Quiet}" AutomationProperties.Name="{loc:T main.footer.sound.name}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=SoundPopup, Converter={StaticResource InvertBool}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE9E9;" Style="{StaticResource T.Icon}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
-                            <TextBlock Text="Sonido" Margin="7,0,0,0" />
+                            <TextBlock Text="{loc:T main.footer.sound.label}" Margin="7,0,0,0" />
                         </StackPanel>
                     </ToggleButton>
-                    <ToggleButton x:Name="DetailsToggle" Style="{StaticResource Btn.Quiet}" Margin="4,0,0,0" AutomationProperties.Name="Detalles de la conexión"
+                    <ToggleButton x:Name="DetailsToggle" Style="{StaticResource Btn.Quiet}" Margin="4,0,0,0" AutomationProperties.Name="{loc:T main.footer.details.name}"
                                   IsHitTestVisible="{Binding IsOpen, ElementName=DetailsPopup, Converter={StaticResource InvertBool}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE946;" Style="{StaticResource T.Icon}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}" />
-                            <TextBlock Text="Detalles" Margin="7,0,0,0" />
+                            <TextBlock Text="{loc:T main.footer.details.label}" Margin="7,0,0,0" />
                         </StackPanel>
                     </ToggleButton>
                 </StackPanel>
@@ -585,8 +611,8 @@
                     <Border Style="{StaticResource Flyout}" Width="340">
                         <StackPanel>
                             <Grid Margin="0,0,0,14">
-                                <TextBlock Text="Sonido del Sonos" Style="{StaticResource T.Section}" VerticalAlignment="Center" />
-                                <Button Content="Restablecer" Command="{Binding ResetEqCommand}" Style="{StaticResource Btn.Quiet}" HorizontalAlignment="Right" IsEnabled="{Binding ControlsReady}" />
+                                <TextBlock Text="{loc:T main.sound.title}" Style="{StaticResource T.Section}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,110,0" />
+                                <Button Content="{loc:T main.sound.reset}" Command="{Binding ResetEqCommand}" Style="{StaticResource Btn.Quiet}" HorizontalAlignment="Right" IsEnabled="{Binding ControlsReady}" />
                             </Grid>
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
@@ -594,9 +620,9 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="32" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Graves" Style="{StaticResource T.Base}" VerticalAlignment="Center" />
+                                <TextBlock Text="{loc:T main.sound.bass}" Style="{StaticResource T.Base}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 <Slider Grid.Column="1" Style="{StaticResource Slider.Flow}" Minimum="-10" Maximum="10" Value="{Binding Bass, Mode=TwoWay}"
-                                        IsSnapToTickEnabled="True" TickFrequency="1" IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="Graves" />
+                                        IsSnapToTickEnabled="True" TickFrequency="1" IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="{loc:T main.sound.bass}" />
                                 <TextBlock Grid.Column="2" Text="{Binding Bass, StringFormat={}{0:+0;-0;0}}" Style="{StaticResource T.Dim}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                             <Grid Margin="0,0,0,12">
@@ -605,18 +631,18 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="32" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Agudos" Style="{StaticResource T.Base}" VerticalAlignment="Center" />
+                                <TextBlock Text="{loc:T main.sound.treble}" Style="{StaticResource T.Base}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                 <Slider Grid.Column="1" Style="{StaticResource Slider.Flow}" Minimum="-10" Maximum="10" Value="{Binding Treble, Mode=TwoWay}"
-                                        IsSnapToTickEnabled="True" TickFrequency="1" IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="Agudos" />
+                                        IsSnapToTickEnabled="True" TickFrequency="1" IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="{loc:T main.sound.treble}" />
                                 <TextBlock Grid.Column="2" Text="{Binding Treble, StringFormat={}{0:+0;-0;0}}" Style="{StaticResource T.Dim}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
                             <Grid>
-                                <StackPanel>
-                                    <TextBlock Text="Loudness" Style="{StaticResource T.Base}" />
-                                    <TextBlock Text="Lo aplica el propio altavoz, no el PC" Style="{StaticResource T.Dim}" FontSize="11.5" />
+                                <StackPanel Margin="0,0,52,0">
+                                    <TextBlock Text="{loc:T main.sound.loudness}" Style="{StaticResource T.Base}" />
+                                    <TextBlock Text="{loc:T main.sound.loudness.hint}" Style="{StaticResource T.Dim}" FontSize="11.5" TextWrapping="Wrap" />
                                 </StackPanel>
                                 <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding Loudness}"
-                                          IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="Loudness" />
+                                          IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="{loc:T main.sound.loudness}" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -627,7 +653,7 @@
                        IsOpen="{Binding IsChecked, ElementName=DetailsToggle, Mode=TwoWay}" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                     <Border Style="{StaticResource Flyout}" Width="440">
                         <StackPanel>
-                            <TextBlock Text="Conexión" Style="{StaticResource T.Section}" Margin="0,0,0,10" />
+                            <TextBlock Text="{loc:T main.details.title}" Style="{StaticResource T.Section}" Margin="0,0,0,10" />
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -636,28 +662,28 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="Altavoz" Style="{StaticResource DetailKey}" />
+                                <TextBlock Text="{loc:T main.details.speaker}" Style="{StaticResource DetailKey}" />
                                 <TextBlock Grid.Column="1" Style="{StaticResource DetailValue}">
                                     <Run Text="{Binding SelectedSpeaker.Name, Mode=OneWay, FallbackValue='—'}" /><Run Text=" · " /><Run Text="{Binding SelectedSpeaker.Address, Mode=OneWay, FallbackValue='—'}" />
                                 </TextBlock>
-                                <TextBlock Grid.Row="1" Text="Estado" Style="{StaticResource DetailKey}" />
+                                <TextBlock Grid.Row="1" Text="{loc:T main.details.state}" Style="{StaticResource DetailKey}" />
                                 <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ConnectionText}" Style="{StaticResource DetailValue}" />
-                                <TextBlock Grid.Row="2" Text="Stream" Style="{StaticResource DetailKey}" />
+                                <TextBlock Grid.Row="2" Text="{loc:T main.details.stream}" Style="{StaticResource DetailKey}" />
                                 <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding StreamUrl}" Style="{StaticResource DetailValue}" FontFamily="Cascadia Mono, Consolas" ToolTip="{Binding StreamUrl}" />
-                                <TextBlock Grid.Row="3" Text="Formato" Style="{StaticResource DetailKey}" />
+                                <TextBlock Grid.Row="3" Text="{loc:T main.details.format}" Style="{StaticResource DetailKey}" />
                                 <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding FormatText}" Style="{StaticResource DetailValue}" />
-                                <TextBlock Grid.Row="4" Text="Captura" Style="{StaticResource DetailKey}" />
+                                <TextBlock Grid.Row="4" Text="{loc:T main.details.capture}" Style="{StaticResource DetailKey}" />
                                 <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SourceFormatText}" Style="{StaticResource DetailValue}" ToolTip="{Binding SourceFormatText}" />
-                                <TextBlock Grid.Row="5" Text="Pico" Style="{StaticResource DetailKey}" />
+                                <TextBlock Grid.Row="5" Text="{loc:T main.details.peak}" Style="{StaticResource DetailKey}" />
                                 <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding PeakDbfs, ElementName=Viz, Converter={StaticResource DbfsText}}" Style="{StaticResource DetailValue}" />
-                                <TextBlock Grid.Row="6" Text="Descartes / reconexiones" Style="{StaticResource DetailKey}" />
+                                <TextBlock Grid.Row="6" Text="{loc:T main.details.dropsReconnects}" Style="{StaticResource DetailKey}" />
                                 <TextBlock Grid.Row="6" Grid.Column="1" Style="{StaticResource DetailValue}">
                                     <Run Text="{Binding DropsText, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding ReconnectsText, Mode=OneWay}" />
                                 </TextBlock>
-                                <TextBlock Grid.Row="7" Text="Último error" Style="{StaticResource DetailKey}" />
+                                <TextBlock Grid.Row="7" Text="{loc:T main.details.lastError}" Style="{StaticResource DetailKey}" />
                                 <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding LastErrorText}" Style="{StaticResource DetailValue}" TextWrapping="Wrap" TextTrimming="None" />
                             </Grid>
-                            <TextBlock Text="Solo red local: el audio nunca sale a Internet. La latencia real no se mide; el Sonos va ~1–1,5 s por detrás con el margen de 1 s."
+                            <TextBlock Text="{loc:T main.details.note}"
                                        Style="{StaticResource T.Dim}" FontSize="11.5" TextWrapping="Wrap" Margin="0,10,0,0" />
                         </StackPanel>
                     </Border>

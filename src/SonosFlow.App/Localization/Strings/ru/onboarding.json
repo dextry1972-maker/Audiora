@@ -1,0 +1,12 @@
+{
+  "onboarding.title": "Добро пожаловать в Audiora",
+  "onboarding.subtitle": "Звук вашего ПК — на вашем Sonos. Чтобы начать, выберите язык приложения.",
+  "onboarding.search.label": "Поиск языка",
+  "onboarding.search.placeholder": "Поиск языка…",
+  "onboarding.search.noResults": "Нет языков, соответствующих запросу",
+  "onboarding.list.label": "ЯЗЫКИ",
+  "onboarding.suggested": "Рекомендуемый",
+  "onboarding.changeLater": "Его можно изменить в любой момент в настройках.",
+  "onboarding.confirm": "Продолжить",
+  "onboarding.close.tooltip": "Закрыть и использовать рекомендуемый язык"
+}

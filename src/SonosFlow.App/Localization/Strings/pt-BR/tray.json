@@ -1,0 +1,9 @@
+{
+  "tray.open": "Abrir o Audiora (janela principal)",
+  "tray.quit": "Sair do Audiora",
+  "tray.stream.start": "Iniciar transmissão",
+  "tray.stream.stop": "Parar transmissão",
+  "tray.mini.show": "Mostrar o miniplayer",
+  "tray.mini.hide": "Ocultar o miniplayer",
+  "tray.tooltip.streaming": "Audiora — transmitindo para {0}"
+}

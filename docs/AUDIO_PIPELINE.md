@@ -129,7 +129,7 @@ Una fila por vuelta de `MonitorAsync` (1 s más la respuesta del Sonos, cada con
 | `dropped_chunks` | trozos descartados por cola llena (acumulado) |
 | `reconnects` | veces que se reenvió `SetAVTransportURI` + `Play` |
 | `buffer_est_s` | **estimación ±1 s**: audio entregado desde antes de `SetAVTransportURI` − `RelTime` del Sonos; vacío si la posición no se pudo leer (solo se pide en `PLAYING`/`TRANSITIONING`) |
-| `error` | último error (comas → `;`); «El Sonos no responde en la red» se borra en cuanto vuelve a responder |
+| `error` | último problema como **clave estable**, igual en todos los idiomas (`core.speakerUnreachable`, `core.retryFailed\|<detalle>`…; ver `SessionMessages.cs`; comas → `;`). `core.speakerUnreachable` se borra en cuanto el Sonos vuelve a responder. La app la traduce al mostrarla |
 | `source` | nombre de la fuente |
 | `paused` | 1 en pausa |
 | `peak_dbfs` | pico de lo enviado desde la fila anterior; vacío si −∞ |

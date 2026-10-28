@@ -1,0 +1,21 @@
+{
+  "setup.window.title": "Audiora इंस्टॉल करें",
+  "setup.subtitle": "Wi-Fi के ज़रिए अपने पीसी का ऑडियो अपने Sonos पर स्ट्रीम करें",
+  "setup.location": "यह आपके यूज़र खाते के लिए यहाँ इंस्टॉल होगा:\n{0}\nएडमिनिस्ट्रेटर अधिकारों की ज़रूरत नहीं है।",
+  "setup.desktopShortcut": "डेस्कटॉप शॉर्टकट बनाएँ",
+  "setup.launchWhenDone": "पूरा होने पर Audiora खोलें",
+  "setup.install": "इंस्टॉल करें",
+  "setup.cancel": "रद्द करें",
+  "setup.finish": "समाप्त करें",
+  "setup.failed": "इंस्टॉलेशन पूरा नहीं हुआ।",
+  "setup.done": "हो गया। Audiora इंस्टॉल हो गया है।",
+  "setup.noPayload": "इस इंस्टॉलर में ऐप नहीं है (इसे पैकेज के बिना बिल्ड किया गया था)।",
+  "setup.appRunning": "Audiora खुला है। इसे बंद करें (सिस्टम ट्रे से भी) और फिर से कोशिश करें।",
+  "setup.folderNotOurs": "फ़ोल्डर {0} पहले से मौजूद है और उसमें Audiora नहीं है। इसे ओवरराइट नहीं किया जाएगा।",
+  "setup.step.prepare": "फ़ोल्डर तैयार किया जा रहा है…",
+  "setup.step.copy": "फ़ाइलें कॉपी की जा रही हैं… {0}/{1}",
+  "setup.step.shortcuts": "शॉर्टकट बनाए जा रहे हैं…",
+  "setup.step.register": "इंस्टॉल किए गए ऐप्स में रजिस्टर किया जा रहा है…",
+  "setup.step.complete": "इंस्टॉलेशन पूरा हुआ",
+  "setup.shortcut.description": "अपने पीसी का ऑडियो अपने Sonos पर स्ट्रीम करें"
+}

@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — miniplayer",
+  "mini.volume.name": "Volume do Sonos",
+  "mini.pause.name": "Pausar ou retomar",
+  "mini.pause.tooltip": "Pausar: o Sonos continua conectado e recebe silêncio. Retomar é instantâneo. Se não estiver transmitindo, inicia a transmissão.",
+  "mini.sources.toggle": "Mudar a fonte de áudio",
+  "mini.showMain": "Abrir a janela principal",
+  "mini.hide.tooltip": "Ocultar o miniplayer (o áudio continua)",
+  "mini.hide.name": "Ocultar o miniplayer",
+  "mini.sources.title": "ENVIAR PARA O SONOS",
+  "mini.sources.system": "Todo o áudio do PC"
+}

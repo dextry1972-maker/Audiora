@@ -1,0 +1,9 @@
+{
+  "tray.open": "Audiora 열기(기본 창)",
+  "tray.quit": "Audiora 종료",
+  "tray.stream.start": "스트리밍 시작",
+  "tray.stream.stop": "스트리밍 중지",
+  "tray.mini.show": "미니 플레이어 표시",
+  "tray.mini.hide": "미니 플레이어 숨기기",
+  "tray.tooltip.streaming": "Audiora — {0}(으)로 스트리밍 중"
+}

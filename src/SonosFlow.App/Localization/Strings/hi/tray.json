@@ -1,0 +1,9 @@
+{
+  "tray.open": "Audiora खोलें (मुख्य विंडो)",
+  "tray.quit": "Audiora से बाहर निकलें",
+  "tray.stream.start": "स्ट्रीमिंग शुरू करें",
+  "tray.stream.stop": "स्ट्रीमिंग रोकें",
+  "tray.mini.show": "मिनी प्लेयर दिखाएँ",
+  "tray.mini.hide": "मिनी प्लेयर छिपाएँ",
+  "tray.tooltip.streaming": "Audiora — {0} पर स्ट्रीमिंग"
+}

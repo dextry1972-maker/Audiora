@@ -1,0 +1,27 @@
+{
+  "errors.portInUse": "Port {0} is already in use (is another stream open?)",
+  "errors.groupedSpeaker": "This speaker is grouped and isn't the group's main speaker. Remove it from the group in the Sonos app or pick the main one.",
+  "errors.sonosRejected": "The Sonos rejected the command: {0}",
+  "errors.sonosNotResponding": "The Sonos isn't responding. Check that it's on and on the same network.",
+  "errors.appCaptureUnsupported": "Per-app capture requires Windows 10 version 2004 or later.",
+  "errors.appCaptureFailed": "Couldn't capture “{0}”. Check that the app is still open. ({1})",
+  "errors.formatUnsupported": "Unsupported audio format: {0}",
+  "errors.sonosSettingFailed": "Couldn't apply the setting to the Sonos: {0}",
+  "errors.switchSource": "Couldn't switch to “{0}”: {1}",
+  "errors.noBrowserForYouTubeMusic": "Brave, Edge or Chrome is needed to open isolated YouTube Music, and none was found.",
+  "errors.youTubeMusicLaunch": "Couldn't open YouTube Music: {0}",
+
+  "core.speakerUnreachable": "The Sonos isn't responding on the network",
+  "core.captureStopped": "Audio capture stopped: {0}",
+  "core.retryFailed": "Retry failed: {0}",
+  "core.gaveUp": "The Sonos didn't recover the stream after {0} attempts",
+  "core.internalError": "Internal streaming error: {0}",
+  "core.otherSource": "The Sonos is playing another source",
+  "core.pausedFromSonos": "Paused from the Sonos app",
+  "core.stoppedFromSonos": "Stopped from the Sonos app",
+
+  "app.uninstall.title": "Audiora",
+  "app.uninstall.confirm": "Uninstall Audiora?\n\nThe program and its shortcuts will be removed. Your settings and logs are kept.",
+  "app.uninstall.done": "Audiora has been uninstalled.",
+  "app.unexpectedError": "An unexpected error occurred:\n{0}\n\nDetails are in the logs folder."
+}

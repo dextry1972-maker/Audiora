@@ -1,0 +1,9 @@
+{
+  "tray.open": "Ouvrir Audiora (fenêtre principale)",
+  "tray.quit": "Quitter Audiora",
+  "tray.stream.start": "Lancer la diffusion",
+  "tray.stream.stop": "Arrêter la diffusion",
+  "tray.mini.show": "Afficher le mini-lecteur",
+  "tray.mini.hide": "Masquer le mini-lecteur",
+  "tray.tooltip.streaming": "Audiora — diffusion vers {0}"
+}

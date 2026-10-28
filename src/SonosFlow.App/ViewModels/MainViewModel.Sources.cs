@@ -7,7 +7,19 @@ using SonosFlow.Core.Streaming;
 
 namespace SonosFlow.App.ViewModels;
 
-public sealed record ChoiceItem(string Key, string Label);
+/// <summary>
+/// An option whose label follows the UI language. The lists are created once and items compare by Key, so a language
+/// change never empties a ComboBox selection (which would write null back into the bound setting).
+/// </summary>
+public sealed class ChoiceItem(string key, Func<string> label) : ObservableObject
+{
+    public string Key { get; } = key;
+    public string Label => label();
+    public void RefreshText() => OnPropertyChanged(nameof(Label));
+    public override bool Equals(object? obj) => obj is ChoiceItem other && other.Key == Key;
+    public override int GetHashCode() => Key.GetHashCode();
+    public override string ToString() => Label;
+}
 
 /// <summary>
 /// Source selection (whole PC or one application), pause, and the state shared with the mini player.
@@ -86,19 +98,19 @@ public sealed partial class MainViewModel
         }
     }
 
-    public string SourceName => IsAppMode ? SelectedApp?.Name ?? RememberedAppName ?? "Ninguna aplicación" : "Todo el audio del PC";
+    public string SourceName => IsAppMode ? SelectedApp?.Name ?? RememberedAppName ?? L.T("source.none") : L.T("source.wholePc");
 
     private string? RememberedAppName => _settings.SourceAppExe is { } exe
-        ? (_settings.SourceAppIsolated ? "YouTube Music (instancia aislada)" : Path.GetFileNameWithoutExtension(exe))
+        ? (_settings.SourceAppIsolated ? L.T("source.ytIsolated") : Path.GetFileNameWithoutExtension(exe))
         : null;
 
     private bool _sourceAvailable = true;
     public string SourceStatusText => !IsAppMode
-        ? "Todo lo que suena en el PC"
+        ? L.T("source.status.wholePc")
         : SelectedApp is null
-            ? (_settings.SourceAppExe is null ? "Elige una aplicación" : "La aplicación no está abierta")
-            : !_sourceAvailable ? "La aplicación se cerró — esperando a que vuelva"
-            : SelectedApp.IsActive ? "Reproduciendo" : "En silencio";
+            ? L.T(_settings.SourceAppExe is null ? "source.status.chooseApp" : "source.status.appNotOpen")
+            : !_sourceAvailable ? L.T("source.status.appClosedWaiting")
+            : L.T(SelectedApp.IsActive ? "source.app.playing" : "source.app.silent");
 
     /// <summary>"Silenciar el PC" works in both modes (in app mode it mutes the app's output; the capture is unaffected).</summary>
     public bool LocalOptionsEnabled => !IsStreaming;
@@ -150,8 +162,8 @@ public sealed partial class MainViewModel
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException or TimeoutException or PlatformNotSupportedException)
         {
-            LastErrorText = $"No se pudo cambiar a «{spec.DisplayName}»: {ex.Message}";
-            AppLog.Write(LastErrorText);
+            LastError(() => L.F("errors.switchSource", spec.DisplayName, ex.Message));
+            AppLog.Write($"no se pudo cambiar a «{spec.DisplayName}»: {ex.Message}");
         }
     }
 
@@ -195,7 +207,7 @@ public sealed partial class MainViewModel
         {
             if (AudioApps.LaunchIsolatedYouTubeMusic() is null)
             {
-                LastErrorText = "No se encontró Brave, Edge ni Chrome para abrir YouTube Music aislado.";
+                LastError(() => L.T("errors.noBrowserForYouTubeMusic"));
                 return;
             }
             // Pre-select it: it appears in the list as soon as it starts playing.
@@ -208,7 +220,7 @@ public sealed partial class MainViewModel
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
-            LastErrorText = $"No se pudo abrir YouTube Music: {ex.Message}";
+            LastError(() => L.F("errors.youTubeMusicLaunch", ex.Message));
         }
     }
 
@@ -236,14 +248,14 @@ public sealed partial class MainViewModel
 
     public string MiniStatusText => State switch
     {
-        UiState.Streaming when IsPaused => "En pausa",
-        UiState.Streaming => "Transmitiendo audio",
-        UiState.Starting => "Conectando…",
-        UiState.Recovering => "Reconectando…",
-        UiState.Error => "Error al transmitir",
-        UiState.Discovering => "Buscando altavoces…",
-        UiState.NoSpeaker => "Sin altavoz",
-        _ => "Listo para transmitir",
+        UiState.Streaming when IsPaused => L.T("status.mini.paused"),
+        UiState.Streaming => L.T("status.mini.streaming"),
+        UiState.Starting => L.T("status.title.starting"),
+        UiState.Recovering => L.T("status.title.recovering"),
+        UiState.Error => L.T("status.mini.error"),
+        UiState.Discovering => L.T("status.title.discovering"),
+        UiState.NoSpeaker => L.T("status.mini.noSpeaker"),
+        _ => L.T("status.title.ready"),
     };
 
     // ── Mini player state and settings ─────────────────────────
@@ -268,9 +280,9 @@ public sealed partial class MainViewModel
 
     public IReadOnlyList<ChoiceItem> CloseActions { get; } =
     [
-        new("tray", "Seguir en la bandeja del sistema"),
-        new("mini", "Mostrar el mini reproductor"),
-        new("exit", "Salir de Audiora"),
+        new("tray", () => L.T("choices.close.tray")),
+        new("mini", () => L.T("choices.close.mini")),
+        new("exit", () => L.T("choices.close.exit")),
     ];
 
     private string _closeAction = "tray";
@@ -279,7 +291,7 @@ public sealed partial class MainViewModel
         get => _closeAction;
         set
         {
-            if (!Set(ref _closeAction, value)) return;
+            if (value is null || !Set(ref _closeAction, value)) return;
             _settings.CloseAction = value;
             _settings.MinimizeToTray = value != "exit"; // keep the older switch consistent
             _settings.Save();
@@ -298,10 +310,10 @@ public sealed partial class MainViewModel
 
     public IReadOnlyList<ChoiceItem> PrebufferChoices { get; } =
     [
-        new("0", "Sin margen (mínima latencia)"),
-        new("1000", "1 s (recomendado)"),
-        new("2000", "2 s"),
-        new("3000", "3 s"),
+        new("0", () => L.T("choices.prebuffer.none")),
+        new("1000", () => L.T("choices.prebuffer.recommended")),
+        new("2000", () => L.F("choices.prebuffer.seconds", 2)),
+        new("3000", () => L.F("choices.prebuffer.seconds", 3)),
     ];
 
     /// <summary>"Margen anti-cortes", applied when a stream starts.</summary>
@@ -328,6 +340,6 @@ public sealed partial class MainViewModel
 
     /// <summary>One-line connection status for the tray menu.</summary>
     public string TrayStatusText => SelectedSpeaker is null
-        ? "Sonos: no encontrado"
+        ? L.T("status.tray.noSonos")
         : $"{SelectedSpeaker.Name}: {ConnectionText} · {MiniStatusText}" + (IsStreaming ? $" · {SourceName}" : "");
 }

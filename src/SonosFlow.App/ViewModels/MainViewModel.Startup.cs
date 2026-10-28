@@ -38,13 +38,14 @@ public sealed partial class MainViewModel
 
                 if (clock.Elapsed >= ReadyTimeout)
                 {
-                    StatusDetail = "No se encontró el Sonos en 5 minutos. Comprueba la zona Wi-Fi del PC y pulsa «Buscar altavoces».";
+                    Detail(() => L.T("status.detail.startupGaveUp"));
                     AppLog.Write($"arranque: sin Sonos tras {attempt} intentos");
                     return;
                 }
 
                 int delay = ReadyScheduleSeconds[Math.Min(attempt - 1, ReadyScheduleSeconds.Length - 1)];
-                StatusDetail = $"Esperando a la red y al Sonos… nuevo intento en {delay} s (intento {attempt})";
+                int a = attempt;
+                Detail(() => L.F("status.detail.waitingNetwork", delay, a));
                 AppLog.Write($"arranque: intento {attempt} sin éxito, siguiente en {delay} s");
                 wake = new TaskCompletionSource();
                 var sleep = Task.Delay(TimeSpan.FromSeconds(delay), ct);

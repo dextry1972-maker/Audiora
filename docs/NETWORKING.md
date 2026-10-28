@@ -97,7 +97,7 @@ Cada vuelta (1 s + respuestas):
 
 | Paso | Regla |
 |---|---|
-| Consulta (`ProbeAsync`) | `GetTransportInfo` con 2 s; error HTTP, plazo, SOAP o XML → `UNREACHABLE` y «El Sonos no responde en la red» (el aviso se borra en cuanto vuelve a responder). En `PLAYING`/`TRANSITIONING`, además `GetPositionInfo` con 2 s (si falla: posición desconocida) |
+| Consulta (`ProbeAsync`) | `GetTransportInfo` con 2 s; error HTTP, plazo, SOAP o XML → `UNREACHABLE` y `core.speakerUnreachable` (el aviso se borra en cuanto vuelve a responder). En `PLAYING`/`TRANSITIONING`, además `GetPositionInfo` con 2 s (si falla: posición desconocida) |
 | Captura caída | `CaptureError` → publica la fila y pasa a `Failed`; la App detiene la sesión y muestra el error |
 | App seguida | en «Una aplicación», cada 3 vueltas comprueba el proceso y lo sigue si reaparece |
 | Veredicto | `PlaybackWatchdog.Observe` (tabla siguiente). Cada cambio se anota: `vigilante: <veredicto> (Sonos <estado>, clientes N)` / `vigilante: reproducción correcta`. Sano y en `Recovering` → vuelve a `Streaming` |
@@ -127,13 +127,13 @@ Cada vuelta (1 s + respuestas):
 
 | Señal | Motivo de `fin: …` |
 |---|---|
-| `STOPPED` otra vez menos de **60 s** después de un reintento que se hizo por `STOPPED` | «Se detuvo desde la app de Sonos» (un `Stop` aislado se trata como fallo de red: se reemite una vez) |
-| `GetMediaInfo` (2 s): la URI activa no es nuestro stream (`PlaybackWatchdog.IsOurStream`: compara host:puerto + ruta; una URI vacía cuenta como nuestra) | «El Sonos está reproduciendo otra fuente» |
-| estado `PAUSED_PLAYBACK` | «Se pausó desde la app de Sonos» |
+| `STOPPED` otra vez menos de **60 s** después de un reintento que se hizo por `STOPPED` | `core.stoppedFromSonos` (un `Stop` aislado se trata como fallo de red: se reemite una vez) |
+| `GetMediaInfo` (2 s): la URI activa no es nuestro stream (`PlaybackWatchdog.IsOurStream`: compara host:puerto + ruta; una URI vacía cuenta como nuestra) | `core.otherSource` |
+| estado `PAUSED_PLAYBACK` | `core.pausedFromSonos` |
 
 En esos casos la sesión pasa a **`Released`**: no pelea con el usuario, no envía `Stop`, anota `fin: …` y la App se detiene sin error y sin reanudar al abrir. Si `GetMediaInfo` falla, se reintenta como siempre.
 
-Si no, reintento: `reconnects++`, estado `Recovering`, nota `reintento N/8 (<veredicto>, Sonos <estado>)`, `AbortClients()` (una conexión atascada deja de contar como cliente), `SetAVTransportURI` + `Play` (si fallan por HTTP, plazo, SOAP o XML: «Reintento fallido: …»), `watchdog.Reset` y `StallTracker.RestartWarmup`.
+Si no, reintento: `reconnects++`, estado `Recovering`, nota `reintento N/8 (<veredicto>, Sonos <estado>)`, `AbortClients()` (una conexión atascada deja de contar como cliente), `SetAVTransportURI` + `Play` (si fallan por HTTP, plazo, SOAP o XML: `core.retryFailed|…`), `watchdog.Reset` y `StallTracker.RestartWarmup`.
 
 El bucle no puede morir en silencio: cualquier excepción inesperada lo pasa a `Failed` («Error interno de la transmisión: …», anotado en `app-events.log`); un error que ocurra mientras se detiene no se publica como fallo. La limpieza al detener va por pasos y siempre libera PC, captura y puerto ([AUDIO_PIPELINE.md](AUDIO_PIPELINE.md) §7).
 

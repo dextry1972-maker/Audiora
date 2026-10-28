@@ -35,4 +35,9 @@
     <Resource Include="Assets\SonosFlow.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Translations: Localization/Strings/<code>/<area>.json, read by Localization/Loc.cs as "i18n/<code>/<area>.json". -->
+    <EmbeddedResource Include="Localization\Strings\**\*.json" LogicalName="i18n/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

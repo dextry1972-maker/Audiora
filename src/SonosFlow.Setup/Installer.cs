@@ -36,20 +36,20 @@ public static class Installer
     /// <summary>Returns a message when installing would be unsafe (app running, foreign folder), else null.</summary>
     public static string? CheckPreconditions(InstallOptions o)
     {
-        if (!HasPayload) return "Este instalador no contiene la aplicación (se compiló sin el paquete).";
+        if (!HasPayload) return SetupText.T("setup.noPayload");
 
         var running = Process.GetProcessesByName("SonosFlow");
-        if (running.Length > 0) return "Audiora está abierto. Ciérralo (también desde la bandeja del sistema) y vuelve a intentarlo.";
+        if (running.Length > 0) return SetupText.T("setup.appRunning");
 
         if (Directory.Exists(o.Directory) && Directory.EnumerateFileSystemEntries(o.Directory).Any()
             && !File.Exists(ExePath(o)))
-            return $"La carpeta {o.Directory} ya existe y no contiene Audiora. No se sobrescribirá.";
+            return SetupText.F("setup.folderNotOurs", o.Directory);
         return null;
     }
 
     public static void Install(InstallOptions o, IProgress<(int Percent, string Status)> progress)
     {
-        progress.Report((2, "Preparando la carpeta…"));
+        progress.Report((2, SetupText.T("setup.step.prepare")));
         if (Directory.Exists(o.Directory)) Directory.Delete(o.Directory, recursive: true); // previous Sonos Flow only (checked above)
         Directory.CreateDirectory(o.Directory);
 
@@ -72,14 +72,14 @@ public static class Installer
                     entry.ExtractToFile(target, overwrite: true);
                 }
                 if (++done % 10 == 0 || done == total)
-                    progress.Report((5 + done * 85 / total, $"Copiando archivos… {done}/{total}"));
+                    progress.Report((5 + done * 85 / total, SetupText.F("setup.step.copy", done, total)));
             }
         }
 
         var exe = ExePath(o);
         if (!File.Exists(exe)) throw new FileNotFoundException("El paquete no contiene SonosFlow.exe.", exe);
 
-        progress.Report((92, "Creando accesos directos…"));
+        progress.Report((92, SetupText.T("setup.step.shortcuts")));
         var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
         var programs = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
         if (o.DesktopShortcut)
@@ -95,10 +95,10 @@ public static class Installer
 
         if (o.Register)
         {
-            progress.Report((96, "Registrando en Aplicaciones instaladas…"));
+            progress.Report((96, SetupText.T("setup.step.register")));
             Register(o, exe);
         }
-        progress.Report((100, "Instalación completada"));
+        progress.Report((100, SetupText.T("setup.step.complete")));
     }
 
     /// <summary>Deletes an old "Sonos Flow" shortcut only if it launches this same exe (never a user's own shortcut).</summary>
@@ -133,7 +133,7 @@ public static class Installer
             lnk.TargetPath = exe;
             lnk.WorkingDirectory = Path.GetDirectoryName(exe);
             lnk.IconLocation = exe + ",0";
-            lnk.Description = "Transmite el audio del PC a tu Sonos";
+            lnk.Description = SetupText.T("setup.shortcut.description");
             lnk.Save();
             Marshal.FinalReleaseComObject(lnk);
         }

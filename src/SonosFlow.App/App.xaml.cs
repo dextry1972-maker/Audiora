@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Threading;
 using SonosFlow.App.Infrastructure;
+using SonosFlow.App.Localization;
 using SonosFlow.App.ViewModels;
 
 namespace SonosFlow.App;
@@ -52,12 +53,26 @@ public partial class App : Application
         string? screenshot = Arg("--screenshot");
         string? miniShot = Arg("--screenshot-mini");
         string? hudShot = Arg("--screenshot-hud");
-        bool testCapture = screenshot is not null || miniShot is not null || hudShot is not null || Arg("--selftest-session") is not null;
+        string? welcomeShot = Arg("--screenshot-welcome");
+        bool testCapture = screenshot is not null || miniShot is not null || hudShot is not null || welcomeShot is not null
+                           || Arg("--selftest-session") is not null;
         if (!testCapture && !AcquireSingleInstance()) return;
         if (testCapture) AppSettings.PersistenceEnabled = false;
 
         AppLog.Write($"app iniciada{(args.Length > 0 ? " " + string.Join(' ', args) : "")}");
         var settings = AppSettings.Load();
+
+        if (welcomeShot is not null)
+        {
+            if (Arg("--lang") is { } previewLang) Loc.Instance.SetLanguage(previewLang);
+            var welcome = new Views.LanguageWindow(Arg("--lang") ?? Languages.SuggestFromSystem());
+            welcome.Show();
+            await Task.Delay(1200);
+            try { welcome.SaveScreenshot(welcomeShot); } finally { welcome.Close(); Shutdown(); }
+            return;
+        }
+        ChooseLanguage(settings, forced: Arg("--lang"), allowWelcome: !testCapture);
+        Loc.Instance.LanguageChanged += ShowHotkeysStatus; // only the "in use" note is text: no re-registration
         _vm = new MainViewModel(settings);
         _window = new MainWindow(_vm);
         _window.Closing += OnWindowClosing;
@@ -142,6 +157,37 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Starting language: the welcome screen only on a genuinely fresh install; otherwise the saved language,
+    /// Spanish for settings from before languages existed, or the nearest supported one for an invalid value.
+    /// Other settings are never touched.
+    /// </summary>
+    private static void ChooseLanguage(AppSettings settings, string? forced, bool allowWelcome)
+    {
+        if (forced is not null) // test and screenshot runs: preview a language without saving anything
+        {
+            Loc.Instance.SetLanguage(forced);
+            return;
+        }
+        // An unreadable file lost its settings anyway (a copy is kept): ask again instead of forcing Spanish.
+        var decision = LanguageStartup.Decide(AppSettings.LastLoadFoundFile && !AppSettings.LastLoadUnreadable, settings.Language, settings.LanguageOnboardingDone,
+            Languages.SuggestFromSystem());
+        string language = decision.Language;
+        if (decision.ShowWelcome && allowWelcome)
+        {
+            Loc.Instance.SetLanguage(decision.Language);
+            language = Views.LanguageWindow.Ask(decision.Language) ?? decision.Language;
+        }
+        Loc.Instance.SetLanguage(language);
+        if (decision.ShowWelcome || decision.MustPersist)
+        {
+            settings.Language = Loc.Instance.Code;
+            settings.LanguageOnboardingDone = true;
+            settings.Save(); // no-op in test runs
+        }
+        AppLog.Write($"idioma: {Loc.Instance.Code} ({decision.Kind})");
+    }
+
     private bool AcquireSingleInstance()
     {
         _mutex = new Mutex(true, MutexName, out bool first);
@@ -184,12 +230,22 @@ public partial class App : Application
         if (!_vm.HotkeysEnabled)
         {
             _hotkeys.Disable();
-            _vm.HotkeysStatus = "";
+            _hotkeysTaken = [];
+            ShowHotkeysStatus();
             return;
         }
         var taken = _hotkeys.Enable();
-        _vm.HotkeysStatus = taken.Count == 0 ? "" : $"En uso por otro programa (no disponibles): {string.Join(", ", taken)}";
+        _hotkeysTaken = taken;
+        ShowHotkeysStatus();
         if (taken.Count > 0) AppLog.Write($"atajos no registrados: {string.Join(", ", taken)}");
+    }
+
+    private IReadOnlyList<string> _hotkeysTaken = [];
+
+    private void ShowHotkeysStatus()
+    {
+        if (_vm is null) return;
+        _vm.HotkeysStatus = _hotkeysTaken.Count == 0 ? "" : Loc.Instance.F("hotkeys.taken", string.Join(", ", _hotkeysTaken));
     }
 
     private void OnMainStateChanged(object? sender, EventArgs e)
@@ -242,13 +298,14 @@ public partial class App : Application
 
     private void RunUninstall()
     {
-        var answer = MessageBox.Show(
-            "¿Desinstalar Audiora?\n\nSe eliminarán el programa y sus accesos directos. Tus ajustes y registros se conservan.",
-            "Audiora", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var saved = AppSettings.Load();
+        Loc.Instance.SetLanguage(Languages.Resolve(saved.Language) ?? (AppSettings.LastLoadFoundFile ? Languages.Source : Languages.SuggestFromSystem()));
+        var answer = MessageBox.Show(Loc.Instance.T("app.uninstall.confirm"), Loc.Instance.T("app.uninstall.title"),
+            MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (answer == MessageBoxResult.Yes)
         {
             WindowsIntegration.Uninstall();
-            MessageBox.Show("Audiora se ha desinstalado.", "Audiora", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(Loc.Instance.T("app.uninstall.done"), Loc.Instance.T("app.uninstall.title"), MessageBoxButton.OK, MessageBoxImage.Information);
         }
         Shutdown();
     }
@@ -261,7 +318,7 @@ public partial class App : Application
             File.AppendAllText(Path.Combine(AppPaths.Logs, "errors.log"), $"[{DateTime.Now:O}] {e.Exception}\n\n");
         }
         catch (IOException) { }
-        MessageBox.Show($"Se produjo un error inesperado:\n{e.Exception.Message}\n\nDetalles en la carpeta de registros.", "Audiora",
+        MessageBox.Show(Loc.Instance.F("app.unexpectedError", e.Exception.Message), "Audiora",
             MessageBoxButton.OK, MessageBoxImage.Warning);
         e.Handled = true;
     }

@@ -1,0 +1,12 @@
+{
+  "mini.window.title": "Audiora — mini-lecteur",
+  "mini.volume.name": "Volume du Sonos",
+  "mini.pause.name": "Pause ou reprise",
+  "mini.pause.tooltip": "Pause : le Sonos reste connecté et reçoit du silence. La reprise est instantanée. Hors diffusion, lance la diffusion.",
+  "mini.sources.toggle": "Changer de source audio",
+  "mini.showMain": "Ouvrir la fenêtre principale",
+  "mini.hide.tooltip": "Masquer le mini-lecteur (l’audio continue)",
+  "mini.hide.name": "Masquer le mini-lecteur",
+  "mini.sources.title": "ENVOYER AU SONOS",
+  "mini.sources.system": "Tout l’audio du PC"
+}

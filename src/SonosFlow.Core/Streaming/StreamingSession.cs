@@ -97,14 +97,14 @@ public sealed class StreamingSession : IAsyncDisposable
     public CaptureSpec Source => _spec;
     public string CaptureDeviceName { get; private set; } = "";
     public string SourceFormat => _source?.SourceFormatDescription ?? "";
-    public string StreamFormat => _server is null ? "" : $"WAV PCM · {_streamRate / 1000.0:0.#} kHz · 16 bit · estéreo";
+    public string StreamFormat => _server is null ? "" : $"WAV PCM · {_streamRate / 1000.0:0.#} kHz · 16 bit · 2 ch";
     public string StreamUrl => _server?.StreamUrl ?? "";
     public SpectrumAnalyzer? Spectrum { get; private set; }
     public bool Paused => _paused;
     private int _streamRate;
     private StallTracker? _stalls;
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(2);
-    private const string SpeakerUnreachable = "El Sonos no responde en la red";
+    private const string SpeakerUnreachable = SessionMessages.SpeakerUnreachable;
 
     public event Action<StreamStats>? StatsUpdated;
     public event Action<SessionState>? StateChanged;
@@ -314,7 +314,7 @@ public sealed class StreamingSession : IAsyncDisposable
         catch (Exception ex)
         {
             // Never die silently: the app must stop the session, which restores the PC and frees the port.
-            _lastError = $"Error interno de la transmisión: {ex.Message}";
+            _lastError = SessionMessages.With(SessionMessages.InternalError, ex.Message);
             Diagnostic?.Invoke($"monitor detenido por {ex.GetType().Name}: {ex.Message}");
             SetState(SessionState.Failed);
         }
@@ -346,7 +346,7 @@ public sealed class StreamingSession : IAsyncDisposable
 
             if (_source?.CaptureError is { } capErr)
             {
-                _lastError = $"La captura de audio se detuvo: {capErr.Message}";
+                _lastError = SessionMessages.With(SessionMessages.CaptureStopped, capErr.Message);
                 Publish(transport, sent, lastSent, bufferEst, interval); // error reaches listeners before the state change
                 SetState(SessionState.Failed);
                 return;
@@ -372,7 +372,7 @@ public sealed class StreamingSession : IAsyncDisposable
                 case RecoveryDecision.Reconnect:
                     // STOPPED with our stream right after we re-issued it for the same reason: someone pressed Stop.
                     bool stoppedAgain = transport == "STOPPED" && lastStoppedReissue is { } at && now - at < TimeSpan.FromSeconds(60);
-                    if ((stoppedAgain ? "Se detuvo desde la app de Sonos" : await SpeakerTakenElsewhereAsync(transport, ct).ConfigureAwait(false)) is { } why)
+                    if ((stoppedAgain ? SessionMessages.StoppedFromSonos : await SpeakerTakenElsewhereAsync(transport, ct).ConfigureAwait(false)) is { } why)
                     {
                         // The user chose something else on the Sonos: step aside instead of fighting it.
                         _lastError = why;
@@ -392,14 +392,14 @@ public sealed class StreamingSession : IAsyncDisposable
                     }
                     catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or SonosSoapException or System.Xml.XmlException && !ct.IsCancellationRequested)
                     {
-                        _lastError = $"Reintento fallido: {ex.Message}";
+                        _lastError = SessionMessages.With(SessionMessages.RetryFailed, ex.Message);
                     }
                     watchdog.Reset(clock.Elapsed);
                     _stalls?.RestartWarmup(DateTime.Now - _startedAt);
                     break;
 
                 case RecoveryDecision.GiveUp:
-                    _lastError = $"El Sonos no recupera la transmisión tras {policy.Attempts} intentos";
+                    _lastError = SessionMessages.With(SessionMessages.GaveUp, policy.Attempts.ToString(CultureInfo.InvariantCulture));
                     Note($"fin: {_lastError}");
                     Publish(transport, sent, lastSent, bufferEst, interval);
                     SetState(SessionState.Failed);
@@ -454,9 +454,9 @@ public sealed class StreamingSession : IAsyncDisposable
         {
             return null; // unknown: unreachable speakers are retried
         }
-        if (!PlaybackWatchdog.IsOurStream(uri, _server!.StreamUrl)) return "El Sonos está reproduciendo otra fuente";
+        if (!PlaybackWatchdog.IsOurStream(uri, _server!.StreamUrl)) return SessionMessages.OtherSource;
         // Sonos never pauses by itself (network trouble shows as STOPPED/TRANSITIONING): this was the user.
-        if (transport == "PAUSED_PLAYBACK") return "Se pausó desde la app de Sonos";
+        if (transport == "PAUSED_PLAYBACK") return SessionMessages.PausedFromSonos;
         return null;
     }
 

@@ -1,0 +1,21 @@
+{
+  "setup.window.title": "Установка Audiora",
+  "setup.subtitle": "Передавайте звук ПК на Sonos по Wi-Fi",
+  "setup.location": "Программа будет установлена для вашей учётной записи в:\n{0}\nПрава администратора не нужны.",
+  "setup.desktopShortcut": "Создать ярлык на рабочем столе",
+  "setup.launchWhenDone": "Открыть Audiora после установки",
+  "setup.install": "Установить",
+  "setup.cancel": "Отмена",
+  "setup.finish": "Готово",
+  "setup.failed": "Установка не завершена.",
+  "setup.done": "Готово. Audiora установлена.",
+  "setup.noPayload": "Этот установщик не содержит приложения (он собран без пакета).",
+  "setup.appRunning": "Audiora открыта. Закройте её (в том числе в области уведомлений) и повторите попытку.",
+  "setup.folderNotOurs": "Папка {0} уже существует и не содержит Audiora. Она не будет перезаписана.",
+  "setup.step.prepare": "Подготовка папки…",
+  "setup.step.copy": "Копирование файлов… {0}/{1}",
+  "setup.step.shortcuts": "Создание ярлыков…",
+  "setup.step.register": "Регистрация в «Установленных приложениях»…",
+  "setup.step.complete": "Установка завершена",
+  "setup.shortcut.description": "Передавайте звук ПК на ваш Sonos"
+}

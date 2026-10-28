@@ -32,7 +32,7 @@ public sealed partial class MainViewModel
     public bool HasHotkeysProblem => HotkeysStatus.Length > 0;
 
     public string HotkeysHelp =>
-        $"{GlobalHotkeys.All[0].Label} / {GlobalHotkeys.All[1].Label} volumen del Sonos (±{HotkeyVolumeStep}) · {GlobalHotkeys.All[2].Label} pausa o reanuda · {GlobalHotkeys.All[3].Label} mini reproductor. Funcionan aunque estés en un juego y no toman el foco";
+        L.F("hotkeys.help", GlobalHotkeys.All[0].Label, GlobalHotkeys.All[1].Label, HotkeyVolumeStep, GlobalHotkeys.All[2].Label, GlobalHotkeys.All[3].Label);
 
     /// <summary>Asks the app to flash the on-screen indicator: icon glyph, text, optional 0..1 bar.</summary>
     public event Action<string, string, double?>? HudRequested;
@@ -44,7 +44,7 @@ public sealed partial class MainViewModel
             case HotkeyAction.VolumeUp or HotkeyAction.VolumeDown:
                 if (!ControlsReady)
                 {
-                    HudRequested?.Invoke("", "Sonos sin conexión", null);
+                    HudRequested?.Invoke("", L.T("hud.sonosOffline"), null);
                     break;
                 }
                 Volume += action == HotkeyAction.VolumeUp ? HotkeyVolumeStep : -HotkeyVolumeStep;
@@ -55,7 +55,7 @@ public sealed partial class MainViewModel
                 bool wasStreaming = IsStreaming;
                 PauseResumeCommand.Execute(null); // the pause toggle itself is synchronous
                 HudRequested?.Invoke(!wasStreaming ? "" : IsPaused ? "" : "",
-                    !wasStreaming ? "Conectando con el Sonos…" : IsPaused ? "En pausa" : "Reanudado", null);
+                    L.T(!wasStreaming ? "hud.connecting" : IsPaused ? "hud.paused" : "hud.resumed"), null);
                 break;
             case HotkeyAction.ToggleMini: MiniVisible = !MiniVisible; break;
         }
@@ -65,10 +65,10 @@ public sealed partial class MainViewModel
 
     public IReadOnlyList<ChoiceItem> SleepChoices { get; } =
     [
-        new("0", "Sin temporizador"),
-        new("30", "Detener en 30 min"),
-        new("60", "Detener en 60 min"),
-        new("90", "Detener en 90 min"),
+        new("0", () => L.T("choices.sleep.off")),
+        new("30", () => L.F("choices.sleep.after", 30)),
+        new("60", () => L.F("choices.sleep.after", 60)),
+        new("90", () => L.F("choices.sleep.after", 90)),
     ];
 
     private System.Windows.Threading.DispatcherTimer? _sleepTimer;
@@ -114,7 +114,7 @@ public sealed partial class MainViewModel
             }
             CancelSleep(log: false);
             await StopAsync(reason: "temporizador de apagado");
-            StatusDetail = "Detenida por el temporizador";
+            Detail(() => L.T("status.detail.stoppedByTimer"));
         };
         return t;
     }
@@ -124,7 +124,7 @@ public sealed partial class MainViewModel
         if (_sleepAt is not { } at) { SleepRemainingText = ""; return; }
         var left = at - DateTime.UtcNow;
         if (left < TimeSpan.Zero) left = TimeSpan.Zero;
-        SleepRemainingText = $"Se detiene en {(int)left.TotalMinutes}:{left.Seconds:00}";
+        SleepRemainingText = L.F("sleep.remaining", (int)left.TotalMinutes, left.Seconds);
     }
 
     private void CancelSleep(bool log)
@@ -149,8 +149,8 @@ public sealed partial class MainViewModel
     private void UpdateNetwork(StreamStats s)
     {
         NetworkText = s.Stalls == 0
-            ? "Estable"
-            : $"{s.Stalls} atasco{(s.Stalls == 1 ? "" : "s")} · máx {s.StallWorstMs / 1000:0.0} s";
+            ? L.T("net.stable")
+            : L.Plural("net.stalls", s.Stalls, s.Stalls, s.StallWorstMs / 1000);
         NetworkWarning = s.StallsOverMargin > 0;
     }
 

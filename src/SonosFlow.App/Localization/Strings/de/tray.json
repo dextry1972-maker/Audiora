@@ -1,0 +1,9 @@
+{
+  "tray.open": "Audiora öffnen (Hauptfenster)",
+  "tray.quit": "Audiora beenden",
+  "tray.stream.start": "Streaming starten",
+  "tray.stream.stop": "Streaming stoppen",
+  "tray.mini.show": "Miniplayer anzeigen",
+  "tray.mini.hide": "Miniplayer ausblenden",
+  "tray.tooltip.streaming": "Audiora — streamt an {0}"
+}

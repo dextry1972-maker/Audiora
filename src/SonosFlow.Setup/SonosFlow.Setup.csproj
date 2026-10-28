@@ -21,6 +21,12 @@
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Installer text: the setup.json area of the app's translations (no comments allowed in these files). -->
+    <EmbeddedResource Include="..\SonosFlow.App\Localization\Strings\**\setup.json" LogicalName="i18n/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup Condition="Exists('$(PayloadZip)')">
