@@ -1,11 +1,54 @@
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using Windows.Media.Control;
+using Windows.Storage.Streams;
 
 namespace SonosFlow.App.Infrastructure;
 
-/// <summary>What Windows says is playing (title and artist as the app publishes them).</summary>
-public sealed record NowPlaying(string Title, string Artist, string SourceAumid);
+/// <summary>What Windows says is playing (title, artist and cover as the app publishes them).</summary>
+public sealed record NowPlaying(string Title, string Artist, string SourceAumid)
+{
+    private readonly byte[]? _artwork;
+    private readonly int _artworkHash;
+
+    /// <summary>Encoded cover image (PNG/JPEG…) as the app publishes it; null when there is none. Treat as read-only.</summary>
+    public byte[]? Artwork
+    {
+        get => _artwork;
+        init { _artwork = value is { Length: > 0 } ? value : null; _artworkHash = HashOf(_artwork); }
+    }
+
+    /// <summary>Artwork compares by content (length, precomputed hash, then bytes): an unchanged cover is not a change.</summary>
+    public bool Equals(NowPlaying? other) =>
+        other is not null && (ReferenceEquals(this, other) ||
+            Title == other.Title && Artist == other.Artist && SourceAumid == other.SourceAumid && SameArtwork(other));
+
+    public override int GetHashCode() => HashCode.Combine(Title, Artist, SourceAumid, _artwork?.Length ?? -1, _artworkHash);
+
+    /// <summary>True when both carry the same cover bytes (or neither has one).</summary>
+    public bool SameArtwork(NowPlaying? other)
+    {
+        var a = _artwork;
+        var b = other?._artwork;
+        if (ReferenceEquals(a, b)) return true;
+        if (a is null || b is null || a.Length != b.Length || _artworkHash != other!._artworkHash) return false;
+        return a.AsSpan().SequenceEqual(b);
+    }
+
+    private bool PrintMembers(System.Text.StringBuilder builder)
+    {
+        builder.Append($"Title = {Title}, Artist = {Artist}, SourceAumid = {SourceAumid}, Artwork = {(_artwork is null ? "none" : $"{_artwork.Length} bytes")}");
+        return true;
+    }
+
+    private static int HashOf(byte[]? bytes)
+    {
+        if (bytes is null) return 0;
+        var h = new HashCode();
+        h.AddBytes(bytes);
+        return h.ToHashCode();
+    }
+}
 
 /// <summary>Whose media session to follow.</summary>
 /// <param name="WholePc">Whole-PC capture: follow Windows' current media session.</param>
@@ -36,6 +79,8 @@ public sealed class MediaSessionWatcher : IDisposable
     private static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(300);
     private static readonly TimeSpan MaxDelay = TimeSpan.FromMilliseconds(1500);
     private static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(3);
+    /// <summary>Covers are usually tens of KB; anything larger is ignored (no artwork).</summary>
+    internal const int MaxArtworkBytes = 2 * 1024 * 1024;
 
     private readonly Dispatcher _ui;
     private readonly DispatcherTimer _debounce;
@@ -200,7 +245,35 @@ public sealed class MediaSessionWatcher : IDisposable
         var props = await session.TryGetMediaPropertiesAsync().AsTask().WaitAsync(CallTimeout);
         var title = props?.Title?.Trim();
         if (string.IsNullOrEmpty(title)) return null;
-        return new NowPlaying(title, props!.Artist?.Trim() ?? "", session.SourceAppUserModelId ?? "");
+        var artwork = await TryReadArtworkAsync(props!.Thumbnail);
+        return new NowPlaying(title, props.Artist?.Trim() ?? "", session.SourceAppUserModelId ?? "") { Artwork = artwork };
+    }
+
+    /// <summary>Reads the session's cover (thread pool). Any failure, timeout or oversized image just means no artwork.</summary>
+    private static async Task<byte[]?> TryReadArtworkAsync(IRandomAccessStreamReference? thumbnail)
+    {
+        if (thumbnail is null) return null;
+        try
+        {
+            using var cts = new CancellationTokenSource(CallTimeout);
+            using var stream = await thumbnail.OpenReadAsync().AsTask(cts.Token).WaitAsync(CallTimeout);
+            if (stream is null) return null;
+            ulong size = stream.Size;
+            if (size == 0 || size > MaxArtworkBytes) return null;
+            using var input = stream.GetInputStreamAt(0);
+            using var reader = new DataReader(input);
+            uint loaded = await reader.LoadAsync((uint)size).AsTask(cts.Token).WaitAsync(CallTimeout);
+            if (loaded == 0) return null;
+            var bytes = new byte[loaded];
+            reader.ReadBytes(bytes);
+            return bytes;
+        }
+        catch (Exception ex) when (IsExpected(ex)) { return null; }
+        catch (Exception ex) // a cover is never worth losing the title
+        {
+            AppLog.Write($"medios: no se pudo leer la carátula ({ex.GetType().Name}: {ex.Message})");
+            return null;
+        }
     }
 
     /// <summary>

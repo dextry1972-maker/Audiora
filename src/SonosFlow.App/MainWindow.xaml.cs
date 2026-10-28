@@ -12,7 +12,6 @@ namespace SonosFlow.App;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _vm;
-    private Storyboard? _rings;
 
     public MainWindow(MainViewModel vm)
     {
@@ -31,16 +30,11 @@ public partial class MainWindow : Window
 
     private void OnVmChanged(object? sender, PropertyChangedEventArgs e)
     {
-        switch (e.PropertyName)
-        {
-            case nameof(MainViewModel.Page):
-                ShowPage(_vm.Page);
-                break;
-            case nameof(MainViewModel.IsActive):
-                if (_vm.IsActive) StartRings(); else StopRings();
-                break;
-        }
+        if (e.PropertyName == nameof(MainViewModel.Page)) ShowPage(_vm.Page);
     }
+
+    /// <summary>Picking a speaker closes the device menu.</summary>
+    private void Speaker_Click(object sender, RoutedEventArgs e) => DeviceToggle.IsChecked = false;
 
     public void ShowPage(string page)
     {
@@ -57,44 +51,6 @@ public partial class MainWindow : Window
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
         show.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(260)) { EasingFunction = ease });
         move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(14, 0, TimeSpan.FromMilliseconds(320)) { EasingFunction = ease });
-    }
-
-    private void StartRings()
-    {
-        if (_rings is not null) return;
-        _rings = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
-        AddRing(_rings, Ring1, Ring1S, TimeSpan.Zero);
-        AddRing(_rings, Ring2, Ring2S, TimeSpan.FromSeconds(1.1));
-        _rings.Begin(this, true);
-    }
-
-    private static void AddRing(Storyboard sb, UIElement ring, ScaleTransform scale, TimeSpan delay)
-    {
-        var duration = TimeSpan.FromSeconds(2.2);
-        var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
-        var op = new DoubleAnimationUsingKeyFrames { BeginTime = delay, Duration = duration + TimeSpan.FromSeconds(0.0) };
-        op.KeyFrames.Add(new LinearDoubleKeyFrame(0.55, KeyTime.FromTimeSpan(TimeSpan.Zero)));
-        op.KeyFrames.Add(new EasingDoubleKeyFrame(0, KeyTime.FromTimeSpan(duration), ease));
-        Storyboard.SetTarget(op, ring);
-        Storyboard.SetTargetProperty(op, new PropertyPath(OpacityProperty));
-        sb.Children.Add(op);
-        foreach (var prop in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
-        {
-            var a = new DoubleAnimation(1, 1.45, duration) { BeginTime = delay, EasingFunction = ease };
-            Storyboard.SetTarget(a, ring);
-            Storyboard.SetTargetProperty(a, new PropertyPath($"(UIElement.RenderTransform).({nameof(ScaleTransform)}.{(prop == ScaleTransform.ScaleXProperty ? "ScaleX" : "ScaleY")})"));
-            sb.Children.Add(a);
-        }
-        // Keep both rings on the same period so the stagger stays constant.
-        sb.Duration = duration + TimeSpan.FromSeconds(1.1);
-    }
-
-    private void StopRings()
-    {
-        if (_rings is null) return;
-        _rings.Stop(this);
-        _rings = null;
-        Ring1.Opacity = Ring2.Opacity = 0;
     }
 
     /// <summary>Saves the rendered window as PNG (used for automated visual checks).</summary>

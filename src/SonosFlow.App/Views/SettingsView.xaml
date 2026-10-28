@@ -1,0 +1,275 @@
+<UserControl x:Class="SonosFlow.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SonosFlow.App.ViewModels"
+             mc:Ignorable="d" d:DataContext="{d:DesignInstance vm:MainViewModel}">
+
+    <UserControl.Resources>
+        <!-- One setting: title + description on the left, control on the right -->
+        <Style x:Key="RowTitle" TargetType="TextBlock" BasedOn="{StaticResource T.Base}">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="RowHint" TargetType="TextBlock" BasedOn="{StaticResource T.Dim}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxWidth" Value="520" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <Style x:Key="Row" TargetType="Grid">
+            <Setter Property="Margin" Value="0,13" />
+        </Style>
+        <Style x:Key="Section" TargetType="TextBlock" BasedOn="{StaticResource T.Kicker}">
+            <Setter Property="Margin" Value="18,26,0,10" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel MaxWidth="760" Margin="32,8,32,40">
+        <TextBlock Text="Ajustes" Style="{StaticResource T.Title}" Margin="2,0,0,0" />
+        <TextBlock Text="Se guardan al momento. Las opciones de audio se aplican al iniciar la siguiente transmisión."
+                   Style="{StaticResource T.Dim}" FontSize="12.5" Margin="2,6,0,0" />
+
+        <!-- General -->
+        <TextBlock Text="GENERAL" Style="{StaticResource Section}" />
+        <Border Style="{StaticResource Surface.Group}">
+            <StackPanel>
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Iniciar con Windows" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="Se abre minimizada en la bandeja al iniciar sesión" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding StartWithWindows}" AutomationProperties.Name="Iniciar con Windows" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,300,0">
+                        <TextBlock Text="Al cerrar la ventana principal" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="Ocultar la ventana nunca detiene la transmisión" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <ComboBox Style="{StaticResource Combo.Flow}" Width="270" HorizontalAlignment="Right" VerticalAlignment="Center" ItemsSource="{Binding CloseActions}"
+                              SelectedValuePath="Key" SelectedValue="{Binding CloseAction}" AutomationProperties.Name="Al cerrar la ventana principal">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Reanudar la transmisión al abrir" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="Si estaba transmitiendo al cerrar. Espera hasta 5 min a la zona Wi-Fi y al Sonos." Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding ResumeOnLaunch}" AutomationProperties.Name="Reanudar al abrir" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Audio -->
+        <TextBlock Text="AUDIO" Style="{StaticResource Section}" />
+        <Border Style="{StaticResource Surface.Group}">
+            <StackPanel>
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Silenciar los altavoces del PC al transmitir" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}"
+                                   Text="En «Una aplicación» se silencia la salida donde suena esa app (y todo lo que suene en ella); el Sonos la sigue recibiendo. Se restaura al detener, al salir e incluso tras un cierre inesperado." />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MuteLocal}" IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="Silenciar el PC" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,280,0">
+                        <TextBlock Text="Margen anti-cortes" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}"
+                                   Text="El Sonos recibe de golpe este tiempo de audio y reproduce con ese retraso: aguanta pausas cortas de la Wi-Fi. Más margen = más estable, más retraso." />
+                    </StackPanel>
+                    <ComboBox Style="{StaticResource Combo.Flow}" Width="250" HorizontalAlignment="Right" VerticalAlignment="Center"
+                              ItemsSource="{Binding PrebufferChoices}" SelectedValuePath="Key" SelectedValue="{Binding PrebufferKey}"
+                              IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="Margen anti-cortes">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Nivel completo" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}"
+                                   Text="Solo en «Todo el PC», donde Windows aplica su volumen al audio capturado: sube el volumen de Windows al 100 % mientras el PC está silenciado. Requiere «Silenciar el PC»." />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding FullLevel}" IsEnabled="{Binding FullLevelEnabled}" AutomationProperties.Name="Nivel completo" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Mini player and shortcuts -->
+        <TextBlock Text="MINI REPRODUCTOR Y ATAJOS" Style="{StaticResource Section}" />
+        <Border Style="{StaticResource Surface.Group}">
+            <StackPanel>
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Mostrar el mini reproductor" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="Cápsula flotante con volumen, pausa y fuente. Ocultarla no detiene el audio" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniVisible}" AutomationProperties.Name="Mostrar el mini reproductor" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Siempre encima" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="Por encima de otras ventanas; nunca toma el foco del teclado (no interrumpe juegos)" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniTopmost}" AutomationProperties.Name="Mini reproductor siempre encima" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Recordar su posición" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="Vuelve a aparecer donde lo dejaste, siempre dentro de la pantalla" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniRememberPosition}" AutomationProperties.Name="Recordar la posición del mini reproductor" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Al minimizar, mostrar el mini reproductor" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="La ventana principal se oculta y queda la cápsula" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MinimizeToMini}" AutomationProperties.Name="Al minimizar mostrar el mini reproductor" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Atenuar cuando no se use" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="Baja ligeramente la opacidad si el ratón no está encima" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding MiniDimWhenIdle}" AutomationProperties.Name="Atenuar el mini reproductor" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="Atajos de teclado globales" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{Binding HotkeysHelp}" Style="{StaticResource RowHint}" />
+                        <TextBlock Text="{Binding HotkeysStatus}" Foreground="{StaticResource B.Warn}" FontSize="12" TextWrapping="Wrap" MaxWidth="520" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                   Visibility="{Binding HasHotkeysProblem, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding HotkeysEnabled}" AutomationProperties.Name="Atajos de teclado globales" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Diagnostics -->
+        <TextBlock Text="DIAGNÓSTICO" Style="{StaticResource Section}" />
+        <Border Style="{StaticResource Surface.Group}">
+            <Grid Style="{StaticResource Row}">
+                <StackPanel Margin="0,0,160,0">
+                    <TextBlock Text="Registros de transmisión" Style="{StaticResource RowTitle}" />
+                    <TextBlock Text="{Binding LogsPath}" Style="{StaticResource RowHint}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Button Content="Abrir carpeta" Command="{Binding OpenLogsCommand}" HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource Btn.Pill}" />
+            </Grid>
+        </Border>
+
+        <!-- Advanced: project source backups (a developer tool) -->
+        <TextBlock Text="AVANZADO · COPIAS DEL CÓDIGO FUENTE" Style="{StaticResource Section}" />
+        <Border Style="{StaticResource Surface.Group}" Padding="18,14" DataContext="{Binding Backups}">
+            <StackPanel>
+                <Grid Margin="0,0,0,4">
+                    <TextBlock Style="{StaticResource RowHint}" Margin="0,0,280,0" VerticalAlignment="Center"
+                               Text="Copias del proyecto con fecha y hora, verificadas con SHA-256. Nunca se sobrescriben ni se borran; restaurar crea antes una copia del estado actual." />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button Content="Abrir carpeta" Command="{Binding OpenFolderCommand}" Style="{StaticResource Btn.Pill}" Margin="0,0,8,0" />
+                        <Button Content="Crear copia ahora" Command="{Binding CreateCommand}" Style="{StaticResource Btn.Pill}" />
+                    </StackPanel>
+                </Grid>
+                <Grid Margin="0,10,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="26" />
+                        <RowDefinition Height="26" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="Proyecto" Style="{StaticResource T.Dim}" FontSize="12" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding ProjectText}" Style="{StaticResource T.Base}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <Button Grid.Column="2" Content="Cambiar…" Command="{Binding ChooseProjectCommand}" Style="{StaticResource Btn.Quiet}" />
+                    <TextBlock Grid.Row="1" Text="Copias en" Style="{StaticResource T.Dim}" FontSize="12" VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BackupRoot}" Style="{StaticResource T.Base}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </Grid>
+                <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" Background="Transparent" BorderThickness="0"
+                         MaxHeight="200" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Copias disponibles">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+                            <Setter Property="Cursor" Value="Hand" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Bd" CornerRadius="9" Padding="10,7" Background="Transparent">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.Glass}" />
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.GlassHi}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:BackupRow}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding DateText}" Style="{StaticResource T.Base}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Details}" Style="{StaticResource T.Dim}" FontSize="11" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="8,0">
+                                    <TextBlock Text="{Binding Reason}" Style="{StaticResource T.Base}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Id}" Style="{StaticResource T.Dim}" FontSize="11" FontFamily="Cascadia Mono, Consolas" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="{Binding Status}" Style="{StaticResource T.Dim}" FontSize="11.5" VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <Grid Margin="0,10,0,0">
+                    <TextBlock Text="{Binding StatusText}" Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" Margin="0,0,220,0" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Verificar" Command="{Binding VerifyCommand}" Style="{StaticResource Btn.Pill}" Margin="0,0,8,0" />
+                        <Button Content="Restaurar…" Command="{Binding RestoreCommand}" Style="{StaticResource Btn.Pill}" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- About -->
+        <StackPanel Orientation="Horizontal" Margin="18,30,0,0">
+            <Image Source="/Assets/SonosFlow.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality" />
+            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="Audiora" Style="{StaticResource T.Base}" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Version}" Style="{StaticResource T.Dim}" FontSize="12" />
+            </StackPanel>
+        </StackPanel>
+        <TextBlock Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" LineHeight="19" Margin="18,10,0,0">
+            Transmite el audio del PC a un altavoz Sonos por la red local (UPnP + HTTP). Todo el procesamiento es local:
+            no se envía audio ni datos a Internet y no se recopila información personal.
+            <LineBreak />Biblioteca de terceros: NAudio (licencia MIT).
+            <LineBreak />Proyecto personal, no afiliado ni respaldado por Sonos, Inc. «Sonos» es una marca de su titular.
+        </TextBlock>
+    </StackPanel>
+</UserControl>

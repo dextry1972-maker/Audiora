@@ -165,7 +165,9 @@ public sealed partial class MainViewModel
             try { found = await Task.Run(AudioApps.List); }
             catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException) { return; }
 
-            var byKey = found.ToDictionary(a => AppSourceItem.Key_(a.ExePath ?? a.ExeName, a.IsIsolatedYouTubeMusic), a => a);
+            // Two root processes of the same app (e.g. Brave with two profiles) share a key: keep the first.
+            var byKey = found.GroupBy(a => AppSourceItem.Key_(a.ExePath ?? a.ExeName, a.IsIsolatedYouTubeMusic))
+                             .ToDictionary(g => g.Key, g => g.First());
             foreach (var gone in Apps.Where(a => !byKey.ContainsKey(a.Key)).ToList()) Apps.Remove(gone);
             int index = 0;
             foreach (var (key, info) in byKey)
