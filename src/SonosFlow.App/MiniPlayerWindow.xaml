@@ -5,14 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:SonosFlow.App.ViewModels"
         xmlns:ctl="clr-namespace:SonosFlow.App.Controls"
+        xmlns:loc="clr-namespace:SonosFlow.App.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:MainViewModel}"
-        Title="Audiora — mini reproductor"
+        Title="{loc:T mini.window.title}"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ResizeMode="NoResize" ShowInTaskbar="False" ShowActivated="False"
         SizeToContent="WidthAndHeight" Topmost="{Binding MiniTopmost}"
         FontFamily="{StaticResource F.Text}" UseLayoutRounding="True"
-        TextOptions.TextFormattingMode="Ideal">
+        TextOptions.TextFormattingMode="Ideal"
+        FlowDirection="{Binding FlowDirection, Source={x:Static loc:Loc.Instance}}">
 
     <Window.Resources>
         <!-- Near-black capsule: solid enough to read over any game or desktop, no blur needed -->
@@ -130,9 +132,9 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="30" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="&#xE767;" FontFamily="{StaticResource F.Icons}" FontSize="13" Foreground="{StaticResource B.TextDim}" VerticalAlignment="Center" />
+                    <TextBlock Text="&#xE767;" FontFamily="{StaticResource F.Icons}" FontSize="13" Foreground="{StaticResource B.TextDim}" VerticalAlignment="Center" FlowDirection="LeftToRight" />
                     <Slider Grid.Column="1" Style="{StaticResource Slider.Flow}" Minimum="0" Maximum="100" Margin="9,0,8,0" Focusable="False"
-                            Value="{Binding Volume, Mode=TwoWay}" IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="Volumen del Sonos" />
+                            Value="{Binding Volume, Mode=TwoWay}" IsEnabled="{Binding ControlsReady}" AutomationProperties.Name="{loc:T mini.volume.name}" />
                     <TextBlock Grid.Column="2" FontSize="12.5" VerticalAlignment="Center" HorizontalAlignment="Right">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
@@ -150,11 +152,11 @@
                 </Grid>
 
                 <!-- Pause / resume (starts streaming when stopped) -->
-                <Button Grid.Column="3" Width="46" Height="46" Margin="8,0,8,0" Cursor="Hand" Focusable="False"
-                        Command="{Binding PauseResumeCommand}" AutomationProperties.Name="Pausar o reanudar">
+                <Button Grid.Column="3" Width="46" Height="46" Margin="8,0,8,0" Cursor="Hand" Focusable="False" FlowDirection="LeftToRight"
+                        Command="{Binding PauseResumeCommand}" AutomationProperties.Name="{loc:T mini.pause.name}">
                     <Button.ToolTip>
                         <ToolTip>
-                            <TextBlock Text="Pausar: el Sonos sigue conectado y recibe silencio. Reanudar es instantáneo. Si no transmite, empieza a transmitir." />
+                            <TextBlock Text="{loc:T mini.pause.tooltip}" />
                         </ToolTip>
                     </Button.ToolTip>
                     <Button.Template>
@@ -206,8 +208,8 @@
                     </TextBlock>
                 </Button>
 
-                <Button Grid.Column="4" Command="{Binding ToggleMiniSourcesCommand}" ToolTip="Cambiar la fuente de audio"
-                        AutomationProperties.Name="Cambiar la fuente de audio">
+                <Button Grid.Column="4" Command="{Binding ToggleMiniSourcesCommand}" ToolTip="{loc:T mini.sources.toggle}"
+                        AutomationProperties.Name="{loc:T mini.sources.toggle}">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource IconBtn}">
                             <Setter Property="Content" Value="&#xE70E;" />
@@ -221,9 +223,9 @@
                     </Button.Style>
                 </Button>
                 <Button Grid.Column="5" Style="{StaticResource IconBtn}" Content="&#xE8A7;" Command="{Binding ShowMainCommand}"
-                        ToolTip="Abrir la ventana principal" AutomationProperties.Name="Abrir la ventana principal" />
+                        ToolTip="{loc:T mini.showMain}" AutomationProperties.Name="{loc:T mini.showMain}" />
                 <Button Grid.Column="6" Style="{StaticResource IconBtn}" Content="&#xE711;" Click="Hide_Click"
-                        ToolTip="Ocultar el mini reproductor (el audio sigue)" AutomationProperties.Name="Ocultar el mini reproductor" />
+                        ToolTip="{loc:T mini.hide.tooltip}" AutomationProperties.Name="{loc:T mini.hide.name}" />
             </Grid>
         </Border>
 
@@ -234,7 +236,7 @@
                 <DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270" Opacity="0.55" Color="#000000" />
             </Border.Effect>
             <StackPanel>
-                <TextBlock Text="ENVIAR AL SONOS" Style="{StaticResource T.Kicker}" Margin="10,4,0,6" />
+                <TextBlock Text="{loc:T mini.sources.title}" Style="{StaticResource T.Kicker}" Margin="10,4,0,6" />
                 <Button Command="{Binding UseSystemCommand}" Template="{StaticResource AppRowButton}" Cursor="Hand" Focusable="False">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -242,7 +244,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="&#xE7F4;" FontFamily="{StaticResource F.Icons}" FontSize="15" Foreground="{StaticResource B.TextDim}" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Text="Todo el audio del PC" Style="{StaticResource T.Base}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{loc:T mini.sources.system}" Style="{StaticResource T.Base}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                     </Grid>
                 </Button>
                 <ItemsControl ItemsSource="{Binding Apps}" MaxHeight="200">
