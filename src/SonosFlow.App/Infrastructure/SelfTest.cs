@@ -216,6 +216,25 @@ public static class SelfTest
                         routed == silent.Id && c1 is { TransportState: "PLAYING", Clients: 1, PeakDbfs: > -66 and < -54 });
                     Check($"17c. En el PC deja de sonar (salida predeterminada {local1:0.0} dBFS, antes {local0:0.0}) sin silenciar ninguna salida (predeterminada silenciada={defaultDev.AudioEndpointVolume.Mute}, antes {defMute0})",
                         local1 < local0 - 20 && defaultDev.AudioEndpointVolume.Mute == defMute0);
+                    // Live toggle: off → the app is heard on the default output again, the Sonos is not touched;
+                    // on → it is moved away again.
+                    long gaps0 = c1?.BytesSent ?? 0;
+                    vm.MuteLocal = false;
+                    await Task.Delay(3500);
+                    var c2 = vm.LastStats;
+                    string? routedOff = await Task.Run(() => AppOutputRouting.Get(sessionPid));
+                    double local2 = await LocalLevelAsync(defaultDev, 1000);
+                    Check($"17e. Desactivar «Silenciar el PC» en directo: la app vuelve a la salida predeterminada (Windows: {routedOff ?? "predeterminada"}; suena {local2:0.0} dBFS, antes {local0:0.0}); Sonos {c2?.TransportState}, reconexiones {c2?.Reconnects}, el audio sigue llegando ({(c2?.BytesSent ?? 0) > gaps0})",
+                        routedOff == before && local2 > local0 - 6
+                        && c2 is { TransportState: "PLAYING", Reconnects: 0, Clients: 1 } && c2.BytesSent > gaps0);
+                    vm.MuteLocal = true;
+                    await Task.Delay(9000);
+                    var c3 = vm.LastStats;
+                    string? routedOn = await Task.Run(() => AppOutputRouting.Get(sessionPid));
+                    double local3 = await LocalLevelAsync(defaultDev, 1000);
+                    Check($"17f. Volver a activarlo en directo: se aparta otra vez (Windows: {(routedOn == silent.Id ? "sí" : routedOn ?? "no")}; en el PC {local3:0.0} dBFS); Sonos {c3?.TransportState}, reconexiones {c3?.Reconnects}; ninguna salida silenciada ({!defaultDev.AudioEndpointVolume.Mute})",
+                        routedOn == silent.Id && local3 < local0 - 20 && !defaultDev.AudioEndpointVolume.Mute
+                        && c3 is { TransportState: "PLAYING", Reconnects: 0, Clients: 1 });
                     await vm.StopAsync(reason: "fin del autotest (parte B2)");
                     await Task.Delay(800);
                     string? after = await Task.Run(() => AppOutputRouting.Get(sessionPid));
