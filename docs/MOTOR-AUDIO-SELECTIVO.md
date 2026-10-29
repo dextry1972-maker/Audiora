@@ -105,3 +105,10 @@ Métricas existentes: `dropped_chunks`, `backlog_ms`, `buffer_est_s`, `silence_k
 **Aceptación con las apps reales del usuario** (28/10, 17:11, `CaptureCheck observe`): música en Brave y otro contenido en Chrome; Audiora en «Una aplicación» → Brave con «Silenciar el PC». Brave pasa a sonar solo en Steam Streaming (detectado a los 3 s: «la app ya suena solo en la salida silenciosa») y el Sonos lo reproduce (PLAYING, búfer ≈ 1,6 s con margen de 1 s, 0 descartes, 0 reconexiones, `capture_gaps` 0). Chrome y el resto siguen en el BenQ (−16 dBFS RMS) y ninguna salida está silenciada. El usuario lo confirmó de oído: Brave solo en el Sonos y Chrome por los altavoces.
 
 **Pendiente:** comprobar la restauración de Brave al detener esa transmisión y una transmisión real larga (30 min) con el Sonos.
+
+
+## 7. Silenciar el PC en directo (29/10/2026, rama motor/silenciar-en-directo)
+
+«Silenciar el PC» se puede activar y desactivar con la transmisión en marcha (StreamingSession.SetMuteLocalAsync, ReconcileMute): desactivar libera la app a la salida que Windows use en ese momento; activar la aparta de nuevo. La captura y el Sonos no se tocan. Los cambios rápidos se resuelven con el último deseado (_wantedMute) bajo _switchLock; una sesión que ya se desmonta (_tornDown) no se vuelve a proteger.
+
+Autotest con el Sonos Five: **34/34** (17-pre silencio de fondo, 17e desactivar y 17f reactivar en directo con Chrome privado; el tono de 1 kHz se detecta frente a las frecuencias vecinas, no por el nivel total). Una primera ejecución con música de Brave sonando dio 2 falsos fallos (17c, 17f); por eso 17-pre exige silencio de fondo (< −75 dBFS) y 17c/17f exigen además 20 dB menos que el tono inicial.

@@ -478,7 +478,7 @@
                             </TextBlock>
                         </Grid>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
-                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding MuteLocal}" IsEnabled="{Binding LocalOptionsEnabled}" AutomationProperties.Name="{loc:T main.muteLocal.label}"
+                            <CheckBox Style="{StaticResource Switch}" IsChecked="{Binding MuteLocal}" AutomationProperties.Name="{loc:T main.muteLocal.label}"
                                       ToolTipService.ShowOnDisabled="True"
                                       ToolTip="{loc:T main.muteLocal.tooltip}" />
                             <TextBlock Text="{loc:T main.muteLocal.label}" Style="{StaticResource T.Dim}" FontSize="12.5" VerticalAlignment="Center" Margin="9,0,28,0" />

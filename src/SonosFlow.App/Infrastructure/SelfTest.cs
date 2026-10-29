@@ -185,6 +185,19 @@ public static class SelfTest
         }.FirstOrDefault(p => p.Length > 0 && File.Exists(p) && System.Diagnostics.Process.GetProcessesByName(Path.GetFileNameWithoutExtension(p)).Length == 0);
         if (toolPath is not null && browserExe is not null && AppOutputRouting.IsSupported && AudioDevices.FindSilentOutput(null) is { } silent)
         {
+            // Other audio (music, video) on the default output would blur the measurements below: no test tone is
+            // started, and the part fails instead of passing or failing for the wrong reason.
+            using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+            using var defaultDev = enumerator.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.Role.Multimedia);
+            OutputMeasure? background = null;
+            try { background = await MeasureOutputAsync(defaultDev); }
+            catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException or ArgumentException)
+            { AppLog.Write($"selftest 17-pre: no se pudo medir la salida: {ex.GetType().Name}"); }
+            bool quiet = background is { RmsDbfs: < -75 };
+            Check($"17-pre. Entorno silencioso en «{defaultDev.FriendlyName}» antes del tono de prueba (nivel de fondo {(background is null ? "no medible" : $"{background.RmsDbfs:0.0} dBFS RMS")}, máx. admitido −75)", quiet);
+            if (!quiet) lines.Add("—     17a–17f omitidas: hay audio de fondo (o no se pudo medir); repetir en silencio");
+            if (quiet)
+            {
             using var child = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(toolPath, $"browser-tone \"{browserExe}\" 120")
                 { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardInput = true })!;
             try
@@ -196,13 +209,11 @@ public static class SelfTest
                 await Task.Delay(1000);
                 await vm.RefreshAppsNowAsync();
                 var defaultApp = vm.Apps.FirstOrDefault(a => a.Info.ProcessId == browserRoot);
-                using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
-                using var defaultDev = enumerator.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.Role.Multimedia);
                 bool defMute0 = defaultDev.AudioEndpointVolume.Mute;
                 string? before = sessionPid != 0 ? await Task.Run(() => AppOutputRouting.Get(sessionPid)) : null;
-                double local0 = await LocalLevelAsync(defaultDev, 1000);
-                Check($"17a. Navegador ({Path.GetFileName(browserExe)}) en la salida predeterminada ({defaultDev.FriendlyName}): sesión en el PID {sessionPid}, suena en local ({local0:0.0} dBFS)",
-                    defaultApp is not null && sessionPid != 0 && local0 > -70);
+                var t0 = await MeasureOutputAsync(defaultDev);
+                Check($"17a. Navegador ({Path.GetFileName(browserExe)}) en la salida predeterminada ({defaultDev.FriendlyName}): sesión en el PID {sessionPid}, tono de 1 kHz presente en local ({t0.Describe})",
+                    defaultApp is not null && sessionPid != 0 && t0.TonePresent);
                 if (defaultApp is not null && sessionPid != 0)
                 {
                     vm.MuteLocal = true;
@@ -211,11 +222,30 @@ public static class SelfTest
                     await Task.Delay(9000); // past the redirect check (2 s grace + one monitor round)
                     var c1 = vm.LastStats;
                     string? routed = await Task.Run(() => AppOutputRouting.Get(sessionPid));
-                    double local1 = await LocalLevelAsync(defaultDev, 1000);
+                    var t1 = await MeasureOutputAsync(defaultDev);
                     Check($"17b. Solo esa app se aparta a «{silent.Name}» (Windows: {(routed == silent.Id ? "sí" : routed ?? "no")}); Sonos {c1?.TransportState}, pico {Peak(c1?.PeakDbfs ?? double.NegativeInfinity)} dBFS (≈ −60)",
                         routed == silent.Id && c1 is { TransportState: "PLAYING", Clients: 1, PeakDbfs: > -66 and < -54 });
-                    Check($"17c. En el PC deja de sonar (salida predeterminada {local1:0.0} dBFS, antes {local0:0.0}) sin silenciar ninguna salida (predeterminada silenciada={defaultDev.AudioEndpointVolume.Mute}, antes {defMute0})",
-                        local1 < local0 - 20 && defaultDev.AudioEndpointVolume.Mute == defMute0);
+                    Check($"17c. En el PC deja de sonar el tono de 1 kHz de Chrome ({t1.Describe}; antes {t0.Describe}) sin silenciar ninguna salida (predeterminada silenciada={defaultDev.AudioEndpointVolume.Mute}, antes {defMute0})",
+                        t1.ToneAbsent && t1.ToneDbfs < t0.ToneDbfs - 20 && defaultDev.AudioEndpointVolume.Mute == defMute0);
+                    // Live toggle: off → the app is heard on the default output again, the Sonos is not touched;
+                    // on → it is moved away again.
+                    long gaps0 = c1?.BytesSent ?? 0;
+                    vm.MuteLocal = false;
+                    await Task.Delay(3500);
+                    var c2 = vm.LastStats;
+                    string? routedOff = await Task.Run(() => AppOutputRouting.Get(sessionPid));
+                    var t2 = await MeasureOutputAsync(defaultDev);
+                    Check($"17e. Desactivar «Silenciar el PC» en directo: la app vuelve a la salida predeterminada (Windows: {routedOff ?? "predeterminada"}; tono de 1 kHz en local: {t2.Describe}); Sonos {c2?.TransportState}, reconexiones {c2?.Reconnects}, el audio sigue llegando ({(c2?.BytesSent ?? 0) > gaps0})",
+                        routedOff == before && t2.TonePresent
+                        && c2 is { TransportState: "PLAYING", Reconnects: 0, Clients: 1 } && c2.BytesSent > gaps0);
+                    vm.MuteLocal = true;
+                    await Task.Delay(9000);
+                    var c3 = vm.LastStats;
+                    string? routedOn = await Task.Run(() => AppOutputRouting.Get(sessionPid));
+                    var t3 = await MeasureOutputAsync(defaultDev);
+                    Check($"17f. Volver a activarlo en directo: se aparta otra vez (Windows: {(routedOn == silent.Id ? "sí" : routedOn ?? "no")}; tono de 1 kHz en el PC: {t3.Describe}); Sonos {c3?.TransportState}, reconexiones {c3?.Reconnects}; ninguna salida silenciada ({!defaultDev.AudioEndpointVolume.Mute})",
+                        routedOn == silent.Id && t3.ToneAbsent && t3.ToneDbfs < t0.ToneDbfs - 20 && !defaultDev.AudioEndpointVolume.Mute
+                        && c3 is { TransportState: "PLAYING", Reconnects: 0, Clients: 1 });
                     await vm.StopAsync(reason: "fin del autotest (parte B2)");
                     await Task.Delay(800);
                     string? after = await Task.Run(() => AppOutputRouting.Get(sessionPid));
@@ -226,10 +256,16 @@ public static class SelfTest
             finally
             {
                 vm.MuteLocal = false;
-                try { child.StandardInput.Close(); child.WaitForExit(15000); } catch (Exception ex) when (ex is InvalidOperationException or IOException) { }
+                try
+                {
+                    child.StandardInput.Close();
+                    if (!child.WaitForExit(15000)) child.Kill(true); // its Chrome must not keep sounding into the next parts
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or IOException or System.ComponentModel.Win32Exception) { }
+            }
             }
         }
-        else lines.Add("—     17a–17d omitidas: sin Chrome/Edge libre, sin salida silenciosa o Windows anterior a 21H2");
+        else lines.Add("—     17a–17f omitidas: sin Chrome/Edge libre, sin salida silenciosa o Windows anterior a 21H2");
 
         // ── Part C: the user takes the Sonos from the Sonos app (simulated with the same transport commands the app
         // sends; never volume or EQ). Audiora must step aside instead of re-issuing its stream.
@@ -281,8 +317,19 @@ public static class SelfTest
         return fails;
     }
 
-    /// <summary>Level (dBFS) of a tone in what a device plays, measured on its loopback for 1.5 s (Goertzel).</summary>
-    private static async Task<double> LocalLevelAsync(NAudio.CoreAudioApi.MMDevice device, double hz)
+    /// <summary>What a device plays, from its loopback over ~1.5 s: total level and the 1 kHz test tone against its neighbours.</summary>
+    private sealed record OutputMeasure(double RmsDbfs, double ToneDbfs, double NoiseDbfs)
+    {
+        /// <summary>The tone stands at least 10 dB above the spectrum around it (so music can't pass as the tone).</summary>
+        public bool TonePresent => ToneDbfs > -105 && ToneDbfs - NoiseDbfs >= 10;
+        /// <summary>No tone: it is not above its neighbours by more than 6 dB.</summary>
+        public bool ToneAbsent => ToneDbfs <= -105 || ToneDbfs - NoiseDbfs < 6;
+        public string Describe => $"1 kHz {ToneDbfs:0.0} dBFS, vecinas {NoiseDbfs:0.0}, total {RmsDbfs:0.0} RMS";
+    }
+
+    private static readonly double[] NeighbourHz = [700, 800, 900, 1100, 1200, 1300];
+
+    private static async Task<OutputMeasure> MeasureOutputAsync(NAudio.CoreAudioApi.MMDevice device)
     {
         var samples = new List<float>();
         var source = new LoopbackSource(device);
@@ -294,18 +341,28 @@ public static class SelfTest
                     samples.Add((BitConverter.ToInt16(span.Slice(i, 2)) + BitConverter.ToInt16(span.Slice(i + 2, 2))) / 65536f);
         };
         int rate = source.OutputFormat.SampleRate;
-        source.Start();
-        await Task.Delay(1500);
-        source.Stop();
-        source.Dispose();
+        try
+        {
+            source.Start();
+            await Task.Delay(1500);
+            source.Stop();
+        }
+        finally { source.Dispose(); }
         float[] x;
         lock (samples) x = samples.Skip(rate / 10).ToArray();
-        if (x.Length == 0) return double.NegativeInfinity;
-        double coeff = 2 * Math.Cos(2 * Math.PI * hz / rate), s1 = 0, s2 = 0;
-        foreach (var v in x) { double s0 = v + coeff * s1 - s2; s2 = s1; s1 = s0; }
-        double power = s1 * s1 + s2 * s2 - coeff * s1 * s2;
-        return 20 * Math.Log10(2 * Math.Sqrt(Math.Max(power, 0)) / x.Length + 1e-12);
+        if (x.Length == 0) return new(double.NegativeInfinity, double.NegativeInfinity, double.NegativeInfinity);
+        double rms = Math.Sqrt(x.Average(v => (double)v * v));
+        double Level(double hz)
+        {
+            double coeff = 2 * Math.Cos(2 * Math.PI * hz / rate), s1 = 0, s2 = 0;
+            foreach (var v in x) { double s0 = v + coeff * s1 - s2; s2 = s1; s1 = s0; }
+            double power = s1 * s1 + s2 * s2 - coeff * s1 * s2;
+            return 20 * Math.Log10(2 * Math.Sqrt(Math.Max(power, 0)) / x.Length + 1e-12);
+        }
+        return new(20 * Math.Log10(rms + 1e-12), Level(1000), NeighbourHz.Max(Level));
     }
+
+
 
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr hwnd, int index);
 }

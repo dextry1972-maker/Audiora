@@ -217,7 +217,27 @@ public sealed partial class MainViewModel : ObservableObject
             _settings.Save();
             OnPropertyChanged(nameof(CanEditFullLevel));
             OnPropertyChanged(nameof(FullLevelEnabled));
+            if ((_session ?? _starting?.Session) is { } session) _ = ApplyMuteLiveAsync(session, value);
         }
+    }
+
+    /// <summary>
+    /// While streaming, "Silenciar el PC" applies at once: off → the app (or the PC) is heard locally again on
+    /// whatever output Windows uses now; on → it goes quiet again. The stream and the Sonos are not touched.
+    /// </summary>
+    private async Task ApplyMuteLiveAsync(StreamingSession session, bool mute)
+    {
+        bool applied;
+        try { applied = await session.SetMuteLocalAsync(mute); }
+        catch (Exception ex) // fire-and-forget from the setter: never leave it unobserved
+        {
+            AppLog.Write($"silenciar el PC durante la transmisión: {ex.GetType().Name}");
+            applied = false;
+        }
+        if (!session.IsActive) return; // the stream ended meanwhile: nothing to show or undo
+        AppLog.Write($"silenciar el PC → {(mute ? "sí" : "no")} durante la transmisión{(applied ? "" : " (no aplicado)")}");
+        // Couldn't mute (the PC stays audible): make the switch say so, and keep that as the preference.
+        if (!applied && mute && MuteLocal && (_session ?? _starting?.Session) == session) MuteLocal = false;
     }
 
     private bool _fullLevel;

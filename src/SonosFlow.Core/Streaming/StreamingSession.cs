@@ -69,6 +69,9 @@ public sealed class StreamingSession : IAsyncDisposable
     private readonly SonosDevice _target;
     private readonly IReadOnlyCollection<IPAddress> _allowedPeers;
     private readonly StreamOptions _options;
+    private bool _muteLocal, _fullLevel; // start from _options; "Silenciar el PC" can change while streaming
+    private volatile bool _tornDown;
+    private volatile bool _wantedMute;
     private readonly string _guardStateFile;
     private readonly CancellationTokenSource _cts = new();
     private readonly SemaphoreSlim _switchLock = new(1, 1);
@@ -127,6 +130,7 @@ public sealed class StreamingSession : IAsyncDisposable
         _allowedPeers = [.. allowedPeers.Append(target.Address).Distinct()];
         _spec = source;
         _options = options;
+        (_muteLocal, _wantedMute, _fullLevel) = (options.MuteLocal, options.MuteLocal, options.FullLevel);
         _guardStateFile = guardStateFile;
         _redirectStateFile = RedirectStateFileFor(guardStateFile);
     }
@@ -155,7 +159,9 @@ public sealed class StreamingSession : IAsyncDisposable
             _sonos = new SonosClient(_target.Address);
 
             _source.Start();
-            ApplyGuard();
+            await _switchLock.WaitAsync(ct).ConfigureAwait(false); // SetMuteLocalAsync may run meanwhile
+            try { ApplyGuard(); }
+            finally { _switchLock.Release(); }
 
             await StartPlaybackAsync(ct).ConfigureAwait(false);
             _startedAt = DateTime.Now;
@@ -165,7 +171,9 @@ public sealed class StreamingSession : IAsyncDisposable
         }
         catch
         {
-            await TearDownAsync(stopSonos: false).ConfigureAwait(false);
+            await _switchLock.WaitAsync().ConfigureAwait(false);
+            try { await TearDownAsync(stopSonos: false).ConfigureAwait(false); }
+            finally { _switchLock.Release(); }
             SetState(SessionState.Failed);
             throw;
         }
@@ -235,6 +243,55 @@ public sealed class StreamingSession : IAsyncDisposable
     /// <summary>Sends silence instead of the captured audio. The Sonos stays connected, so resuming is instant.</summary>
     public void SetPaused(bool paused) => _paused = paused;
 
+    /// <summary>
+    /// "Silenciar el PC" changed while streaming: applied at once (redirect / mute, or their undo); the capture and
+    /// the Sonos are not touched. Turning it off also drops "Nivel completo" for this run, which is only safe while
+    /// the PC is muted. False when muting could not be applied (the PC then stays as it was).
+    /// </summary>
+    public Task<bool> SetMuteLocalAsync(bool mute)
+    {
+        _wantedMute = mute; // quick on/off/on presses: whichever task gets the lock applies the latest wish
+        return Task.Run(async () =>
+        {
+            await _switchLock.WaitAsync().ConfigureAwait(false);
+            try { return ReconcileMute(); }
+            finally { _switchLock.Release(); }
+        });
+    }
+
+    /// <summary>True while the session can still guard the PC (not stopped, failed, released or being torn down).</summary>
+    public bool IsActive => !_tornDown && State is not (SessionState.Stopped or SessionState.Failed or SessionState.Released);
+
+    /// <summary>Brings the PC in line with <see cref="_wantedMute"/>. Call with <c>_switchLock</c> held.</summary>
+    private bool ReconcileMute()
+    {
+        bool mute = _wantedMute;
+        if (!IsActive) return false;
+        if (_muteLocal == mute) return true;
+        _muteLocal = mute;
+        if (!mute)
+        {
+            _fullLevel = false;
+            ReleaseGuard();
+            Note("silencio local desactivado durante la transmisión");
+            return true;
+        }
+        try
+        {
+            ApplyGuard();
+            Note("silencio local activado durante la transmisión");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Whatever failed, leave the PC as it was: nothing guarded, nothing pinned.
+            try { ReleaseGuard(); } catch (Exception) { }
+            _muteLocal = false;
+            Note($"silencio local: no se pudo activar ({ex.GetType().Name})");
+            return false;
+        }
+    }
+
     private LoopbackSource CreateSource(CaptureSpec spec, out MMDevice? device, int? requiredRate = null)
     {
         if (spec.Kind == CaptureKind.Application)
@@ -258,10 +315,11 @@ public sealed class StreamingSession : IAsyncDisposable
     /// </summary>
     private void ApplyGuard()
     {
-        if (!_options.MuteLocal) return;
+        if (!_muteLocal || _tornDown) return; // never guard a session that is already being torn down
+        if (_guard is not null || _redirect is not null || _redirectPending) return; // already guarded
         if (_spec.Kind == CaptureKind.SystemOutput)
         {
-            if (_captureDevice is not null) _guard = new LocalOutputGuard(_captureDevice, _options.FullLevel, _guardStateFile);
+            if (_captureDevice is not null) _guard = new LocalOutputGuard(_captureDevice, _fullLevel, _guardStateFile);
             return;
         }
         GuardApplication();
@@ -646,6 +704,7 @@ public sealed class StreamingSession : IAsyncDisposable
 
     private async Task TearDownAsync(bool stopSonos)
     {
+        _tornDown = true; // from here on nothing may guard the PC again (see SetMuteLocalAsync)
         if (stopSonos && _sonos is not null)
         {
             try { await _sonos.StopAsync().ConfigureAwait(false); }

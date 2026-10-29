@@ -112,7 +112,7 @@ public sealed partial class MainViewModel
             : !_sourceAvailable ? L.T("source.status.appClosedWaiting")
             : L.T(SelectedApp.IsActive ? "source.app.playing" : "source.app.silent");
 
-    /// <summary>"Silenciar el PC" works in both modes (in app mode it mutes the app's output; the capture is unaffected).</summary>
+    /// <summary>Options fixed at stream start ("Nivel completo"). "Silenciar el PC" itself can change while streaming.</summary>
     public bool LocalOptionsEnabled => !IsStreaming;
     /// <summary>"Nivel completo" raises the Windows volume, needed only for whole-output capture (taken after that volume).</summary>
     public bool FullLevelEnabled => LocalOptionsEnabled && MuteLocal && !IsAppMode;
