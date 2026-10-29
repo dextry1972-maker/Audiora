@@ -644,6 +644,13 @@ public sealed partial class MainViewModel : ObservableObject
         _ => ex.Message,
     };
 
+    /// <summary>Windows is signing out or shutting down: give the PC back at once (see StreamingSession.RestoreLocalNow).</summary>
+    public void RestoreLocalForShutdown()
+    {
+        try { (_session ?? _starting?.Session)?.RestoreLocalNow(TimeSpan.FromSeconds(1)); }
+        catch (Exception ex) { AppLog.Write($"restaurar al cerrar sesión: {ex.GetType().Name}"); }
+    }
+
     public async Task ShutdownAsync()
     {
         _poll.Stop();

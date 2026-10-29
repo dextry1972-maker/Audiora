@@ -20,4 +20,18 @@ public sealed class SetMuteLocalTests
         Assert.False(await session.SetMuteLocalAsync(true)); // stopped session
         Assert.False(File.Exists(file));                     // nothing was recorded or muted
     }
+
+    [Fact]
+    public async Task Restoring_for_sign_out_is_synchronous_idempotent_and_final()
+    {
+        var target = new SonosDevice(IPAddress.Loopback, "Test", "Sonos Test", "S0", "uuid:test");
+        var file = Path.Combine(Path.GetTempPath(), $"sf-mute-{Guid.NewGuid():N}.json");
+        await using var session = new StreamingSession(target, [], CaptureSpec.SystemOutput(null), new StreamOptions(MuteLocal: true), file);
+
+        session.RestoreLocalNow(TimeSpan.FromSeconds(1));
+        session.RestoreLocalNow(TimeSpan.FromSeconds(1)); // twice: sign-out may call it again
+        Assert.False(session.IsActive);                   // nothing may guard the PC afterwards
+        Assert.False(await session.SetMuteLocalAsync(true));
+        Assert.False(File.Exists(file));
+    }
 }

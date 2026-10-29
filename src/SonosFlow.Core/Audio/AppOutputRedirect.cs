@@ -153,7 +153,7 @@ public sealed class AppOutputRedirect : IDisposable
     private static IDisposable StateLock()
     {
         var mutex = new Mutex(false, MutexName);
-        try { mutex.WaitOne(TimeSpan.FromSeconds(5)); }
+        try { mutex.WaitOne(TimeSpan.FromSeconds(3)); } // short: a sign-out restore waits for this inside a 4 s budget
         catch (AbandonedMutexException) { /* the previous owner died: the file is still consistent (atomic writes) */ }
         return new Releaser(mutex);
     }

@@ -259,6 +259,28 @@ public sealed class StreamingSession : IAsyncDisposable
         });
     }
 
+    /// <summary>
+    /// Gives the PC back right now, synchronously, without stopping the stream (Windows sign-out / shutdown: the process
+    /// can be killed as soon as the handler returns, so the normal asynchronous stop may never finish). Nothing guards
+    /// the PC again afterwards; the usual stop still runs and finds it already restored. Waits at most
+    /// <paramref name="timeout"/> for a switch or toggle in progress, then restores anyway.
+    /// </summary>
+    public void RestoreLocalNow(TimeSpan timeout)
+    {
+        bool locked = false;
+        _tornDown = true; // first: from now on no switch, toggle or monitor retry may guard the PC again, lock or no lock
+        try
+        {
+            try { locked = _switchLock.Wait(timeout); } catch (ObjectDisposedException) { return; }
+            try { ReleaseGuard(); }
+            catch (Exception ex) { Note($"silencio local: no se pudo restaurar al cerrar sesión ({ex.GetType().Name})"); }
+        }
+        finally
+        {
+            if (locked) { try { _switchLock.Release(); } catch (ObjectDisposedException) { } }
+        }
+    }
+
     /// <summary>True while the session can still guard the PC (not stopped, failed, released or being torn down).</summary>
     public bool IsActive => !_tornDown && State is not (SessionState.Stopped or SessionState.Failed or SessionState.Released);
 
@@ -328,6 +350,7 @@ public sealed class StreamingSession : IAsyncDisposable
     /// <summary>Application mode: redirect the app, or wait for its audio session, or (this PC can't) mute its device.</summary>
     private void GuardApplication()
     {
+        if (_tornDown) return; // also reached from the monitor's retry, which doesn't go through ApplyGuard
         if (TryRedirectApp() || _redirectPending) return; // pending: done as soon as the app opens its audio
         _guardDevice = AudioDevices.Resolve(_spec.DeviceId);
         _guard = new LocalOutputGuard(_guardDevice, fullLevel: false, _guardStateFile);

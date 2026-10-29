@@ -246,6 +246,12 @@ public static class SelfTest
                     Check($"17f. Volver a activarlo en directo: se aparta otra vez (Windows: {(routedOn == silent.Id ? "sí" : routedOn ?? "no")}; tono de 1 kHz en el PC: {t3.Describe}); Sonos {c3?.TransportState}, reconexiones {c3?.Reconnects}; ninguna salida silenciada ({!defaultDev.AudioEndpointVolume.Mute})",
                         routedOn == silent.Id && t3.ToneAbsent && t3.ToneDbfs < t0.ToneDbfs - 20 && !defaultDev.AudioEndpointVolume.Mute
                         && c3 is { TransportState: "PLAYING", Reconnects: 0, Clients: 1 });
+                    // Windows sign-out: the app must be back on its output at once, synchronously, the stream untouched.
+                    await Task.Run(vm.RestoreLocalForShutdown);
+                    string? routedEnd = await Task.Run(() => AppOutputRouting.Get(sessionPid));
+                    var c4 = vm.LastStats;
+                    Check($"17g. Cierre de sesión de Windows: la salida de la app se restaura al instante (Windows: {routedEnd ?? "predeterminada"}; antes {before ?? "predeterminada"}); la transmisión sigue hasta la parada normal ({c4?.TransportState})",
+                        routedEnd == before && c4 is { TransportState: "PLAYING", Reconnects: 0 });
                     await vm.StopAsync(reason: "fin del autotest (parte B2)");
                     await Task.Delay(800);
                     string? after = await Task.Run(() => AppOutputRouting.Get(sessionPid));
