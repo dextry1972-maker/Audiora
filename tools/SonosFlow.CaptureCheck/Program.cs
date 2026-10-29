@@ -89,6 +89,24 @@ if (args is ["route-browser", var browserExe, var pageFile])
     }
 }
 
+if (args is ["recover-pending", var recoverFile])
+{
+    // Audiora's own recovery (AppOutputRedirect.RecoverPending) run by hand, showing any exception in full.
+    Console.WriteLine(File.Exists(recoverFile) ? File.ReadAllText(recoverFile) : "(sin archivo)");
+    foreach (var e in System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(File.ReadAllText(recoverFile)) ?? [])
+    {
+        var exe = e.GetProperty("ExePath").GetString()!;
+        foreach (var pid in AudioApps.ProcessesOf(exe))
+        {
+            try { Console.WriteLine($"PID {pid}: salida por app = {AppOutputRouting.Get(pid) ?? "(predeterminada)"}"); }
+            catch (Exception ex) { Console.WriteLine($"PID {pid}: {ex.GetType().Name} 0x{ex.HResult:X8}"); }
+        }
+    }
+    try { Console.WriteLine($"RecoverPending → {AppOutputRedirect.RecoverPending(recoverFile)}; archivo existe: {File.Exists(recoverFile)}"); }
+    catch (Exception ex) { Console.WriteLine("EXCEPCIÓN: " + ex); return 1; }
+    return 0;
+}
+
 if (args is ["observe"])
 {
     // Read-only snapshot for the acceptance test: where each app plays, the level on the default output, mute states.
