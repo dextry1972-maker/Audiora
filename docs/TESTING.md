@@ -132,7 +132,7 @@ Claude es una app empaquetada: lo que lanza puede escribir en una copia virtual 
 - [ ] Captura o aplicaciones tocadas: `CaptureCheck` (por defecto) superado; `list` muestra las apps.
 - [ ] Marcapasos, servidor o margen tocados: `soak 9` con 0 cortes en ambas cadenas; `soak 1 --inject` detecta el corte; `soak 7 --margin 1000` sin cortes.
 - [ ] Silencio local tocado: `CaptureCheck endpoint` superado.
-- [ ] Con el Sonos libre: autotest `RESULTADO: todo correcto` (31 comprobaciones, incluidas la 1e de idioma, la parte B2 de redirección por aplicación —necesita Chrome o Edge cerrados— y la parte C).
+- [ ] Con el Sonos libre: autotest `RESULTADO: todo correcto` (35 comprobaciones, incluidas la 1e de idioma, la parte B2 de redirección por aplicación y silencio en directo 17-pre…17g —necesita Chrome cerrado, Brave en pausa y nada sonando; si se omite, no cuenta como verificada— y la parte C).
 - [ ] Silencio local tocado: `CaptureCheck local-silence`, `route-browser <chrome.exe> <página>`, `redirect-crash <chrome.exe> <página>` y `follow-check` ([MOTOR-AUDIO-SELECTIVO.md](MOTOR-AUDIO-SELECTIVO.md)).
 - [ ] Transmisión real 15 s: en el CSV `PLAYING`, 1 cliente, primera fila hasta ~380 kB/s (ráfaga del margen) y luego ~192–196 kB/s, `dropped_chunks` 0, `reconnects` 0, `backlog_ms` ~60, `buffer_est_s` ≈ 1,0–1,4 con margen de 1 s; ninguna línea `vigilante:` distinta de «reproducción correcta»; línea `conexión … UA=… Sonos/…` en `app-events.log`.
 - [ ] Capturas de la ventana (home y settings), del mini reproductor y del HUD revisadas.

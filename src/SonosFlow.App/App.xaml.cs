@@ -293,6 +293,15 @@ public partial class App : Application
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
     {
         base.OnSessionEnding(e);
+        // Windows ends the process soon after this returns: restore the PC first, on a pool thread that never needs the UI
+        // thread (so waiting here can't deadlock), then run the normal quit.
+        if (_vm is { } vm)
+        {
+            bool done = false;
+            try { done = Task.Run(vm.RestoreLocalForShutdown).Wait(TimeSpan.FromSeconds(5)); } // lock 1 s + state mutex ≤ 3 s
+            catch (AggregateException) { }
+            AppLog.Write(done ? "cierre de sesión de Windows: salida del PC restaurada" : "cierre de sesión de Windows: la restauración no terminó a tiempo (queda pendiente para el próximo arranque)");
+        }
         _ = QuitAsync("cierre de sesión de Windows");
     }
 
