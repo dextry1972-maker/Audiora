@@ -115,7 +115,7 @@ Ajustes por defecto relevantes (`AppSettings.cs`): puerto 8780, «Silenciar el P
 - **Cerrar ventana:** según Ajustes → bandeja, mini reproductor o salir. `ShutdownMode=OnExplicitShutdown`; `QuitAsync` detiene la sesión (restaura el PC) antes de `Shutdown()`, también al cerrar la sesión de Windows.
 - **Errores no controlados del Dispatcher:** se anotan en `errors.log` y se muestra un aviso; la app sigue.
 
-Argumentos: `--minimized`, `--autostart`, `--exit-after N`, `--uninstall`, `--screenshot FILE`, `--page settings`, `--size WxH`, `--delay MS`, `--screenshot-mini FILE` (+ `--expand`), `--screenshot-hud FILE`, `--selftest-session PID --selftest-out FILE`. Uso en pruebas: [TESTING.md](TESTING.md).
+Argumentos: `--minimized`, `--autostart`, `--exit-after N`, `--uninstall`, `--screenshot FILE`, `--page settings`, `--size WxH`, `--delay MS`, `--screenshot-mini FILE` (+ `--expand`), `--screenshot-hud FILE`, `--mode system` y `--fake-hotspot off|on|unknown|fail` (solo con `--screenshot`), `--selftest-session PID --selftest-out FILE`. Uso en pruebas: [TESTING.md](TESTING.md).
 
 ## 8. Instalador y desinstalación
 

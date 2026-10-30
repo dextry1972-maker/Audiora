@@ -109,6 +109,7 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(LocalOptionsEnabled));
             OnPropertyChanged(nameof(FullLevelEnabled));
             OnPropertyChanged(nameof(MiniStatusText));
+            OnPropertyChanged(nameof(HasHotspotPrompt));
             CommandManager.InvalidateRequerySuggested();
             foreach (var s in Speakers) s.IsStreaming = s.IsSelected && IsStreaming;
             StreamingChanged?.Invoke();

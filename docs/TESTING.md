@@ -106,7 +106,11 @@ La app se compila en `src\SonosFlow.App\bin\Release\net8.0-windows10.0.19041.0\`
 | `… --autostart --screenshot out.png --delay 15000` | Igual, pero **transmite de verdad** al Sonos (solo `--autostart` inicia) con los ajustes del usuario (también «Silenciar el PC»: el PC queda silenciado durante la prueba y se restaura al salir). Revisar después `stream-*.csv` y `app-events.log`. Si el Sonos no aparece, la espera de arranque reintenta **hasta 5 min** antes de la captura (`arranque: intento N…` en `app-events.log`) |
 | `SonosFlow.exe --screenshot-mini mini.png [--expand] [--delay 1500]` | PNG del mini reproductor sobre fondo claro rayado (`#EEF1F4`); `--expand` abre la lista de fuentes. No reanuda transmisiones |
 | `SonosFlow.exe --screenshot-hud hud.png` | **No inicializa** (sin descubrimiento ni Sonos): muestra el HUD con «Bedroom · 45 %» y barra al 45 %, espera 300 ms y guarda el PNG sobre fondo oscuro (`#2B3A4A`); no usa `--delay` |
+| `… --screenshot out.png --mode system` | Fuerza «Todo el PC» (sin guardarlo) para ver el botón de transmitir activo aunque la app guardada esté cerrada |
+| `… --screenshot out.png --fake-hotspot off\|on\|unknown\|fail` | Búsqueda **vacía** y hotspot **simulado** para ver el aviso del hotspot (`off` = ofrece activar, `on` = ya encendido, `unknown` = no se pudo comprobar, `fail` = la activación falla). No toca la red ni el hotspot real; solo en modos de captura |
 | `--exit-after N` | Sale tras N s |
+
+**Ejecutable correcto:** usar siempre `src\SonosFlow.App\bin\Release\net8.0-windows10.0.19041.0\SonosFlow.exe`. La carpeta vecina `bin\Release\net8.0-windows\` puede contener una compilación **antigua**: comprobar su `LastWriteTime` antes de dar por válida una captura o el autotest con el Sonos.
 
 `--minimized` con `--screenshot` no funciona: la ventana oculta no se puede capturar y solo queda `captura fallida (¿ventana oculta?)` en `app-events.log`.
 

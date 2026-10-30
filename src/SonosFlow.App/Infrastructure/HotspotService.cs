@@ -65,7 +65,12 @@ public sealed class WindowsHotspot : IHotspotController
                 var result = await m.StartTetheringAsync();
                 return result.Status == TetheringOperationStatus.Success;
             });
-            if (await Task.WhenAny(work, Task.Delay(EnableTimeout)) != work) return false;
+            if (await Task.WhenAny(work, Task.Delay(EnableTimeout)) != work)
+            {
+                // Windows is still working on it: don't leave an unobserved fault, and report what the hotspot really is now.
+                _ = work.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+                return await GetStateAsync() == HotspotState.On;
+            }
             return await work;
         }
         catch (Exception ex) { AppLog.Write($"hotspot: no se pudo activar ({ex.GetType().Name})"); return false; }
@@ -85,19 +90,22 @@ public sealed class WindowsHotspot : IHotspotController
 public sealed class HotspotAdvisor(IHotspotController hotspot)
 {
     private bool _asked;
+    private int _generation;
 
     public IHotspotController Controller => hotspot;
 
-    /// <summary>A search found speakers: the next empty search may notify again.</summary>
-    public void Reset() => _asked = false;
+    /// <summary>A search found speakers: the next empty search may notify again (and a check still in flight is dropped).</summary>
+    public void Reset() { _asked = false; _generation++; }
 
     /// <summary>Call after an empty search. Null = nothing new to show.</summary>
     public async Task<HotspotPrompt?> CheckAfterEmptySearchAsync()
     {
         if (_asked) return null;
+        _asked = true; // claimed before the await: two overlapping checks cannot both notify
+        int generation = _generation;
         var state = await hotspot.GetStateAsync();
-        if (state == HotspotState.Changing) return null; // coming up by itself (e.g. at sign-in): look again next time
-        _asked = true;
+        if (generation != _generation) return null; // speakers showed up meanwhile; Reset already re-armed the notice
+        if (state == HotspotState.Changing) { _asked = false; return null; } // coming up by itself (e.g. at sign-in): look again next time
         return state switch
         {
             HotspotState.Off => HotspotPrompt.Offer,

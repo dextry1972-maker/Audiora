@@ -179,3 +179,11 @@ Ninguno actúa durante una reproducción sana; los de `RecoveryPolicy` solo corr
 - Sin control de grupos: con un altavoz agrupado hay que elegir el principal.
 - No cambia el volumen ni el ecualizador del Sonos por su cuenta.
 - No le disputa el altavoz al usuario: si el Sonos pasa a otra fuente, se pausa o se detiene dos veces seguidas desde la app de Sonos, Audiora se retira (`Released`).
+
+## 11. Hotspot de Windows cuando no hay altavoces — `App/Infrastructure/HotspotService.cs`
+
+- **Cuándo:** al terminar una búsqueda sin altavoces (`MainViewModel.DiscoverAsync` → `CheckHotspotAsync`, fuera del hilo de la interfaz). No encontrar altavoces **no** demuestra que el hotspot esté apagado, y los clientes del hotspot no son dispositivos Sonos.
+- **Consulta (solo lectura):** `NetworkOperatorTetheringManager` creado desde el perfil de conexión a Internet, si `GetTetheringCapabilityFromConnectionProfile` es `Enabled`. Resultado: `On`, `Off`, `Changing` (en transición: no se avisa y se vuelve a mirar) o `Unknown` (sin perfil, sin capacidad o error: se comunica como desconocido, nunca como apagado).
+- **Activación:** solo al pulsar «Activar hotspot» (`StartTetheringAsync`, plazo de 20 s). No necesita administrador ni toca el registro. Si falla o no es viable, se ofrece abrir `ms-settings:network-mobilehotspot`.
+- **Avisos:** `HotspotAdvisor` da un aviso por episodio sin altavoces; se reinicia cuando una búsqueda encuentra altavoces. «Ahora no» lo cierra sin volver a preguntar en ese episodio. Nunca se actúa mientras se transmite (`DiscoverAsync` sale antes) y no se tocan conexiones activas.
+- **Pruebas:** `tests/SonosFlow.App.Tests/HotspotAdvisorTests.cs` (lógica con un hotspot simulado, correspondencia de estados y una consulta real de solo lectura). Capturas con `--fake-hotspot` (ver `docs/TESTING.md`). **Sin verificar con Windows real:** encender el hotspot desde el botón (no se cambia la red en pruebas). Conviene una prueba manual con el hotspot apagado y el Sonos libre: activar el hotspot comparte la conexión a Internet actual y, según el adaptador Wi-Fi, puede cambiar su configuración de radio. Si la activación tarda más de 20 s, se vuelve a consultar el estado real antes de dar el intento por fallido.

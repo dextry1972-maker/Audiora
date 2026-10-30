@@ -2,7 +2,22 @@
 
 Formato: lo que cambia para quien usa Audiora, con el commit. Más reciente arriba.
 
-## Sin publicar (rama `motor/audio-selectivo`)
+## Sin publicar (rama `feature/hotspot-sin-dispositivos`)
+
+### Aviso para activar el hotspot cuando no hay altavoces
+- Si una búsqueda termina sin altavoces, Audiora mira el estado del hotspot de Windows (solo lectura) y avisa **una vez** por episodio sin altavoces:
+  - **Apagado:** «¿Quieres activar el hotspot para conectar otros equipos?» con «Activar hotspot» / «Ahora no». Solo se enciende si pulsas el botón.
+  - **Ya encendido:** indica que los otros equipos deben conectarse a esa red y ofrece «Buscar de nuevo».
+  - **Desconocido** (sin conexión compartible, política de Windows, error de la API): lo dice sin suponer que está apagado y ofrece «Abrir configuración».
+- No avisa mientras se transmite ni cuando el hotspot está arrancando por sí solo (p. ej. al iniciar sesión). Sin administrador ni registro.
+- Textos en los 12 idiomas. Detalles: `docs/NETWORKING.md` §11.
+
+### Rediseño «liquid glass» (ya en main, `a60570e`)
+- Barra lateral con Inicio y Ajustes, fondo aurora, ondas de puntos alrededor del botón, una tarjeta de cristal en Inicio, cabeceras de Ajustes con icono; mini reproductor, bienvenida y HUD con el mismo cristal. Todos los controles y funciones se conservan.
+- Las animaciones van a 20 fps y se desactivan si Windows reduce las animaciones (CPU en reposo ≈ 1 %).
+- Límite: WPF no tiene desenfoque real del fondo; el cristal se simula con aurora, paneles translúcidos y bordes iluminados.
+
+## Fusionado en main (rama `motor/audio-selectivo`)
 
 ### Silenciar en el PC solo la app que transmites
 - En «Una aplicación», **«Silenciar el PC» ya no silencia el dispositivo**: Windows envía solo esa app a una salida que nadie oye (Steam Streaming Speakers). El Sonos la sigue recibiendo, y Chrome, los juegos y las demás apps siguen sonando en el PC. Al detener, cambiar de fuente o salir vuelve a su salida, y también tras un cierre inesperado.

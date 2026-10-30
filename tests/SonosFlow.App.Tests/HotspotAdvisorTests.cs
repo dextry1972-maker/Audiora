@@ -38,6 +38,31 @@ public sealed class HotspotAdvisorTests
         Assert.Equal(HotspotPrompt.Offer, await advisor.CheckAfterEmptySearchAsync());
     }
 
+    private sealed class SlowHotspot : IHotspotController
+    {
+        public readonly TaskCompletionSource<HotspotState> Gate = new();
+        public Task<HotspotState> GetStateAsync() => Gate.Task;
+        public Task<bool> EnableAsync() => Task.FromResult(true);
+        public void OpenSettings() { }
+    }
+
+    [Fact]
+    public async Task Speakers_found_while_a_check_is_in_flight_drop_it_and_re_arm_the_notice()
+    {
+        var slow = new SlowHotspot();
+        var advisor = new HotspotAdvisor(slow);
+        var pending = advisor.CheckAfterEmptySearchAsync();
+        var overlapping = await advisor.CheckAfterEmptySearchAsync(); // a second, overlapping check does not notify twice
+        Assert.Null(overlapping);
+
+        advisor.Reset(); // a search found speakers while the first check was running
+        slow.Gate.SetResult(HotspotState.Off);
+        Assert.Null(await pending); // stale result is dropped
+
+        // the next "no speakers" episode notifies normally
+        Assert.Equal(HotspotPrompt.Offer, await advisor.CheckAfterEmptySearchAsync());
+    }
+
     [Fact]
     public async Task A_hotspot_that_is_switching_state_gives_no_notice_and_is_checked_again_next_time()
     {
