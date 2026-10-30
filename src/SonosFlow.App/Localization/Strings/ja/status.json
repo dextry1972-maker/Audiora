@@ -57,5 +57,16 @@
   "hud.resumed": "再開",
   "hotkeys.help": "{0} / {1} Sonos の音量（±{2}）· {3} 一時停止/再開 · {4} ミニ プレーヤー。ゲーム中でも動作し、フォーカスを奪うことはありません",
   "hotkeys.taken": "ほかのプログラムが使用中（利用不可）: {0}",
-  "app.version": "バージョン {0}"
+  "app.version": "バージョン {0}",
+  // Aviso del hotspot de Windows cuando no se encuentra ningún altavoz,
+  "hotspot.prompt": "他のデバイスを接続するために、ホットスポットをオンにしますか？",
+  "hotspot.enable": "ホットスポットをオンにする",
+  "hotspot.notNow": "今はしない",
+  "hotspot.on": "ホットスポットはすでにオンです。他のデバイスをそのネットワークに接続してください。",
+  "hotspot.rescan": "もう一度検索",
+  "hotspot.unknown": "ホットスポットの状態を確認できませんでした。Windows の設定で確認できます。",
+  "hotspot.openSettings": "設定を開く",
+  "hotspot.enabling": "ホットスポットをオンにしています…",
+  "hotspot.enabled": "ホットスポットをオンにしました。他のデバイスをそのネットワークに接続して、もう一度検索してください。",
+  "hotspot.failed": "ホットスポットをオンにできませんでした。Windows の設定から行えます。"
 }

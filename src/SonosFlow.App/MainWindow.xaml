@@ -286,6 +286,24 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
+                        <!-- No speakers found: offer to switch on the Windows Mobile Hotspot (only ever on the user's click) -->
+                        <Border Style="{StaticResource Surface.Group}" Margin="0,12,0,0" Padding="16,12" MaxWidth="560" HorizontalAlignment="Center"
+                                Visibility="{Binding HasHotspotPrompt, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding HotspotText}" Style="{StaticResource T.Base}" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+                                    <Button Content="{loc:T hotspot.enable}" Command="{Binding EnableHotspotCommand}" Style="{StaticResource Btn.Pill}" Margin="0,0,6,0"
+                                            Visibility="{Binding ShowHotspotEnable, Converter={StaticResource BoolToVis}}" />
+                                    <Button Content="{loc:T hotspot.rescan}" Command="{Binding RescanCommand}" Style="{StaticResource Btn.Pill}" Margin="0,0,6,0"
+                                            Visibility="{Binding ShowHotspotRescan, Converter={StaticResource BoolToVis}}" />
+                                    <Button Content="{loc:T hotspot.openSettings}" Command="{Binding OpenHotspotSettingsCommand}" Style="{StaticResource Btn.Pill}" Margin="0,0,6,0"
+                                            Visibility="{Binding ShowHotspotSettings, Converter={StaticResource BoolToVis}}" />
+                                    <Button Content="{loc:T hotspot.notNow}" Command="{Binding DismissHotspotCommand}" Style="{StaticResource Btn.Quiet}"
+                                            Visibility="{Binding ShowHotspotDismiss, Converter={StaticResource BoolToVis}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
                         <!-- Secondary problems (e.g. no browser for YouTube Music, a setting the Sonos rejected) -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0" MaxWidth="560">
                             <StackPanel.Style>

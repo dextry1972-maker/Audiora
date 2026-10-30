@@ -59,5 +59,16 @@
   "hud.resumed": "Reprise",
   "hotkeys.help": "{0} / {1} volume du Sonos (±{2}) · {3} pause ou reprise · {4} mini-lecteur. Ils fonctionnent même en jeu et ne prennent jamais le focus",
   "hotkeys.taken": "Utilisé par un autre programme (indisponible) : {0}",
-  "app.version": "Version {0}"
+  "app.version": "Version {0}",
+  // Aviso del hotspot de Windows cuando no se encuentra ningún altavoz,
+  "hotspot.prompt": "Voulez-vous activer le point d’accès mobile pour connecter d’autres appareils ?",
+  "hotspot.enable": "Activer le point d’accès",
+  "hotspot.notNow": "Pas maintenant",
+  "hotspot.on": "Le point d’accès mobile est activé. Les autres appareils doivent se connecter à ce réseau.",
+  "hotspot.rescan": "Rechercher à nouveau",
+  "hotspot.unknown": "Impossible de vérifier l’état du point d’accès mobile. Vous pouvez le vérifier dans les paramètres de Windows.",
+  "hotspot.openSettings": "Ouvrir les paramètres",
+  "hotspot.enabling": "Activation du point d’accès…",
+  "hotspot.enabled": "Point d’accès activé. Connectez les autres appareils à ce réseau, puis relancez la recherche.",
+  "hotspot.failed": "Impossible d’activer le point d’accès. Vous pouvez le faire dans les paramètres de Windows."
 }

@@ -347,7 +347,7 @@ public sealed partial class MainViewModel : ObservableObject
         State = UiState.Discovering;
         Detail(() => L.T("status.detail.searching"));
         IReadOnlyList<SonosDevice> found;
-        try { found = await SonosDiscovery.DiscoverAsync(TimeSpan.FromSeconds(3)); }
+        try { found = NoSpeakersForCapture ? [] : await SonosDiscovery.DiscoverAsync(TimeSpan.FromSeconds(3)); }
         catch (Exception ex) when (ex is SocketException or InvalidOperationException) { found = []; }
 
         Speakers.Clear();
@@ -361,8 +361,10 @@ public sealed partial class MainViewModel : ObservableObject
             SelectedSpeaker = null;
             State = UiState.NoSpeaker;
             Detail(() => L.T("status.detail.noSpeakerHint"));
+            _ = CheckHotspotAsync();
             return;
         }
+        ResetHotspotPrompt();
         Select(pick);
         State = UiState.Ready;
         int speakerCount = Speakers.Count;

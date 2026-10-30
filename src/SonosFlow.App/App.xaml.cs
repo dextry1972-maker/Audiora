@@ -83,6 +83,8 @@ public partial class App : Application
         _vm.PropertyChanged += (_, pe) => { if (pe.PropertyName == nameof(MainViewModel.MiniVisible)) ApplyMiniVisibility(); };
         if (Arg("--page") is { } page) _vm.Page = page;
         if (testCapture && Arg("--mode") == "system") _vm.IsAppMode = false; // captures of the live look (settings are not saved in test modes)
+        // Captures of the "no speakers" notice: empty search + a fake hotspot (off|on|unknown|fail); the real network is never touched
+        if (testCapture && Arg("--fake-hotspot") is { } fake) _vm.SimulateNoSpeakers(new FakeHotspot(fake));
         if (testCapture && Arg("--size")?.Split('x') is [var w, var h] && double.TryParse(w, out var width) && double.TryParse(h, out var height))
         {
             _window.Width = width;

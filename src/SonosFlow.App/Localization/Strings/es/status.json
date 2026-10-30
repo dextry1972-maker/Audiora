@@ -65,5 +65,16 @@
   "hotkeys.help": "{0} / {1} volumen del Sonos (±{2}) · {3} pausa o reanuda · {4} mini reproductor. Funcionan aunque estés en un juego y no toman el foco",
   "hotkeys.taken": "En uso por otro programa (no disponibles): {0}",
 
-  "app.version": "Versión {0}"
+  "app.version": "Versión {0}",
+  // Aviso del hotspot de Windows cuando no se encuentra ningún altavoz,
+  "hotspot.prompt": "¿Quieres activar el hotspot para conectar otros equipos?",
+  "hotspot.enable": "Activar hotspot",
+  "hotspot.notNow": "Ahora no",
+  "hotspot.on": "El hotspot ya está activado. Los otros equipos deben conectarse a esa red.",
+  "hotspot.rescan": "Buscar de nuevo",
+  "hotspot.unknown": "No se pudo comprobar el estado del hotspot. Puedes revisarlo en la configuración de Windows.",
+  "hotspot.openSettings": "Abrir configuración",
+  "hotspot.enabling": "Activando el hotspot…",
+  "hotspot.enabled": "Hotspot activado. Conecta los otros equipos a esa red y busca de nuevo.",
+  "hotspot.failed": "No se pudo activar el hotspot. Puedes hacerlo desde la configuración de Windows."
 }

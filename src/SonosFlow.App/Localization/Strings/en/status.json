@@ -64,5 +64,16 @@
   "hotkeys.help": "{0} / {1} Sonos volume (±{2}) · {3} pause or resume · {4} mini player. They work even inside a game and never take focus",
   "hotkeys.taken": "In use by another program (unavailable): {0}",
 
-  "app.version": "Version {0}"
+  "app.version": "Version {0}",
+  // Aviso del hotspot de Windows cuando no se encuentra ningún altavoz,
+  "hotspot.prompt": "Do you want to turn on the hotspot so other devices can connect?",
+  "hotspot.enable": "Turn on hotspot",
+  "hotspot.notNow": "Not now",
+  "hotspot.on": "The hotspot is already on. The other devices must connect to that network.",
+  "hotspot.rescan": "Search again",
+  "hotspot.unknown": "Couldn’t check the hotspot state. You can check it in Windows settings.",
+  "hotspot.openSettings": "Open settings",
+  "hotspot.enabling": "Turning on the hotspot…",
+  "hotspot.enabled": "Hotspot is on. Connect the other devices to that network and search again.",
+  "hotspot.failed": "Couldn’t turn on the hotspot. You can do it from Windows settings."
 }

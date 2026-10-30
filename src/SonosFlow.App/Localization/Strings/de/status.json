@@ -59,5 +59,16 @@
   "hud.resumed": "Fortgesetzt",
   "hotkeys.help": "{0} / {1} Sonos-Lautstärke (±{2}) · {3} Pause oder Fortsetzen · {4} Miniplayer. Funktionieren auch im Spiel und übernehmen nie den Fokus",
   "hotkeys.taken": "Von einem anderen Programm belegt (nicht verfügbar): {0}",
-  "app.version": "Version {0}"
+  "app.version": "Version {0}",
+  // Aviso del hotspot de Windows cuando no se encuentra ningún altavoz,
+  "hotspot.prompt": "Möchtest du den Hotspot aktivieren, damit sich andere Geräte verbinden können?",
+  "hotspot.enable": "Hotspot aktivieren",
+  "hotspot.notNow": "Jetzt nicht",
+  "hotspot.on": "Der Hotspot ist bereits aktiv. Die anderen Geräte müssen sich mit diesem Netzwerk verbinden.",
+  "hotspot.rescan": "Erneut suchen",
+  "hotspot.unknown": "Der Hotspot-Status konnte nicht geprüft werden. Du kannst ihn in den Windows-Einstellungen prüfen.",
+  "hotspot.openSettings": "Einstellungen öffnen",
+  "hotspot.enabling": "Hotspot wird aktiviert…",
+  "hotspot.enabled": "Hotspot aktiviert. Verbinde die anderen Geräte mit diesem Netzwerk und suche erneut.",
+  "hotspot.failed": "Der Hotspot konnte nicht aktiviert werden. Du kannst ihn in den Windows-Einstellungen aktivieren."
 }

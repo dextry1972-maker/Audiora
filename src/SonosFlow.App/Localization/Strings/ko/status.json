@@ -57,5 +57,16 @@
   "hud.resumed": "재개됨",
   "hotkeys.help": "{0} / {1} Sonos 볼륨(±{2}) · {3} 일시 중지 또는 재개 · {4} 미니 플레이어. 게임 중에도 작동하며 포커스를 가져가지 않습니다",
   "hotkeys.taken": "다른 프로그램에서 사용 중(사용할 수 없음): {0}",
-  "app.version": "버전 {0}"
+  "app.version": "버전 {0}",
+  // Aviso del hotspot de Windows cuando no se encuentra ningún altavoz,
+  "hotspot.prompt": "다른 기기를 연결하기 위해 핫스팟을 켤까요?",
+  "hotspot.enable": "핫스팟 켜기",
+  "hotspot.notNow": "나중에",
+  "hotspot.on": "핫스팟이 이미 켜져 있습니다. 다른 기기는 해당 네트워크에 연결해야 합니다.",
+  "hotspot.rescan": "다시 검색",
+  "hotspot.unknown": "핫스팟 상태를 확인할 수 없습니다. Windows 설정에서 확인할 수 있습니다.",
+  "hotspot.openSettings": "설정 열기",
+  "hotspot.enabling": "핫스팟을 켜는 중…",
+  "hotspot.enabled": "핫스팟을 켰습니다. 다른 기기를 해당 네트워크에 연결한 뒤 다시 검색하세요.",
+  "hotspot.failed": "핫스팟을 켤 수 없습니다. Windows 설정에서 직접 켤 수 있습니다."
 }

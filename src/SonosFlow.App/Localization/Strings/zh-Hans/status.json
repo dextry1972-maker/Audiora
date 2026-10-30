@@ -57,5 +57,16 @@
   "hud.resumed": "已继续",
   "hotkeys.help": "{0} / {1} Sonos 音量（±{2}）· {3} 暂停或继续 · {4} 迷你播放器。即使在游戏中也能使用，且绝不抢占焦点",
   "hotkeys.taken": "已被其他程序占用（不可用）：{0}",
-  "app.version": "版本 {0}"
+  "app.version": "版本 {0}",
+  // Aviso del hotspot de Windows cuando no se encuentra ningún altavoz,
+  "hotspot.prompt": "要开启热点以连接其他设备吗？",
+  "hotspot.enable": "开启热点",
+  "hotspot.notNow": "暂不",
+  "hotspot.on": "热点已开启。其他设备需要连接到该网络。",
+  "hotspot.rescan": "重新搜索",
+  "hotspot.unknown": "无法检查热点状态。你可以在 Windows 设置中查看。",
+  "hotspot.openSettings": "打开设置",
+  "hotspot.enabling": "正在开启热点…",
+  "hotspot.enabled": "热点已开启。请将其他设备连接到该网络，然后重新搜索。",
+  "hotspot.failed": "无法开启热点。你可以在 Windows 设置中开启。"
 }
