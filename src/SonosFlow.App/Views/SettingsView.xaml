@@ -26,6 +26,10 @@
         <Style x:Key="Section" TargetType="TextBlock" BasedOn="{StaticResource T.Kicker}">
             <Setter Property="Margin" Value="18,26,0,10" />
         </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock" BasedOn="{StaticResource T.Kicker}">
+            <Setter Property="Foreground" Value="{StaticResource B.AccentHi}" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
     </UserControl.Resources>
 
     <StackPanel MaxWidth="760" Margin="32,8,32,40">
@@ -34,7 +38,7 @@
                    Style="{StaticResource T.Dim}" FontSize="12.5" TextWrapping="Wrap" Margin="2,6,0,0" />
 
         <!-- Language -->
-        <TextBlock Text="{loc:T settings.language.section}" Style="{StaticResource Section}" />
+        <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE774;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.language.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
             <Grid Style="{StaticResource Row}">
                 <StackPanel Margin="0,0,300,0">
@@ -51,7 +55,7 @@
         </Border>
 
         <!-- General -->
-        <TextBlock Text="{loc:T settings.general.section}" Style="{StaticResource Section}" />
+        <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE713;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.general.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
             <StackPanel>
                 <Grid Style="{StaticResource Row}">
@@ -86,7 +90,7 @@
         </Border>
 
         <!-- Audio -->
-        <TextBlock Text="{loc:T settings.audio.section}" Style="{StaticResource Section}" />
+        <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE767;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.audio.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
             <StackPanel>
                 <Grid Style="{StaticResource Row}">
@@ -125,7 +129,7 @@
         </Border>
 
         <!-- Mini player and shortcuts -->
-        <TextBlock Text="{loc:T settings.mini.section}" Style="{StaticResource Section}" />
+        <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE8A7;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.mini.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
             <StackPanel>
                 <Grid Style="{StaticResource Row}">
@@ -181,7 +185,7 @@
         </Border>
 
         <!-- Diagnostics -->
-        <TextBlock Text="{loc:T settings.diagnostics.section}" Style="{StaticResource Section}" />
+        <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE9D9;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.diagnostics.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
             <Grid Style="{StaticResource Row}">
                 <Grid.ColumnDefinitions>
@@ -197,7 +201,7 @@
         </Border>
 
         <!-- Advanced: project source backups (a developer tool) -->
-        <TextBlock Text="{loc:T settings.backup.section}" Style="{StaticResource Section}" />
+        <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE8F1;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.backup.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}" Padding="18,14" DataContext="{Binding Backups}">
             <StackPanel>
                 <Grid Margin="0,0,0,4">

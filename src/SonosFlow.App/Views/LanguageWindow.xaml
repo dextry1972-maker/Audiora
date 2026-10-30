@@ -7,7 +7,7 @@
         FontFamily="{StaticResource F.Text}" UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal"
         FlowDirection="{Binding FlowDirection, Source={x:Static loc:Loc.Instance}}">
 
-    <Border Background="{StaticResource B.Bg1}" BorderBrush="{StaticResource B.StrokeHi}" BorderThickness="1" CornerRadius="20" Margin="14"
+    <Border Background="{StaticResource B.Sheet}" BorderBrush="{StaticResource B.PanelEdge}" BorderThickness="1" CornerRadius="24" Margin="14"
             MouseLeftButtonDown="Root_MouseLeftButtonDown">
         <Border.Effect>
             <DropShadowEffect BlurRadius="30" ShadowDepth="8" Direction="270" Opacity="0.6" Color="#000000" />

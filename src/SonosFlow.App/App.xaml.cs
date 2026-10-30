@@ -82,6 +82,7 @@ public partial class App : Application
         _vm.HudRequested += (glyph, text, fraction) => { if (!_quitting) (_hud ??= new VolumeHudWindow()).Flash(glyph, text, fraction); };
         _vm.PropertyChanged += (_, pe) => { if (pe.PropertyName == nameof(MainViewModel.MiniVisible)) ApplyMiniVisibility(); };
         if (Arg("--page") is { } page) _vm.Page = page;
+        if (testCapture && Arg("--mode") == "system") _vm.IsAppMode = false; // captures of the live look (settings are not saved in test modes)
         if (testCapture && Arg("--size")?.Split('x') is [var w, var h] && double.TryParse(w, out var width) && double.TryParse(h, out var height))
         {
             _window.Width = width;
