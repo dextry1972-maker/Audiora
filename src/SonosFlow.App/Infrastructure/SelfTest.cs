@@ -16,8 +16,10 @@ public static class SelfTest
 {
     private static Localization.Loc L => Localization.Loc.Instance;
 
-    public static async Task<int> RunAsync(MainViewModel vm, int tonePid, string outFile)
+    public static async Task<int> RunAsync(MainViewModel vm, int tonePid, string outFile, int soakSeconds = 0)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(soakSeconds);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(soakSeconds, 7200);
         var lines = new List<string>();
         int fails = 0;
         void Check(string what, bool ok)
@@ -115,6 +117,41 @@ public static class SelfTest
             vm.PauseResumeCommand.Execute(null);
             await Task.Delay(3000);
             Check($"7. Reanudar: vuelve el audio (pico {Peak(vm.LastStats?.PeakDbfs ?? double.NegativeInfinity)} dBFS)", vm.LastStats?.PeakDbfs > -66);
+
+            if (soakSeconds > 0)
+            {
+                // Opt-in endurance run on the quiet per-process tone, without muting the user's PC.
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                var baseline = vm.LastStats;
+                bool healthy = baseline is not null;
+                int samples = 0, lastProgress = 0;
+                var lastUpdate = baseline?.Elapsed ?? TimeSpan.Zero;
+                var updatedAt = clock.Elapsed;
+                AppLog.Write($"selftest resistencia: inicio {soakSeconds} s, tono de aplicación, sin silenciar el PC");
+                while (clock.Elapsed.TotalSeconds < soakSeconds && vm.IsStreaming)
+                {
+                    await Task.Delay(1000);
+                    samples++;
+                    var current = vm.LastStats;
+                    if (current?.Elapsed != lastUpdate)
+                    {
+                        lastUpdate = current?.Elapsed ?? TimeSpan.Zero;
+                        updatedAt = clock.Elapsed;
+                    }
+                    healthy &= current is { TransportState: "PLAYING", Clients: 1, SourceAvailable: true, Paused: false,
+                        PeakDbfs: > -66 and < -54, SendRateKBps: > 150 }
+                        && current.Reconnects == baseline?.Reconnects && current.DroppedChunks == baseline?.DroppedChunks
+                        && current.StallsOverMargin == baseline?.StallsOverMargin
+                        && clock.Elapsed - updatedAt < TimeSpan.FromSeconds(10);
+                    if ((int)clock.Elapsed.TotalSeconds / 30 > lastProgress)
+                    {
+                        lastProgress = (int)clock.Elapsed.TotalSeconds / 30;
+                        AppLog.Write($"selftest resistencia: {clock.Elapsed.TotalSeconds:0}/{soakSeconds} s, sano={healthy}, clientes={current?.Clients}, reconexiones={current?.Reconnects}, descartes={current?.DroppedChunks}");
+                    }
+                }
+                Check($"7a. Resistencia {clock.Elapsed.TotalSeconds:0} s: {samples} muestras de estado, sin desconexiones/descartes/atascos sobre el margen, Sonos {vm.LastStats?.TransportState}",
+                    healthy && vm.IsStreaming && clock.Elapsed.TotalSeconds >= soakSeconds && samples >= soakSeconds * 0.9);
+            }
         }
 
         vm.IsAppMode = false;

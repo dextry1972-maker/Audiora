@@ -58,3 +58,15 @@ Pregunta: ¿cambiar WAV PCM 16 bit/48 kHz (1,536 Mbit/s) por FLAC u otro formato
 1. Usar Audiora varios días y revisar «Red» y `app-events.log` (líneas «vigilante», «reintento», «atasco»).
 2. Probar el inicio con Windows real con «Reanudar al abrir» activo.
 3. Implementar los dos detectores pendientes del hito 1 si aparecen en los registros.
+
+
+## Fase 1 — estabilidad (30/10/2026)
+
+Rama `mejoras/fase1-estabilidad-recuperacion`; integración/push no autorizados ni realizados. Informe: [FASE1-ESTABILIDAD.md](FASE1-ESTABILIDAD.md).
+
+- ✅ **Auto:** protección de registros de restauración, mutex/propietarios, conservación de cambios del usuario, contabilización de saturación y detección de captura terminada; regresión 164/164, build sin avisos.
+- ✅ **Revisión independiente:** sin P1/P2 abiertos en las correcciones; cerrada la carrera de `Dispose` tardío y reforzado el detector del ensayo prolongado.
+- ✅ **Sim/captura Windows:** aislamiento y prueba de endpoint superados; salida virtual restaurada.
+- 🟡 **Sim:** pruebas de resistencia 9 min / control de corte / 7 min con margen, en ejecución.
+- 🟡 **Sonos:** ensayo real de dos horas iniciado a las 00:17; pendiente medir y revisar el resultado y la restauración final.
+- ⏳ **Manual:** corte físico de Wi-Fi, dispositivo predeterminado cambiado, desconexión física del endpoint y cierre de sesión de Windows. No se declara aceptación completa por cubrir únicamente simulaciones.

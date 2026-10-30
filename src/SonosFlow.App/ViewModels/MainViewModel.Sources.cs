@@ -176,6 +176,9 @@ public sealed partial class MainViewModel
             IReadOnlyList<AudioAppInfo> found;
             // An app left redirected (crash, or a restore Windows refused) is restored as soon as Windows accepts it
             // (it needs a process of that app with audio). Live redirects, this one's or another Audiora's, are skipped.
+            if (File.Exists(AppPaths.GuardStateFile)
+                && await Task.Run(() => LocalOutputGuard.RecoverPending(AppPaths.GuardStateFile)))
+                AppLog.Write("salida local restaurada después de volver a estar disponible");
             if (File.Exists(RedirectStateFile))
             {
                 try { await Task.Run(() => AppOutputRedirect.RecoverPending(RedirectStateFile)); }

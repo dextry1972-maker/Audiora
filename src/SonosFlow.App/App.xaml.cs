@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Threading;
 using SonosFlow.App.Infrastructure;
@@ -9,6 +9,7 @@ namespace SonosFlow.App;
 
 /// <summary>
 /// Command line:
+///   --diagnostic-report FILE  export a sanitized snapshot and exit without touching audio
 ///   --minimized            start hidden in the tray (used by "start with Windows")
 ///   --uninstall            remove shortcuts, HKCU entries and the program folder
 ///   --autostart            start streaming as soon as a speaker is found
@@ -20,6 +21,7 @@ namespace SonosFlow.App;
 ///   --screenshot-hud FILE  save a PNG of the volume indicator and quit (testing)
 ///   --delay MS, --expand   wait before a screenshot; expand the mini player's source list
 ///   --selftest-session PID --selftest-out FILE   end-to-end check with the real Sonos (see SelfTest)
+///   --selftest-soak-seconds N  optional endurance segment (0..7200 s) on the quiet per-app source
 /// Test modes never take the single-instance mutex, register hotkeys, save settings or resume a stream.
 /// </summary>
 public partial class App : Application
@@ -43,6 +45,14 @@ public partial class App : Application
         var args = e.Args;
         string? Arg(string name) { int i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
         DispatcherUnhandledException += OnUnhandled;
+
+        if (Arg("--diagnostic-report") is { } reportPath)
+        {
+            try { DiagnosticReport.Write(reportPath); Shutdown(0); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            { Shutdown(2); }
+            return;
+        }
 
         if (args.Contains("--uninstall"))
         {
@@ -109,7 +119,11 @@ public partial class App : Application
 
         if (int.TryParse(Arg("--selftest-session"), out var tonePid) && Arg("--selftest-out") is { } outFile)
         {
-            try { await SelfTest.RunAsync(_vm, tonePid, outFile); }
+            try
+            {
+                int soakSeconds = int.TryParse(Arg("--selftest-soak-seconds"), out var duration) ? Math.Clamp(duration, 0, 7200) : 0;
+                await SelfTest.RunAsync(_vm, tonePid, outFile, soakSeconds);
+            }
             finally { await QuitAsync("fin del autotest"); } // always stop the stream and restore the PC
             return;
         }
@@ -325,9 +339,9 @@ public partial class App : Application
         try
         {
             Directory.CreateDirectory(AppPaths.Logs);
-            File.AppendAllText(Path.Combine(AppPaths.Logs, "errors.log"), $"[{DateTime.Now:O}] {e.Exception}\n\n");
+            SonosFlow.Core.Diagnostics.RotatingLog.Append(Path.Combine(AppPaths.Logs, "errors.log"), $"[{DateTime.Now:O}] {e.Exception}\n\n");
         }
-        catch (IOException) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
         MessageBox.Show(Loc.Instance.F("app.unexpectedError", e.Exception.Message), "Audiora",
             MessageBoxButton.OK, MessageBoxImage.Warning);
         e.Handled = true;

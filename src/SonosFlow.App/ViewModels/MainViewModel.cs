@@ -324,7 +324,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// <param name="allowResume">False in screenshot modes: they must never start a stream from saved settings.</param>
     public async Task InitializeAsync(bool autoStart, bool allowResume = true)
     {
-        bool restored = LocalOutputGuard.RecoverPending(AppPaths.GuardStateFile);
+        bool restored = await Task.Run(() => LocalOutputGuard.RecoverPending(AppPaths.GuardStateFile));
         if (File.Exists(RedirectStateFile))
         {
             bool done = false;

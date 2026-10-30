@@ -6,7 +6,7 @@ Del sonido del PC al socket del Sonos. Valores tomados del código confirmado en
 WasapiLoopbackCapture (salida completa)  ─┐
 ProcessLoopbackCapture (una aplicación)  ─┼─► LoopbackSource ──► StreamingSession.OnPcm ──► WavStreamServer.Write ──► cola por cliente ──► socket
 SilencePacer (relleno de silencio)       ─┘   (PCM 16 bit LE     (pausa = ceros; pico)      (historial del margen)     (200 trozos,
-                                               estéreo)               └─► SpectrumAnalyzer                              DropWrite)
+                                               estéreo)               └─► SpectrumAnalyzer                              TryWrite sin espera)
 ```
 
 ## 1. Captura
@@ -83,7 +83,7 @@ Se ejecuta en el hilo de captura; los lectores copian bajo `lock`.
 - **Cabecera** WAV de 44 B con tamaños al máximo (RIFF `0xFFFFFFFF`, `data` `0xFFFFFFFF − 36`): ≈ 4 GiB ≈ **6,2 h** a 192 kB/s (`BuildWavHeader`).
 - **Historial (margen)**: anillo de `AverageBytesPerSecond × PrebufferMs / 1000` bytes alineado a la trama (constructor): 192 000 B por segundo de margen a 48 kHz. Opciones de Ajustes: 0 / 1000 (por defecto) / 2000 / 3000 ms. Cada `Write` lo actualiza, haya o no clientes.
 - **Relleno inicial**: al conectar, el cliente recibe de una vez el margen completo; si el anillo aún no está lleno (el Sonos se conecta 0,2–0,5 s después de empezar, ya durante `SetAVTransportURI`), lo que falta va **delante como silencio** (`HistorySnapshot`, `:114-122`). El margen y el directo se encolan bajo el mismo `lock`: sin hueco ni duplicado (prueba automática). Cada conexión nueva recibe su propio margen.
-- **Cola por cliente** (`HandleClientAsync`): `Channel.CreateBounded<byte[]>(200)`, `SingleReader`, `FullMode = DropWrite`. El límite es de **200 trozos**, no de tiempo: ~2 s con trozos de 10 ms (captura por aplicación, marcapasos) y más con paquetes de dispositivo mayores (ráfagas de ~50 ms en la salida completa); el margen cuenta como un solo trozo. Con la cola llena el trozo nuevo se descarta y suma `DroppedChunks`: el Sonos recibiría un salto.
+- **Cola por cliente** (`HandleClientAsync`): `Channel.CreateBounded<byte[]>(200)`, `SingleReader`, `FullMode = Wait` con `TryWrite` (sin esperar). El límite es de **200 trozos**, no de tiempo: ~2 s con trozos de 10 ms (captura por aplicación, marcapasos) y más con paquetes de dispositivo mayores (ráfagas de ~50 ms en la salida completa); el margen cuenta como un solo trozo. Con la cola llena `TryWrite` devuelve `false`, el trozo nuevo se rechaza y suma `DroppedChunks`: el Sonos recibiría un salto.
 - `Write` nunca bloquea el hilo de audio: copia el bloque una vez (`ToArray`) y hace `TryWrite` en cada cola. Envío con `NoDelay = true`.
 - **Métrica de cola** (`backlog_ms`): `PendingBytes` = bytes encolados para un cliente y aún no escritos en su socket. `TakeMaxBacklogMs()` devuelve el máximo desde la llamada anterior y lo reinicia al pendiente actual. En reproducción normal ≈ 60 ms (CSV real); crece solo cuando el Sonos o la red dejan de leer más allá de los búferes TCP de Windows (~1 s en loopback según la prueba).
 - **Progreso por cliente** (`SinceLastClientProgress`): cada escritura completada en el socket anota la hora (`LastProgressTicks`, `Environment.TickCount64`); la propiedad devuelve el tiempo desde el progreso más reciente de cualquier cliente (0 sin clientes). Solo crece si la red o el Sonos dejan de leer, **nunca por silencio**, que se envía como cualquier otro audio. Lo usa `PlaybackWatchdog` ([NETWORKING.md](NETWORKING.md) §7).
@@ -94,10 +94,10 @@ Se ejecuta en el hilo de captura; los lectores copian bajo `lock`.
 
 | Paso | Detalle |
 |---|---|
-| Antes de tocar nada | escribe `{DeviceId, WasMuted, PreviousVolume, VolumeChanged}` en `output-guard.json` |
+| Antes de tocar nada | escribe atómicamente `{DeviceId, WasMuted, PreviousVolume, VolumeChanged, OwnerPid, GuardId}` en `output-guard.json`, bajo mutex y antes de silenciar; acepta registros antiguos |
 | Aplicar | primero `Mute = true`, después (solo con «Nivel completo») volumen al 100 %: nunca suena más alto |
-| Restaurar (`Dispose`) | primero baja al volumen anterior, después restaura el silencio previo; borra el archivo |
-| Tras un cierre inesperado | `RecoverPending` al arrancar la App: restaura y borra el archivo; si el dispositivo ya no existe, solo lo borra |
+| Restaurar (`Dispose`) | comprueba la propiedad del registro; baja al volumen anterior solo si sigue en el nivel aplicado por Audiora y después restaura el silencio; borra el archivo únicamente tras éxito |
+| Tras un cierre inesperado | `RecoverPending` al arrancar y en el refresco existente: omite propietarios vivos, restaura y borra tras éxito; si el dispositivo falta o la lectura falla conserva el archivo para reintentar |
 
 Qué dispositivo se silencia (`StreamingSession.ApplyGuard`): en «Todo el PC», la salida capturada (con «Nivel completo» opcional, porque esa captura es post-volumen); en «Una aplicación», la salida por la que suena la app, **siempre sin «Nivel completo»** y sin tocar el volumen maestro. Con «Silenciar el PC» desactivado no se crea guardia. La sesión restaura la guardia antes que cualquier otra cosa al detenerse (`TearDownAsync`), que se ejecuta siempre, termine como termine la vigilancia, y **por pasos**: guardia → captura → servidor (puerto) → cliente SOAP → dispositivo → CSV; si un paso falla se anota `limpieza: <excepción>` en `app-events.log` y los siguientes se ejecutan igual.
 
@@ -134,3 +134,13 @@ Una fila por vuelta de `MonitorAsync` (1 s más la respuesta del Sonos, cada con
 | `paused` | 1 en pausa |
 | `peak_dbfs` | pico de lo enviado desde la fila anterior; vacío si −∞ |
 | `backlog_ms` | máximo de audio esperando a que el Sonos lo recoja en ese intervalo |
+
+
+## Revisión de estabilidad (30/10/2026)
+
+Ver [FASE1-ESTABILIDAD.md](FASE1-ESTABILIDAD.md) para fallos reproducidos, pruebas y límites. No se cambia PCM, frecuencia, latencia ni margen.
+
+- `DropWrite` devolvía éxito aunque descartaba audio. Se usa `Wait` únicamente con `TryWrite`: sigue sin bloquear y permite contar el rechazo y recuperar la contabilidad de cola.
+- Una parada inesperada de captura, con o sin excepción, marca `CaptureError`; el marcapasos no puede ocultarla. Una parada solicitada no es error. Se conserva la salida segura de la sesión ante fallo, sin prometer recreación automática del endpoint.
+- El CSV añade al final `private_memory_mb`, `working_set_mb` y `process_cpu_pct` (porcentaje del proceso completo sobre la capacidad total del equipo, durante el intervalo real). Las columnas anteriores conservan su orden.
+- Eventos y errores rotan a 2 MiB con tres archivos anteriores. Los CSV continúan por sesión y no se eliminan automáticamente.

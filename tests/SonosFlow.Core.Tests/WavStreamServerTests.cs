@@ -137,7 +137,7 @@ public sealed class WavStreamServerTests
 
         // Player stalls: 3 s of audio produced, nothing read. The kernel's socket buffers absorb part of it
         // (~1 s on loopback); the metric reports what is left waiting in Audiora beyond that.
-        for (int i = 0; i < 300; i++) server.Write(Frames(i * FramesPer10Ms, FramesPer10Ms));
+        for (int i = 0; i < 3; i++) server.Write(Frames(i * 100 * FramesPer10Ms, 100 * FramesPer10Ms));
         await Task.Delay(200);
         double stalled = server.TakeMaxBacklogMs();
         Assert.True(stalled > 1000, $"backlog {stalled} ms");
@@ -166,7 +166,7 @@ public sealed class WavStreamServerTests
         Assert.True(server.SinceLastClientProgress < TimeSpan.FromMilliseconds(500), "a reading player shows progress");
 
         // Stops reading: once the socket buffers are full the server's write blocks and progress stops.
-        for (int i = 0; i < 300; i++) server.Write(Frames(i * FramesPer10Ms, FramesPer10Ms));
+        for (int i = 0; i < 3; i++) server.Write(Frames(i * 100 * FramesPer10Ms, 100 * FramesPer10Ms));
         await Task.Delay(1500);
         Assert.True(server.SinceLastClientProgress > TimeSpan.FromSeconds(1), $"stalled for {server.SinceLastClientProgress}");
 
@@ -196,6 +196,37 @@ public sealed class WavStreamServerTests
         }
     }
 
+    [Fact]
+    public async Task Saturation_counts_dropped_chunks_and_backlog_recovers_after_drain()
+    {
+        using var server = Server(0);
+        var (tcp, stream, extra) = await ConnectAsync(server);
+        using var connection = tcp;
+        await WaitForClientAsync(server);
+        Assert.Empty(extra);
+
+        // Overflow the bounded queue while the player is not reading. The producer never waits.
+        var chunk = new byte[19200];
+        const int produced = 2000;
+        for (int i = 0; i < produced; i++) server.Write(chunk);
+        long dropped = Interlocked.Read(ref server.DroppedChunks);
+        Assert.True(dropped > 0, "a full queue must report the audio it rejected");
+
+        long expected = (produced - dropped) * chunk.Length;
+        long received = 0;
+        var buffer = new byte[65536];
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        while (received < expected)
+        {
+            int count = await stream.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, expected - received)), timeout.Token);
+            Assert.True(count > 0, "connection ended before all accepted audio arrived");
+            received += count;
+        }
+        for (int i = 0; i < 100 && Interlocked.Read(ref server.BytesSent) < expected; i++) await Task.Delay(10);
+        server.TakeMaxBacklogMs(); // discard the peak reached during the intentional stall
+        Assert.Equal(expected, Interlocked.Read(ref server.BytesSent));
+        Assert.Equal(0, server.TakeMaxBacklogMs());
+    }
     [Fact]
     public void Peers_outside_the_allow_list_are_rejected()
     {

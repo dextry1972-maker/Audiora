@@ -68,16 +68,16 @@ public sealed class LoopbackSource : IDisposable
         _capture = new WasapiLoopbackCapture(device);
         (_sourceChannels, _sourceBytesPerSample, _sourceIsFloat, SourceFormatDescription, OutputFormat) = Describe(_capture.WaveFormat);
         _capture.DataAvailable += OnDataAvailable;
-        _capture.RecordingStopped += (_, e) => CaptureError ??= e.Exception;
+        _capture.RecordingStopped += OnRecordingStopped;
     }
 
-    private LoopbackSource(IWaveIn capture, string name)
+    internal LoopbackSource(IWaveIn capture, string name)
     {
         DeviceName = name;
         _capture = capture;
         (_sourceChannels, _sourceBytesPerSample, _sourceIsFloat, SourceFormatDescription, OutputFormat) = Describe(_capture.WaveFormat);
         _capture.DataAvailable += OnDataAvailable;
-        _capture.RecordingStopped += (_, e) => CaptureError ??= e.Exception;
+        _capture.RecordingStopped += OnRecordingStopped;
     }
 
     /// <summary>
@@ -109,6 +109,11 @@ public sealed class LoopbackSource : IDisposable
         if (!_counted) { _counted = true; Interlocked.Increment(ref _active); }
         _pacer = new Thread(PacerLoop) { IsBackground = true, Priority = ThreadPriority.AboveNormal, Name = "SilencePacer" };
         _pacer.Start();
+    }
+
+    private void OnRecordingStopped(object? sender, StoppedEventArgs e)
+    {
+        if (_running) CaptureError ??= e.Exception ?? new IOException("La captura terminó inesperadamente.");
     }
 
     public void Stop()
