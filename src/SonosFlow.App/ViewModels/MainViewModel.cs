@@ -58,7 +58,12 @@ public sealed partial class MainViewModel : ObservableObject
         ToggleStreamCommand = new RelayCommand(async () => { CancelStartupWait(); await ToggleStreamAsync(); }, () => CanToggle);
         RescanCommand = new RelayCommand(async () => { CancelStartupWait(); await DiscoverAsync(); }, () => State is not (UiState.Discovering or UiState.Starting));
         SelectSpeakerCommand = new RelayCommand(p => { if (p is SpeakerItem s) { CancelStartupWait(); Select(s); } }, _ => !IsStreaming);
-        NavigateCommand = new RelayCommand(p => Page = p as string ?? "home");
+        NavigateCommand = new RelayCommand(p =>
+        {
+            var before = Page;
+            Page = p as string ?? "home";
+            if (Page != before) SoundNavigated(before); // only a click on a tab ticks, not a programmatic page change
+        });
         OpenLogsCommand = new RelayCommand(() =>
         {
             Directory.CreateDirectory(AppPaths.Logs);
@@ -113,6 +118,7 @@ public sealed partial class MainViewModel : ObservableObject
             CommandManager.InvalidateRequerySuggested();
             foreach (var s in Speakers) s.IsStreaming = s.IsSelected && IsStreaming;
             StreamingChanged?.Invoke();
+            SoundStateReached(value);
         }
     }
 
@@ -554,7 +560,9 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task FailAsync()
     {
         var reason = _lastError ?? (() => L.T("status.title.error"));
-        await StopAsync(rememberStopped: false, reason: $"error: {_lastErrorCode}");
+        if (_director is { } director) director.Failing = true; // the teardown is part of the error: one sound, not two
+        try { await StopAsync(rememberStopped: false, reason: $"error: {_lastErrorCode}"); }
+        finally { if (_director is { } d) d.Failing = false; }
         State = UiState.Error;
         Detail(reason);
     }

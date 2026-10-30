@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Threading;
 using SonosFlow.App.Infrastructure;
 using SonosFlow.App.Localization;
+using SonosFlow.App.Sound;
 using SonosFlow.App.ViewModels;
 
 namespace SonosFlow.App;
@@ -30,6 +31,7 @@ public partial class App : Application
     private Mutex? _mutex;
     private EventWaitHandle? _showEvent;
     private MainViewModel? _vm;
+    private SoundService? _sounds;
     private MainWindow? _window;
     private TrayIcon? _tray;
     private MiniPlayerWindow? _mini;
@@ -74,6 +76,13 @@ public partial class App : Application
         ChooseLanguage(settings, forced: Arg("--lang"), allowWelcome: !testCapture);
         Loc.Instance.LanguageChanged += ShowHotkeysStatus; // only the "in use" note is text: no re-registration
         _vm = new MainViewModel(settings);
+        if (!testCapture) // captures and the Sonos self-test stay silent: no audio device is touched
+        {
+            _sounds = new SoundService(_vm.CurrentSoundSettings, _vm.WouldSoundReachSonos, new WasapiEffectOutput(), vetoFactory: _vm.CreateSoundVeto);
+            _vm.AttachSounds(_sounds);
+            _ = _sounds.PreloadAsync();
+            SoundUiHooks.Register(() => _sounds);
+        }
         _window = new MainWindow(_vm);
         _window.Closing += OnWindowClosing;
         _window.StateChanged += OnMainStateChanged;
@@ -284,7 +293,9 @@ public partial class App : Application
         if (_quitting) return;
         _quitting = true;
         AppLog.Write($"salida de la app: {reason}");
+        _vm?.QuiesceSounds(); // stopping the stream on exit is not an event to announce
         if (_vm is not null) await _vm.ShutdownAsync(); // stops the stream and restores the PC speakers
+        _sounds?.Dispose();
         _tray?.Dispose();
         _hotkeys?.Dispose();
         _hud?.Close();

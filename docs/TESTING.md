@@ -52,6 +52,8 @@ Total (contado en los archivos de `a7e2b36`): **42 casos** = 30 de Core (26 `[Fa
 | `soak <min> [--inject] [--margin ms]` | Seno 1 kHz → dos cadenas a la vez («Una aplicación» y «Todo el PC») → marcapasos → `WavStreamServer` en 127.0.0.1:8791/8792 → lector local. Detecta cualquier rotura de la onda a nivel de muestra; carga paralela de `AudioApps.List` cada 2,5 s. Informe cada 30 s | 0 cortes en ambas, código 0. Con `--inject` (corte deliberado de 300 ms a los 20 s) **debe** detectarse: código 1 esperado |
 | `session <ip>` | Extremo a extremo con `StreamingSession` | No usable aquí: el firewall bloquea a CaptureCheck (ver §4) |
 
+Sonidos de interfaz: `SoundIsolationTests` (en `SonosFlow.App.Tests`) reproduce los efectos y un tono de −60 dBFS en «Steam Streaming Speakers» (mudo para el usuario) y exige que la captura por aplicación solo vea el tono (−59,7 dBFS) y que la captura del dispositivo completo sí oiría los efectos (−13,3 dBFS). Ver [SONIDOS-ENCHANTED.md](SONIDOS-ENCHANTED.md).
+
 Referencias medidas: aislamiento A −12 / B −92 dBFS; resistencia 9 min sin margen y 7 min con 1 s: 0 cortes ([INVESTIGACION-CORTES-6MIN.md](INVESTIGACION-CORTES-6MIN.md)).
 
 ## 4. Autotest con el Sonos físico (`Infrastructure/SelfTest.cs`)
