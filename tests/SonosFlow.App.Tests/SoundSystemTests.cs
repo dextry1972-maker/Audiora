@@ -277,6 +277,27 @@ public sealed class SoundDirectorTests
     }
 
     [Fact]
+    public void A_failed_session_makes_one_sound_the_error_and_not_a_stop_before_it()
+    {
+        var (d, played) = Create();
+        Go(d, UiState.Ready, UiState.Starting, UiState.Streaming);
+        played.Clear();
+        d.Failing = true;               // the view model is tearing the failed session down…
+        Go(d, UiState.Ready);
+        d.Failing = false;
+        Go(d, UiState.Error);           // …and then reports the error
+        Assert.Equal([SoundId.Error], played);
+    }
+
+    [Fact]
+    public void The_first_start_is_announced_even_before_any_other_state_was_seen()
+    {
+        var (d, played) = Create();
+        d.OnState(UiState.Starting);
+        Assert.Equal([SoundId.StreamStart], played);
+    }
+
+    [Fact]
     public void Automatic_starts_are_silent_but_a_later_outage_still_is_announced()
     {
         var (d, played) = Create();
@@ -297,7 +318,10 @@ public sealed class SoundServiceTests
         public int Voices { get; set; }
         public bool Disposed;
         public int ActiveVoices => Voices;
-        public void Play(float[] mono, float gain, string? deviceId) => Plays.Add((mono, gain, deviceId));
+        public int Cancels;
+        public Func<string, bool>? LastVeto;
+        public void Play(float[] mono, float gain, string? deviceId, Func<string, bool>? veto = null) { LastVeto = veto; Plays.Add((mono, gain, deviceId)); }
+        public void CancelAll() => Cancels++;
         public void Dispose() => Disposed = true;
     }
 
@@ -368,6 +392,30 @@ public sealed class SoundServiceTests
     }
 
     [Fact]
+    public void Starting_a_stream_cuts_sounds_still_playing_only_where_it_would_capture_them()
+    {
+        var (safe, safeOut, _) = Create(captured: false);
+        safe.CancelIfCaptured();
+        Assert.Equal(0, safeOut.Cancels);
+        var (risky, riskyOut, _) = Create(captured: true);
+        risky.CancelIfCaptured();
+        Assert.Equal(1, riskyOut.Cancels);
+    }
+
+    [Fact]
+    public void The_final_check_is_built_when_the_sound_is_requested_and_handed_to_the_output()
+    {
+        var output = new FakeOutput();
+        int built = 0;
+        var service = new SoundService(() => new SoundSettings(), _ => false, output, () => 100_000, a => a(), () => { built++; return id => id == "captured"; });
+        service.Play(SoundId.Error);
+        Assert.Equal(1, built);
+        Assert.NotNull(output.LastVeto);
+        Assert.True(output.LastVeto!("captured"));
+        Assert.False(output.LastVeto!("other"));
+    }
+
+    [Fact]
     public void Quiesce_silences_everything_for_shutdown()
     {
         var (service, _, queue) = Create();
@@ -423,8 +471,43 @@ public sealed class SoundSettingsPersistenceTests
     }
 }
 
+public sealed class SoundLimiterTests
+{
+    [Fact]
+    public void The_mix_never_reaches_full_scale_and_leaves_normal_levels_alone()
+    {
+        Assert.Equal(0.5f, SoundLimiter.Limit(0.5f));
+        Assert.Equal(-0.8f, SoundLimiter.Limit(-0.8f));
+        foreach (float x in new[] { 0.9f, 1.5f, 3f, 100f })
+        {
+            Assert.InRange(SoundLimiter.Limit(x), 0.8f, 0.9901f);
+            Assert.Equal(-SoundLimiter.Limit(x), SoundLimiter.Limit(-x));
+        }
+        Assert.True(SoundLimiter.Limit(1.5f) > SoundLimiter.Limit(0.9f)); // monotonic: no inversion
+    }
+}
+
 public sealed class WasapiEffectOutputTests
 {
+    [Fact]
+    public void A_veto_prevents_the_sound_from_ever_starting()
+    {
+        using var output = new WasapiEffectOutput();
+        output.Play(EnchantedSynth.Render(SoundId.ToggleOn), 0f, null, _ => true);
+        Assert.Equal(0, output.ActiveVoices);
+    }
+
+    [Fact]
+    public void Cancel_all_drops_the_voices_and_the_output_keeps_working()
+    {
+        using var output = new WasapiEffectOutput();
+        output.Play(EnchantedSynth.Render(SoundId.Connected), 0f, null);
+        output.CancelAll();
+        Assert.Equal(0, output.ActiveVoices);
+        output.Play(EnchantedSynth.Render(SoundId.ToggleOn), 0f, null);
+        Assert.True(SpinWait.SpinUntil(() => output.ActiveVoices == 0, 3000));
+    }
+
     private static float[] Silent(double seconds) => new float[(int)(seconds * EnchantedSynth.SampleRate)];
 
     [Fact]

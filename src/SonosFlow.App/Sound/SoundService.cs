@@ -14,15 +14,19 @@ public sealed class SoundService : IDisposable
     private readonly ISoundOutput _output;
     private readonly Func<long> _clock;
     private readonly Action<Action> _run;
+    private readonly Func<Func<string, bool>>? _vetoFactory;
     private readonly SoundPolicy _policy = new();
     private readonly ConcurrentDictionary<SoundId, float[]> _buffers = new();
     private volatile bool _quiet;
 
     /// <param name="wouldReachSonos">Given the effects device id (null = default): would a sound there be captured and sent to the Sonos?</param>
     /// <param name="run">Where playback runs; the thread pool unless a test supplies its own.</param>
+    /// <param name="vetoFactory">Called on the caller's thread: captures the stream state and returns the final check made
+    /// on the pool with the device that will really play (an unplugged or changed device cannot slip through).</param>
     public SoundService(Func<SoundSettings> settings, Func<string?, bool> wouldReachSonos, ISoundOutput output,
-        Func<long>? clock = null, Action<Action>? run = null)
+        Func<long>? clock = null, Action<Action>? run = null, Func<Func<string, bool>>? vetoFactory = null)
     {
+        _vetoFactory = vetoFactory;
         _settings = settings;
         _wouldReachSonos = wouldReachSonos;
         _output = output;
@@ -46,8 +50,15 @@ public sealed class SoundService : IDisposable
         var decision = _policy.Decide(id, settings, captured, _clock(), _output.ActiveVoices, preview);
         if (decision != SoundDecision.Play) return decision;
         float gain = (float)SoundSettings.GainFor(settings.Volume);
-        _run(() => _output.Play(Buffer(id), gain, settings.DeviceId));
+        var veto = _vetoFactory?.Invoke();
+        _run(() => _output.Play(Buffer(id), gain, settings.DeviceId, veto));
         return decision;
+    }
+
+    /// <summary>A stream is starting: whatever is still playing on a device it will capture is cut.</summary>
+    public void CancelIfCaptured()
+    {
+        if (_wouldReachSonos(_settings().DeviceId)) _output.CancelAll();
     }
 
     private float[] Buffer(SoundId id) => _buffers.GetOrAdd(id, EnchantedSynth.Render);
@@ -61,8 +72,11 @@ public sealed class SoundService : IDisposable
 /// </summary>
 public sealed class SoundDirector(Action<SoundId> play)
 {
-    private UiState? _previous;
+    private UiState? _previous = UiState.Discovering; // where the view model starts
     private bool _lost;
+
+    /// <summary>The session is being torn down because it failed: the "stop" is part of the error, not a goodbye.</summary>
+    public bool Failing { get; set; }
 
     /// <summary>Automatic starts (resuming at Windows sign-in) are silent; the user pressed nothing.</summary>
     public bool Quiet { get; set; }
@@ -91,7 +105,7 @@ public sealed class SoundDirector(Action<SoundId> play)
                 if (!Quiet) play(SoundId.Error);
                 break;
             default: // Ready, NoSpeaker, Discovering: only a stream that really existed is "stopped"
-                if (previous is UiState.Streaming or UiState.Recovering) play(SoundId.StreamStop);
+                if (previous is UiState.Streaming or UiState.Recovering && !Failing) play(SoundId.StreamStop);
                 _lost = false;
                 break;
         }

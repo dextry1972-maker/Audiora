@@ -78,7 +78,7 @@ public partial class App : Application
         _vm = new MainViewModel(settings);
         if (!testCapture) // captures and the Sonos self-test stay silent: no audio device is touched
         {
-            _sounds = new SoundService(_vm.CurrentSoundSettings, _vm.WouldSoundReachSonos, new WasapiEffectOutput());
+            _sounds = new SoundService(_vm.CurrentSoundSettings, _vm.WouldSoundReachSonos, new WasapiEffectOutput(), vetoFactory: _vm.CreateSoundVeto);
             _vm.AttachSounds(_sounds);
             _ = _sounds.PreloadAsync();
             SoundUiHooks.Register(() => _sounds);

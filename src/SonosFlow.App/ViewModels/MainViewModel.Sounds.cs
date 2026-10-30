@@ -15,6 +15,7 @@ public sealed partial class MainViewModel
     private DispatcherTimer? _soundsSaveDebounce;
     private string _soundsNote = "";
     private string? _defaultOutputId;
+    private HashSet<string> _activeOutputIds = [];
     private long _defaultOutputAt = long.MinValue / 2;
     private ICommand? _previewSoundCommand, _resetSoundsCommand;
 
@@ -35,22 +36,56 @@ public sealed partial class MainViewModel
         _settings.ErrorSounds, _settings.SoundsVolume, _settings.SoundsDeviceId);
 
     /// <summary>Would a sound on <paramref name="effectsDeviceId"/> be captured and sent to the Sonos right now?</summary>
-    internal bool WouldSoundReachSonos(string? effectsDeviceId) => SoundGate.WouldReachSonos(
-        IsStreaming, IsAppMode, _settings.SourceAppExe, Environment.ProcessPath,
-        SelectedOutput is { IsDefault: false } o ? o.Id : null, effectsDeviceId, DefaultOutputId());
+    internal bool WouldSoundReachSonos(string? effectsDeviceId)
+    {
+        var defaultId = DefaultOutputId();
+        // A chosen device that is unplugged plays on the default instead: judge by where it will really sound.
+        var effective = effectsDeviceId is not null && _activeOutputIds.Contains(effectsDeviceId) ? effectsDeviceId : null;
+        return SoundGate.WouldReachSonos(IsStreaming, IsAppMode, _settings.SourceAppExe, Environment.ProcessPath,
+            SelectedOutput is { IsDefault: false } o ? o.Id : null, effective, defaultId);
+    }
 
-    // The default output is looked up at most every 3 s (a COM call); unknown means "assume it would be captured".
+    /// <summary>
+    /// The final check, run on the pool just before a sound starts: the stream state as it was when the sound was
+    /// requested, but the default device looked up fresh and the device that will really play.
+    /// </summary>
+    internal Func<string, bool> CreateSoundVeto()
+    {
+        bool streaming = IsStreaming, appMode = IsAppMode;
+        var exe = _settings.SourceAppExe;
+        var own = Environment.ProcessPath;
+        string? capture = SelectedOutput is { IsDefault: false } o ? o.Id : null;
+        return playingOn =>
+        {
+            string? fresh;
+            try { using var d = AudioDevices.Resolve(null); fresh = d.ID; }
+            catch (Exception) { fresh = null; }
+            return SoundGate.WouldReachSonos(streaming, appMode, exe, own, capture, playingOn, fresh);
+        };
+    }
+
+    // Outputs are listed at most once a second (a COM call); unknown means "assume it would be captured".
     private string? DefaultOutputId()
     {
         long now = Environment.TickCount64;
-        if (now - _defaultOutputAt < 3000) return _defaultOutputId;
+        if (now - _defaultOutputAt < 1000) return _defaultOutputId;
         _defaultOutputAt = now;
-        try { using var d = AudioDevices.Resolve(null); _defaultOutputId = d.ID; }
-        catch (Exception) { _defaultOutputId = null; }
+        try
+        {
+            var outputs = AudioDevices.ListOutputs();
+            _defaultOutputId = outputs.FirstOrDefault(d => d.IsDefault)?.Id;
+            _activeOutputIds = outputs.Select(d => d.Id).ToHashSet();
+        }
+        catch (Exception) { _defaultOutputId = null; _activeOutputIds = []; }
         return _defaultOutputId;
     }
 
-    private void SoundStateReached(UiState state) => _director?.OnState(state);
+    private void SoundStateReached(UiState state)
+    {
+        // The stream is about to capture: cut any sound still ringing on the device it will record.
+        if (state is UiState.Starting or UiState.Streaming or UiState.Recovering) _sounds?.CancelIfCaptured();
+        _director?.OnState(state);
+    }
     private void SoundNavigated(string previousPage) => _sounds?.Play(SoundId.Navigate);
 
     private async Task StartSilentlyAsync()
@@ -61,7 +96,11 @@ public sealed partial class MainViewModel
     }
 
     /// <summary>The app is closing and will stop the stream by itself: no goodbye sounds.</summary>
-    internal void QuiesceSounds() => _sounds?.Quiesce();
+    internal void QuiesceSounds()
+    {
+        _sounds?.Quiesce();
+        if (_soundsSaveDebounce is { IsEnabled: true }) { _soundsSaveDebounce.Stop(); _settings.Save(); } // don't lose a volume change made just before closing
+    }
 
     // ── settings ────────────────────────────────────────────────────────────
 
@@ -182,6 +221,7 @@ public sealed partial class MainViewModel
         _settings.ErrorSounds = d.ErrorSounds;
         _settings.SoundsVolume = d.SoundsVolume;
         _settings.SoundsDeviceId = d.SoundsDeviceId;
+        _soundsSaveDebounce?.Stop();
         _settings.Save();
         SoundsNote = "";
         foreach (var n in new[] { nameof(InterfaceSounds), nameof(NotificationSounds), nameof(ConnectionSounds), nameof(ConnectionLossSounds),
