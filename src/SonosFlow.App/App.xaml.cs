@@ -122,7 +122,9 @@ public partial class App : Application
             try
             {
                 int soakSeconds = int.TryParse(Arg("--selftest-soak-seconds"), out var duration) ? Math.Clamp(duration, 0, 7200) : 0;
-                await SelfTest.RunAsync(_vm, tonePid, outFile, soakSeconds);
+                if (args.Contains("--selftest-soak-only"))
+                    await SelfTest.RunEnduranceOnlyAsync(_vm, tonePid, outFile, soakSeconds > 0 ? soakSeconds : 600);
+                else await SelfTest.RunAsync(_vm, tonePid, outFile, soakSeconds);
             }
             finally { await QuitAsync("fin del autotest"); } // always stop the stream and restore the PC
             return;

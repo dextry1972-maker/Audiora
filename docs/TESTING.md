@@ -152,3 +152,8 @@ El autotest admite `--selftest-soak-seconds N` (0–7200, por defecto 0) junto c
 `SonosFlow.exe --diagnostic-report archivo-nuevo.json` exporta una instantánea permitida de versiones y contadores, sin audio ni registros sin filtrar, y sale sin controlar audio o Sonos. Rechaza sobrescribir un archivo. Sus métricas son del proceso exportador, no de una sesión que ya estaba abierta.
 
 Las simulaciones de `SonosClientTests` usan un transporte HTTP controlado y la política de reintentos real: no sustituyen una sesión de extremo a extremo, SSDP ni un corte real de Wi-Fi.
+
+
+### Actualización solicitada: ensayo inicial de diez minutos
+
+Usar `--selftest-session PID --selftest-out archivo --selftest-soak-only --selftest-soak-seconds 600 --minimized`, con tono tenue que dure al menos 900 s. Captura solo la aplicación, sin silenciar el PC ni ejecutar las partes A/B/C. Ejecutar después de las pruebas virtuales que comparten endpoint. Leer RESULTADO y CSV, no solo el código de salida. El usuario pidió terminar antes de completar el ensayo: diez minutos completos y validación de dos horas siguen pendientes. Evidencia y resultados: FASE1-ESTABILIDAD.md.

@@ -135,15 +135,15 @@ public sealed class WavStreamServerTests
         await WaitForClientAsync(server);
         server.TakeMaxBacklogMs();
 
-        // Player stalls: 3 s of audio produced, nothing read. The kernel's socket buffers absorb part of it
+        // Player stalls: 20 s of audio produced, nothing read. The kernel's socket buffers absorb part of it
         // (~1 s on loopback); the metric reports what is left waiting in Audiora beyond that.
-        for (int i = 0; i < 3; i++) server.Write(Frames(i * 100 * FramesPer10Ms, 100 * FramesPer10Ms));
+        for (int i = 0; i < 20; i++) server.Write(Frames(i * 100 * FramesPer10Ms, 100 * FramesPer10Ms));
         await Task.Delay(200);
         double stalled = server.TakeMaxBacklogMs();
         Assert.True(stalled > 1000, $"backlog {stalled} ms");
 
         // Player catches up.
-        await ReadFramesAsync(s, extra, 300 * FramesPer10Ms);
+        await ReadFramesAsync(s, extra, 2000 * FramesPer10Ms);
         await Task.Delay(100);
         server.TakeMaxBacklogMs(); // drop the stalled peak
         server.Write(Frames(0, FramesPer10Ms));

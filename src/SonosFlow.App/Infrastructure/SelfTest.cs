@@ -120,37 +120,14 @@ public static class SelfTest
 
             if (soakSeconds > 0)
             {
-                // Opt-in endurance run on the quiet per-process tone, without muting the user's PC.
-                var clock = System.Diagnostics.Stopwatch.StartNew();
-                var baseline = vm.LastStats;
-                bool healthy = baseline is not null;
-                int samples = 0, lastProgress = 0;
-                var lastUpdate = baseline?.Elapsed ?? TimeSpan.Zero;
-                var updatedAt = clock.Elapsed;
-                AppLog.Write($"selftest resistencia: inicio {soakSeconds} s, tono de aplicación, sin silenciar el PC");
-                while (clock.Elapsed.TotalSeconds < soakSeconds && vm.IsStreaming)
+                var result = await MeasureEnduranceAsync(vm, soakSeconds);
+                Check($"7a. Resistencia {result.Seconds:0} s: {result.Samples} muestras; interrumpida={result.Interrupted}", result.Healthy);
+                if (result.Interrupted)
                 {
-                    await Task.Delay(1000);
-                    samples++;
-                    var current = vm.LastStats;
-                    if (current?.Elapsed != lastUpdate)
-                    {
-                        lastUpdate = current?.Elapsed ?? TimeSpan.Zero;
-                        updatedAt = clock.Elapsed;
-                    }
-                    healthy &= current is { TransportState: "PLAYING", Clients: 1, SourceAvailable: true, Paused: false,
-                        PeakDbfs: > -66 and < -54, SendRateKBps: > 150 }
-                        && current.Reconnects == baseline?.Reconnects && current.DroppedChunks == baseline?.DroppedChunks
-                        && current.StallsOverMargin == baseline?.StallsOverMargin
-                        && clock.Elapsed - updatedAt < TimeSpan.FromSeconds(10);
-                    if ((int)clock.Elapsed.TotalSeconds / 30 > lastProgress)
-                    {
-                        lastProgress = (int)clock.Elapsed.TotalSeconds / 30;
-                        AppLog.Write($"selftest resistencia: {clock.Elapsed.TotalSeconds:0}/{soakSeconds} s, sano={healthy}, clientes={current?.Clients}, reconexiones={current?.Reconnects}, descartes={current?.DroppedChunks}");
-                    }
+                    lines.Add("RESULTADO: prueba interrumpida; no se inician más transmisiones");
+                    await File.WriteAllLinesAsync(outFile, lines);
+                    return fails;
                 }
-                Check($"7a. Resistencia {clock.Elapsed.TotalSeconds:0} s: {samples} muestras de estado, sin desconexiones/descartes/atascos sobre el margen, Sonos {vm.LastStats?.TransportState}",
-                    healthy && vm.IsStreaming && clock.Elapsed.TotalSeconds >= soakSeconds && samples >= soakSeconds * 0.9);
             }
         }
 
@@ -358,6 +335,70 @@ public static class SelfTest
         lines.Add(fails == 0 ? "RESULTADO: todo correcto" : $"RESULTADO: {fails} fallos");
         await File.WriteAllLinesAsync(outFile, lines);
         return fails;
+    }
+
+    public static async Task<int> RunEnduranceOnlyAsync(MainViewModel vm, int tonePid, string outFile, int seconds = 600)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(seconds);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(seconds, 7200);
+        vm.MuteLocal = false;
+        vm.IsAppMode = true;
+        await vm.RefreshAppsNowAsync();
+        int root = AudioApps.RootProcessId(tonePid);
+        var app = vm.Apps.FirstOrDefault(a => a.Info.ProcessId == root)
+            ?? throw new InvalidOperationException("No se encuentra la aplicación del tono de prueba.");
+        await vm.SelectAppForTestAsync(app);
+        await vm.StartAsync();
+        await Task.Delay(3000);
+        var result = await MeasureEnduranceAsync(vm, seconds);
+        await File.WriteAllLinesAsync(outFile, new[] {
+            $"Resistencia: {result.Seconds:0.000} s; muestras={result.Samples}; interrumpida={result.Interrupted}",
+            result.Healthy ? "RESULTADO: resistencia inicial correcta" : "RESULTADO: resistencia fallida o interrumpida"
+        });
+        return result.Healthy ? 0 : 1;
+    }
+
+    private sealed record EnduranceResult(bool Healthy, bool Interrupted, int Samples, double Seconds);
+
+    private static async Task<EnduranceResult> MeasureEnduranceAsync(MainViewModel vm, int seconds)
+    {
+        var baseline = vm.LastStats;
+        bool interrupted = !vm.IsStreaming, healthy = baseline is not null;
+        void Changed() { if (!vm.IsStreaming) interrupted = true; }
+        vm.StreamingChanged += Changed;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var lastUpdate = baseline?.Elapsed ?? TimeSpan.Zero;
+        var updatedAt = clock.Elapsed;
+        int samples = 0, lastProgress = 0;
+        AppLog.Write($"selftest resistencia: inicio {seconds} s, solo aplicación, sin silenciar el PC");
+        try
+        {
+            while (clock.Elapsed.TotalSeconds < seconds && !interrupted)
+            {
+                await Task.Delay(1000);
+                samples++;
+                var current = vm.LastStats;
+                if (current?.Elapsed != lastUpdate)
+                {
+                    if (current?.Elapsed < lastUpdate) interrupted = true;
+                    lastUpdate = current?.Elapsed ?? TimeSpan.Zero;
+                    updatedAt = clock.Elapsed;
+                }
+                healthy &= current is { TransportState: "PLAYING", Clients: 1, SourceAvailable: true, Paused: false,
+                    PeakDbfs: > -66 and < -54, SendRateKBps: > 150 }
+                    && current.SourceName == baseline?.SourceName && current.Reconnects == baseline?.Reconnects
+                    && current.DroppedChunks == baseline?.DroppedChunks && current.StallsOverMargin == baseline?.StallsOverMargin
+                    && clock.Elapsed - updatedAt < TimeSpan.FromSeconds(10);
+                if ((int)clock.Elapsed.TotalSeconds / 30 > lastProgress)
+                {
+                    lastProgress = (int)clock.Elapsed.TotalSeconds / 30;
+                    AppLog.Write($"selftest resistencia: {clock.Elapsed.TotalSeconds:0}/{seconds} s, sano={healthy}, interrumpida={interrupted}");
+                }
+            }
+            return new(healthy && !interrupted && samples >= seconds * 0.9 && clock.Elapsed.TotalSeconds >= seconds,
+                interrupted, samples, clock.Elapsed.TotalSeconds);
+        }
+        finally { vm.StreamingChanged -= Changed; }
     }
 
     /// <summary>What a device plays, from its loopback over ~1.5 s: total level and the 1 kHz test tone against its neighbours.</summary>

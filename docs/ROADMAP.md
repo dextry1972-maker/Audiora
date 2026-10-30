@@ -67,6 +67,6 @@ Rama `mejoras/fase1-estabilidad-recuperacion`; integración/push no autorizados 
 - ✅ **Auto:** protección de registros de restauración, mutex/propietarios, conservación de cambios del usuario, contabilización de saturación y detección de captura terminada; regresión 164/164, build sin avisos.
 - ✅ **Revisión independiente:** sin P1/P2 abiertos en las correcciones; cerrada la carrera de `Dispose` tardío y reforzado el detector del ensayo prolongado.
 - ✅ **Sim/captura Windows:** aislamiento y prueba de endpoint superados; salida virtual restaurada.
-- 🟡 **Sim:** pruebas de resistencia 9 min / control de corte / 7 min con margen, en ejecución.
-- 🟡 **Sonos:** ensayo real de dos horas iniciado a las 00:17; pendiente medir y revisar el resultado y la restauración final.
+- ✅ **Sim:** 9 min y repetición aislada de 7 min con margen sin discontinuidades; control positivo correcto; estrés/recuperación 175/175.
+- ⏳ **Sonos:** ensayo inicial reducido a 10 min y detenido anticipadamente por petición del usuario. Completar 10 min y validar 2 horas quedan pendientes. Cierre verificado sin salidas silenciadas ni registros pendientes.
 - ⏳ **Manual:** corte físico de Wi-Fi, dispositivo predeterminado cambiado, desconexión física del endpoint y cierre de sesión de Windows. No se declara aceptación completa por cubrir únicamente simulaciones.
