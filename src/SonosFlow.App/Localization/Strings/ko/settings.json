@@ -51,5 +51,7 @@
   "settings.backup.restore": "복원…",
   "settings.about.description": "로컬 네트워크(UPnP + HTTP)를 통해 PC의 오디오를 Sonos 스피커로 스트리밍합니다. 모든 처리는 로컬에서 이루어지며, 오디오나 데이터를 인터넷으로 보내지 않고 개인 정보를 수집하지 않습니다.",
   "settings.about.thirdParty": "타사 라이브러리: NAudio(MIT 라이선스).",
-  "settings.about.disclaimer": "개인 프로젝트이며 Sonos, Inc.와 제휴하거나 보증을 받지 않았습니다. “Sonos”는 해당 소유자의 상표입니다."
+  "settings.about.disclaimer": "개인 프로젝트이며 Sonos, Inc.와 제휴하거나 보증을 받지 않았습니다. “Sonos”는 해당 소유자의 상표입니다.",
+  "settings.general.sounds.title": "인터페이스 소리",
+  "settings.general.sounds.hint": "설정 변경 시 부드러운 확인음. 스트리밍 중에는 재생하지 않습니다."
 }

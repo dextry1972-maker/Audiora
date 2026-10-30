@@ -51,5 +51,7 @@
   "settings.backup.restore": "Restaurar…",
   "settings.about.description": "Transmite o áudio do seu PC para uma caixa de som Sonos pela rede local (UPnP + HTTP). Todo o processamento é local: nenhum áudio ou dado é enviado à internet e nenhuma informação pessoal é coletada.",
   "settings.about.thirdParty": "Biblioteca de terceiros: NAudio (licença MIT).",
-  "settings.about.disclaimer": "Projeto pessoal, sem afiliação com a Sonos, Inc. nem endosso dela. “Sonos” é uma marca comercial de seu proprietário."
+  "settings.about.disclaimer": "Projeto pessoal, sem afiliação com a Sonos, Inc. nem endosso dela. “Sonos” é uma marca comercial de seu proprietário.",
+  "settings.general.sounds.title": "Sons da interface",
+  "settings.general.sounds.hint": "Confirmações suaves ao alterar ajustes. Silenciosos durante a transmissão."
 }

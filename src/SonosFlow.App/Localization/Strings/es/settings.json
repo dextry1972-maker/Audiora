@@ -58,5 +58,7 @@
 
   "settings.about.description": "Transmite el audio del PC a un altavoz Sonos por la red local (UPnP + HTTP). Todo el procesamiento es local: no se envía audio ni datos a Internet y no se recopila información personal.",
   "settings.about.thirdParty": "Biblioteca de terceros: NAudio (licencia MIT).",
-  "settings.about.disclaimer": "Proyecto personal, no afiliado ni respaldado por Sonos, Inc. «Sonos» es una marca de su titular."
+  "settings.about.disclaimer": "Proyecto personal, no afiliado ni respaldado por Sonos, Inc. «Sonos» es una marca de su titular.",
+  "settings.general.sounds.title": "Sonidos de la interfaz",
+  "settings.general.sounds.hint": "Confirmaciones suaves al cambiar ajustes. Se silencian durante la transmisión."
 }

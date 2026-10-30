@@ -51,5 +51,7 @@
   "settings.backup.restore": "復元…",
   "settings.about.description": "PC のオーディオをローカル ネットワーク経由（UPnP + HTTP）で Sonos スピーカーにストリーミングします。処理はすべてローカルで行われ、オーディオやデータがインターネットに送信されることはなく、個人情報も収集しません。",
   "settings.about.thirdParty": "サードパーティ ライブラリ: NAudio（MIT ライセンス）。",
-  "settings.about.disclaimer": "個人のプロジェクトであり、Sonos, Inc. とは提携しておらず、その承認も受けていません。「Sonos」はその所有者の商標です。"
+  "settings.about.disclaimer": "個人のプロジェクトであり、Sonos, Inc. とは提携しておらず、その承認も受けていません。「Sonos」はその所有者の商標です。",
+  "settings.general.sounds.title": "操作音",
+  "settings.general.sounds.hint": "設定変更を控えめな音で確認します。配信中は鳴りません。"
 }

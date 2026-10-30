@@ -13,13 +13,14 @@ public static class Motion
     public static readonly TimeSpan Feedback = TimeSpan.FromMilliseconds(120);
     public static readonly TimeSpan Toggle = TimeSpan.FromMilliseconds(160);
     public static readonly TimeSpan Transition = TimeSpan.FromMilliseconds(180);
+    public static readonly TimeSpan Navigation = TimeSpan.FromMilliseconds(240);
     public static bool Enabled => SystemParameters.ClientAreaAnimation;
     public static bool PointerMotion => Enabled && InputManager.Current.MostRecentInputDevice is MouseDevice;
 
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DependencyObject, Dictionary<DependencyProperty, long>> Revisions = new();
 
     public static void To(IAnimatable target, DependencyProperty property, double value, TimeSpan duration,
-        bool animate, Action? completed = null)
+        bool animate, Action? completed = null, bool spatial = false)
     {
         var owner = (DependencyObject)target;
         var revisions = Revisions.GetOrCreateValue(owner);
@@ -33,7 +34,7 @@ public static class Motion
             completed?.Invoke();
             return;
         }
-        var animation = new DoubleAnimation(current, value, duration) { EasingFunction = new InterfaceEase() };
+        var animation = new DoubleAnimation(current, value, duration) { EasingFunction = new InterfaceEase(spatial) };
         animation.Completed += (_, _) =>
         {
             if (revisions[property] != revision) return;
@@ -45,10 +46,16 @@ public static class Motion
     }
     private sealed class InterfaceEase : EasingFunctionBase
     {
-        private readonly KeySpline _curve = new(0.23, 1, 0.32, 1);
-        public InterfaceEase() => EasingMode = EasingMode.EaseIn;
+        private readonly bool _spatial;
+        private readonly KeySpline _curve;
+        public InterfaceEase(bool spatial = false)
+        {
+            _spatial = spatial;
+            _curve = spatial ? new KeySpline(0.32, 0.72, 0, 1) : new KeySpline(0.23, 1, 0.32, 1);
+            EasingMode = EasingMode.EaseIn; // Use the supplied spline directly, without inversion.
+        }
         protected override double EaseInCore(double normalizedTime) => _curve.GetSplineProgress(normalizedTime);
-        protected override Freezable CreateInstanceCore() => new InterfaceEase();
+        protected override Freezable CreateInstanceCore() => new InterfaceEase(_spatial);
     }
 
     public static readonly DependencyProperty PressProperty = DependencyProperty.RegisterAttached("Press", typeof(bool), typeof(Motion), new PropertyMetadata(false, Attach));
@@ -93,9 +100,9 @@ public static class Motion
                 if (GetEnter(element) && PointerMotion)
                 {
                     element.Opacity = 0;
-                    element.RenderTransform = new TranslateTransform(0, 4);
+                    element.RenderTransform = new TranslateTransform(0, 10);
                     To(element, UIElement.OpacityProperty, 1, Transition, true);
-                    To((TranslateTransform)element.RenderTransform, TranslateTransform.YProperty, 0, Transition, true);
+                    To((TranslateTransform)element.RenderTransform, TranslateTransform.YProperty, 0, Navigation, true, spatial: true);
                 }
             };
             element.Unloaded += (_, _) => Detach();
@@ -109,16 +116,20 @@ public static class Motion
                 _button = button;
                 _pressed = DependencyPropertyDescriptor.FromProperty(ButtonBase.IsPressedProperty, button.GetType());
                 _pressed.AddValueChanged(button, PressChanged);
+                button.MouseEnter += HoverChanged;
+                button.MouseLeave += HoverChanged;
             }
         }
+        private void HoverChanged(object sender, MouseEventArgs e) => PressChanged(sender, e);
         private void PressChanged(object? sender, EventArgs e)
         {
             if (_button is null) return;
             if (_button.IsPressed) _pointerPress = Mouse.LeftButton == MouseButtonState.Pressed;
             if (_element.RenderTransform is not ScaleTransform scale) _element.RenderTransform = scale = new ScaleTransform(1, 1);
             _element.RenderTransformOrigin = new Point(0.5, 0.5);
-            bool animate = _pointerPress && Enabled;
-            double target = _button.IsPressed && _pointerPress && Enabled ? 0.97 : 1;
+            bool animate = Enabled && (_pointerPress || PointerMotion);
+            double target = _button.IsPressed && _pointerPress && Enabled ? 0.97
+                : _button.IsMouseOver && _button.IsEnabled && PointerMotion ? 1.02 : 1;
             To(scale, ScaleTransform.ScaleXProperty, target, Feedback, animate);
             To(scale, ScaleTransform.ScaleYProperty, target, Feedback, animate);
             if (!_button.IsPressed) _pointerPress = false;
@@ -146,7 +157,12 @@ public static class Motion
         {
             if (_watching) SystemParameters.StaticPropertyChanged -= PreferencesChanged;
             _watching = false;
-            if (_button is not null) _pressed?.RemoveValueChanged(_button, PressChanged);
+            if (_button is not null)
+            {
+                _pressed?.RemoveValueChanged(_button, PressChanged);
+                _button.MouseEnter -= HoverChanged;
+                _button.MouseLeave -= HoverChanged;
+            }
             _button = null;
             _pressed = null;
             Reset();

@@ -51,5 +51,7 @@
   "settings.backup.restore": "Ripristina…",
   "settings.about.description": "Trasmette l'audio del tuo PC a uno speaker Sonos tramite la rete locale (UPnP + HTTP). Tutta l'elaborazione è locale: nessun audio o dato viene inviato a Internet e non viene raccolta alcuna informazione personale.",
   "settings.about.thirdParty": "Libreria di terze parti: NAudio (licenza MIT).",
-  "settings.about.disclaimer": "Progetto personale, non affiliato a Sonos, Inc. né da essa approvato. «Sonos» è un marchio del rispettivo titolare."
+  "settings.about.disclaimer": "Progetto personale, non affiliato a Sonos, Inc. né da essa approvato. «Sonos» è un marchio del rispettivo titolare.",
+  "settings.general.sounds.title": "Suoni dell’interfaccia",
+  "settings.general.sounds.hint": "Conferme delicate quando modifichi le impostazioni. Silenziosi durante lo streaming."
 }

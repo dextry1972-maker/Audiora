@@ -51,5 +51,7 @@
   "settings.backup.restore": "Restaurer…",
   "settings.about.description": "Diffuse l’audio de votre PC vers une enceinte Sonos via le réseau local (UPnP + HTTP). Tout le traitement est local : aucun audio ni aucune donnée n’est envoyé sur Internet et aucune information personnelle n’est collectée.",
   "settings.about.thirdParty": "Bibliothèque tierce : NAudio (licence MIT).",
-  "settings.about.disclaimer": "Projet personnel, ni affilié à Sonos, Inc. ni approuvé par celle-ci. « Sonos » est une marque de son propriétaire."
+  "settings.about.disclaimer": "Projet personnel, ni affilié à Sonos, Inc. ni approuvé par celle-ci. « Sonos » est une marque de son propriétaire.",
+  "settings.general.sounds.title": "Sons de l’interface",
+  "settings.general.sounds.hint": "Confirmations discrètes lors des réglages. Silencieuses pendant la diffusion."
 }

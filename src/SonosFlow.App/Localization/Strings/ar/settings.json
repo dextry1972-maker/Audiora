@@ -51,5 +51,7 @@
   "settings.backup.restore": "استعادة…",
   "settings.about.description": "يبث صوت الكمبيوتر إلى مكبر صوت Sonos عبر الشبكة المحلية (UPnP + HTTP). تتم كل المعالجة محليًا: لا يُرسل أي صوت أو بيانات إلى الإنترنت ولا تُجمع أي معلومات شخصية.",
   "settings.about.thirdParty": "مكتبة تابعة لجهة خارجية: NAudio (ترخيص MIT).",
-  "settings.about.disclaimer": "مشروع شخصي، غير تابع لشركة Sonos, Inc. ولا معتمد منها. «Sonos» علامة تجارية لمالكها."
+  "settings.about.disclaimer": "مشروع شخصي، غير تابع لشركة Sonos, Inc. ولا معتمد منها. «Sonos» علامة تجارية لمالكها.",
+  "settings.general.sounds.title": "أصوات الواجهة",
+  "settings.general.sounds.hint": "تأكيدات هادئة عند تغيير الإعدادات. صامتة أثناء البث."
 }

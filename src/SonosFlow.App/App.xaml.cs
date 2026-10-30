@@ -76,7 +76,7 @@ public partial class App : Application
         Loc.Instance.LanguageChanged += ShowHotkeysStatus; // only the "in use" note is text: no re-registration
         _vm = new MainViewModel(settings);
         _window = new MainWindow(_vm);
-        if (motionPreview) { _window.Title += " · Vista previa de movimiento"; _vm.MiniVisible = false; }
+        if (motionPreview) { _window.Title += " · Vista previa · interacción y sonidos"; _vm.MiniVisible = false; }
         _window.Closing += OnWindowClosing;
         _window.StateChanged += OnMainStateChanged;
         _mini = new MiniPlayerWindow(_vm);

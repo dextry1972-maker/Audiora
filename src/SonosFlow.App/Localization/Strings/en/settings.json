@@ -58,5 +58,7 @@
 
   "settings.about.description": "Streams your PC's audio to a Sonos speaker over the local network (UPnP + HTTP). All processing is local: no audio or data is sent to the internet and no personal information is collected.",
   "settings.about.thirdParty": "Third-party library: NAudio (MIT license).",
-  "settings.about.disclaimer": "Personal project, not affiliated with or endorsed by Sonos, Inc. “Sonos” is a trademark of its owner."
+  "settings.about.disclaimer": "Personal project, not affiliated with or endorsed by Sonos, Inc. “Sonos” is a trademark of its owner.",
+  "settings.general.sounds.title": "Interface sounds",
+  "settings.general.sounds.hint": "Gentle confirmations when changing settings. Silent while streaming."
 }

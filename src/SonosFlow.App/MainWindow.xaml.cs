@@ -24,6 +24,8 @@ public partial class MainWindow : Window
         Loaded += (_, _) => { if (!_watchingMotion) { SystemParameters.StaticPropertyChanged += OnMotionPreference; _watchingMotion = true; } };
         Unloaded += (_, _) => { SystemParameters.StaticPropertyChanged -= OnMotionPreference; _watchingMotion = false; };
         Closed += (_, _) => { SystemParameters.StaticPropertyChanged -= OnMotionPreference; vm.PropertyChanged -= OnVmChanged; };
+        Loaded += (_, _) => MoveNavigation(false);
+        NavTrack.SizeChanged += (_, _) => MoveNavigation(false);
         SourceInitialized += (_, _) => ApplyWindowsChrome();
         StateChanged += (_, _) =>
         {
@@ -40,12 +42,16 @@ public partial class MainWindow : Window
         {
             if (Controls.Motion.Enabled) return;
             ++_pageRevision;
+            MoveNavigation(false);
             foreach (var page in new[] { HomePage, SettingsPage })
             {
                 bool selected = page == (_vm.Page == "settings" ? SettingsPage : HomePage);
                 Controls.Motion.To(page, OpacityProperty, selected ? 1 : 0, Controls.Motion.Transition, false);
                 if (page.RenderTransform is TranslateTransform move)
+                {
                     Controls.Motion.To(move, TranslateTransform.YProperty, 0, Controls.Motion.Transition, false);
+                    Controls.Motion.To(move, TranslateTransform.XProperty, 0, Controls.Motion.Transition, false);
+                }
                 page.Visibility = selected ? Visibility.Visible : Visibility.Collapsed;
             }
         });
@@ -64,6 +70,7 @@ public partial class MainWindow : Window
         var (show, hide) = page == "settings" ? (SettingsPage, HomePage) : (HomePage, SettingsPage);
         NavHome.IsChecked = page != "settings";
         NavSettings.IsChecked = page == "settings";
+        MoveNavigation(Controls.Motion.PointerMotion);
         if (show.Visibility == Visibility.Visible && show.IsHitTestVisible && show.Opacity >= 0.999) return;
 
         int revision = ++_pageRevision;
@@ -76,13 +83,23 @@ public partial class MainWindow : Window
         System.Windows.Controls.Panel.SetZIndex(hide, 0);
         if (entering) show.ScrollToTop();
         if (show.RenderTransform is not TranslateTransform move) show.RenderTransform = move = new TranslateTransform();
-        if (entering) { show.Opacity = animate ? 0 : 1; move.Y = animate ? 6 : 0; }
+        if (entering) { show.Opacity = animate ? 0 : 1; move.X = animate ? (page == "settings" ? 24 : -24) * (FlowDirection == FlowDirection.RightToLeft ? -1 : 1) : 0; }
         Controls.Motion.To(show, OpacityProperty, 1, Controls.Motion.Transition, animate);
-        Controls.Motion.To(move, TranslateTransform.YProperty, 0, Controls.Motion.Transition, animate);
+        Controls.Motion.To(move, TranslateTransform.XProperty, 0, Controls.Motion.Navigation, animate, spatial: true);
         Controls.Motion.To(hide, OpacityProperty, 0, Controls.Motion.Transition, animate, () =>
         {
             if (revision == _pageRevision) hide.Visibility = Visibility.Collapsed;
         });
+    }
+
+    private void MoveNavigation(bool animate)
+    {
+        var selected = _vm.Page == "settings" ? NavSettings : NavHome;
+        if (!IsLoaded || selected.ActualHeight <= 0) return;
+        NavSelection.Height = selected.ActualHeight;
+        double y = selected.TranslatePoint(new Point(), NavTrack).Y;
+        Controls.Motion.To((TranslateTransform)NavSelection.RenderTransform, TranslateTransform.YProperty,
+            y, Controls.Motion.Navigation, animate, spatial: true);
     }
 
     /// <summary>Saves the rendered window as PNG (used for automated visual checks).</summary>

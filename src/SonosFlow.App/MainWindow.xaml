@@ -119,10 +119,18 @@
                     <Image Source="/Assets/SonosFlow.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality" />
                     <TextBlock Text="{loc:T main.header.brand}" Style="{StaticResource T.Base}" FontFamily="{StaticResource F.Display}" FontSize="21" FontWeight="SemiBold" Margin="11,0,0,2" VerticalAlignment="Center" />
                 </StackPanel>
+                <Grid x:Name="NavTrack">
+                    <Border x:Name="NavSelection" Height="40" VerticalAlignment="Top" CornerRadius="13"
+                            Background="{StaticResource B.Panel}" BorderBrush="{StaticResource B.PanelEdge}" BorderThickness="1" IsHitTestVisible="False">
+                        <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
+                    </Border>
+                    <StackPanel>
                 <RadioButton x:Name="NavHome" Style="{StaticResource Nav.Side}" GroupName="nav" IsChecked="True" Tag="&#xE80F;" Content="{loc:T main.nav.home}"
                              Command="{Binding NavigateCommand}" CommandParameter="home" />
                 <RadioButton x:Name="NavSettings" Style="{StaticResource Nav.Side}" GroupName="nav" Tag="&#xE713;" Content="{loc:T main.nav.settings}"
                              Command="{Binding NavigateCommand}" CommandParameter="settings" />
+                    </StackPanel>
+                </Grid>
             </StackPanel>
         </Border>
 

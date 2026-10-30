@@ -690,8 +690,8 @@
                             <Setter Property="Foreground" Value="{StaticResource B.Text}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.Panel}" />
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.PanelEdge}" />
+
+
                             <Setter TargetName="Glyph" Property="Foreground" Value="{StaticResource B.AccentHi}" />
                             <Setter Property="Foreground" Value="{StaticResource B.Text}" />
                             <Setter Property="FontWeight" Value="SemiBold" />

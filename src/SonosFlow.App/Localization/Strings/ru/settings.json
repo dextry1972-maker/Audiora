@@ -51,5 +51,7 @@
   "settings.backup.restore": "Восстановить…",
   "settings.about.description": "Передаёт звук ПК на колонку Sonos по локальной сети (UPnP + HTTP). Вся обработка выполняется локально: ни звук, ни данные не отправляются в интернет, личная информация не собирается.",
   "settings.about.thirdParty": "Сторонняя библиотека: NAudio (лицензия MIT).",
-  "settings.about.disclaimer": "Личный проект, не связанный с Sonos, Inc. и не одобренный ею. «Sonos» — товарный знак своего владельца."
+  "settings.about.disclaimer": "Личный проект, не связанный с Sonos, Inc. и не одобренный ею. «Sonos» — товарный знак своего владельца.",
+  "settings.general.sounds.title": "Звуки интерфейса",
+  "settings.general.sounds.hint": "Мягкое подтверждение изменений. Без звука во время трансляции."
 }

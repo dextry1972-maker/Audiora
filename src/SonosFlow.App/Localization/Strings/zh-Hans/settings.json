@@ -51,5 +51,7 @@
   "settings.backup.restore": "还原…",
   "settings.about.description": "通过本地网络（UPnP + HTTP）将电脑音频传输到 Sonos 扬声器。所有处理均在本地完成：不会向 Internet 发送任何音频或数据，也不会收集个人信息。",
   "settings.about.thirdParty": "第三方库：NAudio（MIT 许可证）。",
-  "settings.about.disclaimer": "个人项目，与 Sonos, Inc. 无关联，也未获其认可。“Sonos”是其所有者的商标。"
+  "settings.about.disclaimer": "个人项目，与 Sonos, Inc. 无关联，也未获其认可。“Sonos”是其所有者的商标。",
+  "settings.general.sounds.title": "界面音效",
+  "settings.general.sounds.hint": "更改设置时播放轻柔提示音。串流期间保持静音。"
 }

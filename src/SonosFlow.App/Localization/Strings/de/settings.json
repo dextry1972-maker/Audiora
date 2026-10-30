@@ -51,5 +51,7 @@
   "settings.backup.restore": "Wiederherstellen…",
   "settings.about.description": "Streamt den Ton deines PCs über das lokale Netzwerk (UPnP + HTTP) an einen Sonos-Lautsprecher. Die gesamte Verarbeitung erfolgt lokal: Es werden weder Audio noch Daten ins Internet gesendet und keine persönlichen Informationen erfasst.",
   "settings.about.thirdParty": "Drittanbieter-Bibliothek: NAudio (MIT-Lizenz).",
-  "settings.about.disclaimer": "Privates Projekt, weder mit Sonos, Inc. verbunden noch von Sonos, Inc. unterstützt. „Sonos“ ist eine Marke ihres Inhabers."
+  "settings.about.disclaimer": "Privates Projekt, weder mit Sonos, Inc. verbunden noch von Sonos, Inc. unterstützt. „Sonos“ ist eine Marke ihres Inhabers.",
+  "settings.general.sounds.title": "Oberflächentöne",
+  "settings.general.sounds.hint": "Dezente Bestätigung bei Änderungen. Während des Streamings stumm."
 }

@@ -263,6 +263,12 @@ public sealed partial class MainViewModel : ObservableObject
     private bool _resumeOnLaunch;
     public bool ResumeOnLaunch { get => _resumeOnLaunch; set { if (Set(ref _resumeOnLaunch, value)) { _settings.ResumeOnLaunch = value; _settings.Save(); } } }
 
+    public bool InterfaceSounds
+    {
+        get => _settings.InterfaceSounds;
+        set { if (_settings.InterfaceSounds == value) return; _settings.InterfaceSounds = value; _settings.Save(); OnPropertyChanged(); }
+    }
+
     public bool StartWithWindows
     {
         get => WindowsIntegration.StartsWithWindows;
