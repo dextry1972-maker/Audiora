@@ -17,12 +17,17 @@
         FlowDirection="{Binding FlowDirection, Source={x:Static loc:Loc.Instance}}">
 
     <Window.Resources>
-        <!-- Near-black capsule: solid enough to read over any game or desktop, no blur needed -->
-        <LinearGradientBrush x:Key="Glass" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#F5161A1D" Offset="0" />
-            <GradientStop Color="#F70B0D0F" Offset="1" />
+        <!-- Deep emerald glass: solid enough to read over any game or desktop, no blur needed -->
+        <LinearGradientBrush x:Key="Glass" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#F2193026" Offset="0" />
+            <GradientStop Color="#F50B1814" Offset="0.55" />
+            <GradientStop Color="#F70A1511" Offset="1" />
         </LinearGradientBrush>
-        <SolidColorBrush x:Key="Edge" Color="#1FFFFFFF" />
+        <LinearGradientBrush x:Key="Edge" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#66FFFFFF" Offset="0" />
+            <GradientStop Color="#1AFFFFFF" Offset="0.45" />
+            <GradientStop Color="#552FD27A" Offset="1" />
+        </LinearGradientBrush>
 
         <!-- Speaker status dot: emerald while live, grey otherwise -->
         <Style x:Key="SpeakerDot" TargetType="Ellipse">

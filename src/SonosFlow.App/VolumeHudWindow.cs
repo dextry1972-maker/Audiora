@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -51,8 +51,8 @@ public sealed class VolumeHudWindow : Window
             Margin = new Thickness(16), // room for the shadow
             Padding = new Thickness(18, 14, 18, 14),
             CornerRadius = new CornerRadius(18),
-            Background = new SolidColorBrush(Color.FromArgb(0xF5, 0x12, 0x15, 0x18)), // same near-black as the mini player
-            BorderBrush = new SolidColorBrush(Color.FromArgb(0x1F, 0xFF, 0xFF, 0xFF)),
+            Background = new LinearGradientBrush(Color.FromArgb(0xF2, 0x19, 0x30, 0x26), Color.FromArgb(0xF7, 0x0A, 0x15, 0x11), new Point(0, 0), new Point(1, 1)), // emerald glass, as the mini player
+            BorderBrush = new LinearGradientBrush(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF), Color.FromArgb(0x55, 0x2F, 0xD2, 0x7A), new Point(0, 0), new Point(1, 1)),
             BorderThickness = new Thickness(1),
             Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 18, ShadowDepth = 3, Opacity = 0.45 },
             Child = panel,

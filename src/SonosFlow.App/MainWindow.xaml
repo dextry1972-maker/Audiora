@@ -1,4 +1,4 @@
-<Window x:Class="SonosFlow.App.MainWindow"
+﻿<Window x:Class="SonosFlow.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -100,14 +100,34 @@
     </Window.Resources>
 
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="212" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="56" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <ctl:AuroraBackground Grid.ColumnSpan="2" Grid.RowSpan="3" />
+
+        <!-- ═══════════ Sidebar: brand and navigation ═══════════ -->
+        <Border Grid.RowSpan="2" Background="{StaticResource B.SideSheet}" BorderBrush="{StaticResource B.Hairline}" BorderThickness="0,0,1,0">
+            <StackPanel Margin="16,0,16,0">
+                <StackPanel Orientation="Horizontal" Margin="10,16,0,22" Height="40">
+                    <Image Source="/Assets/SonosFlow.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <TextBlock Text="{loc:T main.header.brand}" Style="{StaticResource T.Base}" FontFamily="{StaticResource F.Display}" FontSize="21" FontWeight="SemiBold" Margin="11,0,0,2" VerticalAlignment="Center" />
+                </StackPanel>
+                <RadioButton x:Name="NavHome" Style="{StaticResource Nav.Side}" GroupName="nav" IsChecked="True" Tag="&#xE80F;" Content="{loc:T main.nav.home}"
+                             Command="{Binding NavigateCommand}" CommandParameter="home" />
+                <RadioButton x:Name="NavSettings" Style="{StaticResource Nav.Side}" GroupName="nav" Tag="&#xE713;" Content="{loc:T main.nav.settings}"
+                             Command="{Binding NavigateCommand}" CommandParameter="settings" />
+            </StackPanel>
+        </Border>
+
         <!-- ═══════════ Header (drag area via WindowChrome) ═══════════ -->
-        <Grid Margin="22,0,0,0">
+        <Grid Grid.Column="1" Margin="22,0,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -115,16 +135,6 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Image Source="/Assets/SonosFlow.png" Width="22" Height="22" RenderOptions.BitmapScalingMode="HighQuality" />
-                <TextBlock Text="{loc:T main.header.brand}" Style="{StaticResource T.Base}" FontFamily="{StaticResource F.Display}" FontSize="15" FontWeight="SemiBold" Margin="9,0,0,1" VerticalAlignment="Center" />
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="30,0,0,0" VerticalAlignment="Center">
-                <RadioButton x:Name="NavHome" Style="{StaticResource Nav.Tab}" GroupName="nav" IsChecked="True" Content="{loc:T main.nav.home}"
-                             Command="{Binding NavigateCommand}" CommandParameter="home" />
-                <RadioButton x:Name="NavSettings" Style="{StaticResource Nav.Tab}" GroupName="nav" Content="{loc:T main.nav.settings}"
-                             Command="{Binding NavigateCommand}" CommandParameter="settings" />
-            </StackPanel>
 
             <!-- Device selector -->
             <ToggleButton x:Name="DeviceToggle" Grid.Column="3" Style="{StaticResource Btn.Pill}" Padding="12,6,12,6" VerticalAlignment="Center"
@@ -201,7 +211,7 @@
         </Grid>
 
         <!-- ═══════════ Pages ═══════════ -->
-        <Grid Grid.Row="1" x:Name="PageHost">
+        <Grid Grid.Row="1" Grid.Column="1" x:Name="PageHost">
             <ScrollViewer x:Name="HomePage" VerticalScrollBarVisibility="Auto">
                 <Grid MaxWidth="760" Margin="32,0,32,20" HorizontalAlignment="Center" Width="760">
                     <Grid.RowDefinitions>
@@ -295,11 +305,14 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <!-- Particle waves flowing out of the stream button (decorative) -->
+                    <ctl:WaveField Grid.Row="2" Height="236" Margin="-330,0" VerticalAlignment="Center" />
+
                     <!-- Stage: real spectrum ring around the stream button -->
-                    <Grid Grid.Row="2" Width="264" Height="264" Margin="0,6,0,0" HorizontalAlignment="Center" Background="Transparent"
+                    <Grid Grid.Row="2" Width="236" Height="236" Margin="0,2,0,0" HorizontalAlignment="Center" Background="Transparent"
                           ToolTip="{loc:T main.stage.tooltip}">
 
-                        <Ellipse Width="264" Height="264" IsHitTestVisible="False" Opacity="{Binding Level, ElementName=Viz}">
+                        <Ellipse Width="236" Height="236" IsHitTestVisible="False" Opacity="{Binding Level, ElementName=Viz}">
                             <Ellipse.Fill>
                                 <RadialGradientBrush>
                                     <GradientStop Color="#382FD27A" Offset="0" />
@@ -380,14 +393,17 @@
                     </Grid>
 
                     <!-- Action label and time -->
-                    <StackPanel Grid.Row="3" HorizontalAlignment="Center" Margin="0,-6,0,14">
+                    <StackPanel Grid.Row="3" HorizontalAlignment="Center" Margin="0,-4,0,12">
                         <TextBlock Text="{Binding StreamButtonText}" Style="{StaticResource T.Base}" FontWeight="SemiBold" HorizontalAlignment="Center" />
                         <TextBlock Text="{Binding ElapsedText}" Style="{StaticResource T.Dim}" FontSize="12" FontFamily="Cascadia Mono, Consolas" HorizontalAlignment="Center"
                                    Margin="0,3,0,0" Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
 
+                    <!-- ═══ Glass card: what plays, the Sonos volume, local options and the source ═══ -->
+                    <Border Grid.Row="4" Style="{StaticResource Card}" Width="600" Margin="0,0,0,18" Padding="24,16">
+                    <StackPanel>
                     <!-- Now playing (or the source when Windows publishes no title) + sleep timer -->
-                    <Grid Grid.Row="4" Width="560" Margin="0,0,0,14">
+                    <Grid Margin="0,0,0,2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -449,8 +465,10 @@
                         </StackPanel>
                     </Grid>
 
+                    <Rectangle Style="{StaticResource Hairline}" Margin="0,12,0,14" />
+
                     <!-- Volume of the Sonos + local output options -->
-                    <StackPanel Grid.Row="5" Width="560" Margin="0,0,0,16">
+                    <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -489,8 +507,10 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <Rectangle Style="{StaticResource Hairline}" Margin="0,14,0,14" />
+
                     <!-- Source -->
-                    <StackPanel Grid.Row="6" HorizontalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Stretch">
                         <Border Style="{StaticResource SegTrack}" HorizontalAlignment="Center">
                             <StackPanel Orientation="Horizontal">
                                 <RadioButton Style="{StaticResource Seg}" Content="{loc:T main.source.mode.system.label}" GroupName="srcmode" IsChecked="{Binding IsAppMode, Converter={StaticResource InvertBool}, Mode=TwoWay}"
@@ -501,7 +521,7 @@
                         </Border>
 
                         <!-- Whole PC: which output -->
-                        <StackPanel Margin="0,14,0,0" Width="420" Visibility="{Binding IsAppMode, Converter={StaticResource BoolToVisInv}}">
+                        <StackPanel Margin="0,14,0,0" Visibility="{Binding IsAppMode, Converter={StaticResource BoolToVisInv}}">
                             <ComboBox x:Name="SourceCombo" Style="{StaticResource Combo.Flow}" ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}"
                                       IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="{loc:T main.source.output.name}" />
                             <TextBlock Style="{StaticResource T.Dim}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0"
@@ -509,7 +529,7 @@
                         </StackPanel>
 
                         <!-- One application: chips -->
-                        <StackPanel Margin="0,14,0,0" Width="700" Visibility="{Binding IsAppMode, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Margin="0,14,0,0" Visibility="{Binding IsAppMode, Converter={StaticResource BoolToVis}}">
                             <ItemsControl ItemsSource="{Binding Apps}" HorizontalAlignment="Center">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate><WrapPanel HorizontalAlignment="Center" /></ItemsPanelTemplate>
@@ -541,6 +561,8 @@
                             </Button>
                         </StackPanel>
                     </StackPanel>
+                    </StackPanel>
+                    </Border>
                 </Grid>
             </ScrollViewer>
 
@@ -550,7 +572,7 @@
         </Grid>
 
         <!-- ═══════════ Footer: connection status, Sonos sound, details ═══════════ -->
-        <Border Grid.Row="2" BorderBrush="{StaticResource B.Hairline}" BorderThickness="0,1,0,0" Padding="22,0,14,0" Height="46">
+        <Border Grid.Row="2" Grid.ColumnSpan="2" Background="#38020A07" BorderBrush="{StaticResource B.Hairline}" BorderThickness="0,1,0,0" Padding="22,0,14,0" Height="46">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="7" Height="7" Margin="0,1,8,0" VerticalAlignment="Center">
