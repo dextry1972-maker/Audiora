@@ -121,7 +121,7 @@ public partial class MiniPlayerWindow : Window
     }
 
     private void FadeTo(double opacity) =>
-        BeginAnimation(OpacityProperty, new DoubleAnimation(opacity, TimeSpan.FromMilliseconds(220)));
+        Controls.Motion.To(this, OpacityProperty, opacity, Controls.Motion.Transition, Controls.Motion.Enabled);
 
     private void Capsule_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {

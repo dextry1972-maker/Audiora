@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
@@ -6,11 +6,10 @@ namespace SonosFlow.App.Controls;
 
 /// <summary>
 /// Decorative field of dots flowing in soft waves on both sides of the stream button (the reference's particle waves).
-/// Drawn once (about a thousand dots); the flow is a slow horizontal slide of the whole cached layer.
+/// Static decorative dots; actual audio visualization is handled separately by the analyzer.
 /// </summary>
 public sealed class WaveField : FrameworkElement
 {
-    private readonly TranslateTransform _slide = new();
     private Brush _dot = Brushes.White;
 
     public WaveField()
@@ -18,22 +17,12 @@ public sealed class WaveField : FrameworkElement
         IsHitTestVisible = false;
         SnapsToDevicePixels = false;
         CacheMode = new BitmapCache();
-        RenderTransform = _slide; // slides the cached layer: no redraw per frame
         Loaded += (_, _) =>
         {
             _dot = TryFindResource("B.AccentHi") as Brush ?? Brushes.LightGreen;
             InvalidateVisual();
-            if (!SystemParameters.ClientAreaAnimation) return;
-            var a = new DoubleAnimation(-14, 14, TimeSpan.FromSeconds(17))
-            {
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever,
-                EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut },
-            };
-            Timeline.SetDesiredFrameRate(a, 20);
-            _slide.BeginAnimation(TranslateTransform.XProperty, a);
+
         };
-        Unloaded += (_, _) => _slide.BeginAnimation(TranslateTransform.XProperty, null);
     }
 
     protected override void OnRender(DrawingContext dc)
