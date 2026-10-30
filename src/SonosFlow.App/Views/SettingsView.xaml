@@ -128,6 +128,105 @@
             </StackPanel>
         </Border>
 
+        <!-- Sounds: "Audiora Enchanted" -->
+        <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE8D6;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.sounds.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
+        <Border Style="{StaticResource Surface.Group}">
+            <StackPanel>
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="{loc:T settings.sounds.interface.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{loc:T settings.sounds.interface.hint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding InterfaceSounds}" AutomationProperties.Name="{loc:T settings.sounds.interface.title}" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="{loc:T settings.sounds.notification.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{loc:T settings.sounds.notification.hint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding NotificationSounds}" AutomationProperties.Name="{loc:T settings.sounds.notification.title}" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="{loc:T settings.sounds.connection.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{loc:T settings.sounds.connection.hint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding ConnectionSounds}" AutomationProperties.Name="{loc:T settings.sounds.connection.title}" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="{loc:T settings.sounds.loss.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{loc:T settings.sounds.loss.hint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding ConnectionLossSounds}" AutomationProperties.Name="{loc:T settings.sounds.loss.title}" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="{loc:T settings.sounds.error.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{loc:T settings.sounds.error.hint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding ErrorSounds}" AutomationProperties.Name="{loc:T settings.sounds.error.title}" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,260,0">
+                        <TextBlock Text="{loc:T settings.sounds.volume.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{loc:T settings.sounds.volume.hint}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" FlowDirection="LeftToRight">
+                        <Slider x:Name="SoundsVolumeSlider" Style="{StaticResource Slider.Flow}" Width="170" Minimum="0" Maximum="100" SmallChange="5" LargeChange="10"
+                                Value="{Binding SoundsVolume, Mode=TwoWay}" AutomationProperties.Name="{loc:T settings.sounds.volume.title}" />
+                        <TextBlock Text="{Binding SoundsVolumeText}" Style="{StaticResource T.Dim}" Width="48" TextAlignment="Right" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,280,0">
+                        <TextBlock Text="{loc:T settings.sounds.device.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{loc:T settings.sounds.device.hint}" />
+                    </StackPanel>
+                    <ComboBox Style="{StaticResource Combo.Flow}" Width="250" HorizontalAlignment="Right" VerticalAlignment="Top"
+                              ItemsSource="{Binding SoundDevices}" SelectedValuePath="Key" SelectedValue="{Binding SoundsDeviceKey}"
+                              AutomationProperties.Name="{loc:T settings.sounds.device.title}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate><TextBlock Text="{Binding Label}" /></DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <StackPanel Margin="0,13">
+                    <TextBlock Text="{loc:T settings.sounds.preview.title}" Style="{StaticResource RowTitle}" />
+                    <TextBlock Style="{StaticResource RowHint}" Text="{loc:T settings.sounds.preview.hint}" />
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button Content="{loc:T settings.sounds.p.connected}" Command="{Binding PreviewSoundCommand}" CommandParameter="Connected" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                        <Button Content="{loc:T settings.sounds.p.lost}" Command="{Binding PreviewSoundCommand}" CommandParameter="ConnectionLost" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                        <Button Content="{loc:T settings.sounds.p.reconnected}" Command="{Binding PreviewSoundCommand}" CommandParameter="Reconnected" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                        <Button Content="{loc:T settings.sounds.p.error}" Command="{Binding PreviewSoundCommand}" CommandParameter="Error" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                        <Button Content="{loc:T settings.sounds.p.start}" Command="{Binding PreviewSoundCommand}" CommandParameter="StreamStart" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                        <Button Content="{loc:T settings.sounds.p.stop}" Command="{Binding PreviewSoundCommand}" CommandParameter="StreamStop" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                        <Button Content="{loc:T settings.sounds.p.config}" Command="{Binding PreviewSoundCommand}" CommandParameter="ConfigChanged" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                        <Button Content="{loc:T settings.sounds.p.navigate}" Command="{Binding PreviewSoundCommand}" CommandParameter="Navigate" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                        <Button Content="{loc:T settings.sounds.p.toggleOn}" Command="{Binding PreviewSoundCommand}" CommandParameter="ToggleOn" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                        <Button Content="{loc:T settings.sounds.p.toggleOff}" Command="{Binding PreviewSoundCommand}" CommandParameter="ToggleOff" Style="{StaticResource Btn.Pill}" Margin="0,0,8,8" />
+                    </WrapPanel>
+                    <TextBlock Text="{Binding SoundsNote}" Style="{StaticResource RowHint}" Foreground="{StaticResource B.Warn}" Margin="0,4,0,0"
+                               Visibility="{Binding HasSoundsNote, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,150,0">
+                        <TextBlock Text="{loc:T settings.sounds.reset.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Style="{StaticResource RowHint}" Text="{loc:T settings.sounds.reset.hint}" />
+                    </StackPanel>
+                    <Button Content="{loc:T settings.sounds.reset.button}" Command="{Binding ResetSoundsCommand}" Style="{StaticResource Btn.Pill}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
         <!-- Mini player and shortcuts -->
         <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE8A7;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.mini.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">

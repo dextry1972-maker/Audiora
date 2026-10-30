@@ -16,6 +16,17 @@ public sealed class AppSettings
     public int PrebufferMs { get; set; } = 1000;
     /// <summary>System-wide Ctrl+Alt shortcuts for the Sonos volume, pause and the mini player.</summary>
     public bool GlobalHotkeys { get; set; } = true;
+    public bool InterfaceSounds { get; set; } = true;
+
+    // "Audiora Enchanted" sounds (Settings → Sonidos). Played locally, never sent to the Sonos.
+    public bool NotificationSounds { get; set; } = true;
+    public bool ConnectionSounds { get; set; } = true;
+    public bool ConnectionLossSounds { get; set; } = true;
+    public bool ErrorSounds { get; set; } = true;
+    /// <summary>Independent volume of the effects, 0–100.</summary>
+    public int SoundsVolume { get; set; } = 60;
+    /// <summary>Render endpoint for the effects; null = the system default.</summary>
+    public string? SoundsDeviceId { get; set; }
     /// <summary>Sonos Flow source folder for "Copias de seguridad" (auto-detected when running from the project).</summary>
     public string? ProjectPath { get; set; }
     public string? BackupRoot { get; set; }

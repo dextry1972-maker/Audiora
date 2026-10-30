@@ -31,7 +31,7 @@ public sealed partial class MainViewModel
                 if (ct.IsCancellationRequested) return;
                 if (SelectedSpeaker is not null)
                 {
-                    await StartAsync();
+                    await StartSilentlyAsync(); // an automatic start (e.g. at Windows sign-in) makes no sound
                     if (IsStreaming || ct.IsCancellationRequested) return;
                     if (!_lastStartRetryable) return; // a definitive problem (grouped speaker, app closed…): already shown
                 }

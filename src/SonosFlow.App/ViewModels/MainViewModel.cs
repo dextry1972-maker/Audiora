@@ -113,6 +113,7 @@ public sealed partial class MainViewModel : ObservableObject
             CommandManager.InvalidateRequerySuggested();
             foreach (var s in Speakers) s.IsStreaming = s.IsSelected && IsStreaming;
             StreamingChanged?.Invoke();
+            SoundStateReached(value);
         }
     }
 
@@ -142,7 +143,11 @@ public sealed partial class MainViewModel : ObservableObject
     private void Detail(Func<string> text) { _statusDetail = text; OnPropertyChanged(nameof(StatusDetail)); }
 
     private string _page = "home";
-    public string Page { get => _page; set => Set(ref _page, value); }
+    public string Page
+    {
+        get => _page;
+        set { var old = _page; if (Set(ref _page, value)) SoundNavigated(old); }
+    }
 
     // ── Speaker ─────────────────────────────────────────────────
     private SpeakerItem? _selectedSpeaker;
