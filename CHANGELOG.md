@@ -10,7 +10,7 @@ Formato: lo que cambia para quien usa Audiora, con el commit. Más reciente arri
   - **Ya encendido:** indica que los otros equipos deben conectarse a esa red y ofrece «Buscar de nuevo».
   - **Desconocido** (sin conexión compartible, política de Windows, error de la API): lo dice sin suponer que está apagado y ofrece «Abrir configuración».
 - No avisa mientras se transmite ni cuando el hotspot está arrancando por sí solo (p. ej. al iniciar sesión). Sin administrador ni registro.
-- Textos en los 12 idiomas. Detalles: `docs/NETWORKING.md` §11.
+- Textos en los 12 idiomas. Probado a mano con Windows real (hotspot apagado → «Activar hotspot») el 30/10/2026. Detalles: `docs/NETWORKING.md` §11.
 
 ### Rediseño «liquid glass» (ya en main, `a60570e`)
 - Barra lateral con Inicio y Ajustes, fondo aurora, ondas de puntos alrededor del botón, una tarjeta de cristal en Inicio, cabeceras de Ajustes con icono; mini reproductor, bienvenida y HUD con el mismo cristal. Todos los controles y funciones se conservan.
