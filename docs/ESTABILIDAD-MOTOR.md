@@ -90,7 +90,9 @@ Descartes con la política nueva: 488 / 92–95 trozos (≈ 4,9 s de audio, cont
 
 **Cómo leer los demás episodios:** los `relleno_sospechoso` (779/1016/126 ms a los 36–38 s de la sesión 1 y 26 ms en la 3) caen en el tramo de cambios de fuente, pausa y silencio local del autotest, donde el audio capturado se interrumpe a propósito; el clasificador es una **heurística** (relleno del marcapasos en los 2 s siguientes a audio audible) y no distingue una interrupción deliberada de un fallo de captura. Que coincidan con esos pasos es lo esperable, pero **no lo he verificado paso a paso**.
 
-**Límites:** dos ejecuciones de ~2,5 min cada una; no es una sesión larga, ni con corte de hotspot, ni con Wi-Fi convencional, ni acústica; el tono es de −60 dBFS.
+**Tercera ejecución (31/10 02:41, autorizada, 140 s, `1b8fb16`):** 35/35. Volúmenes intactos (Sonos 50 leído en solo lectura, PC 66 %). 5 sesiones (39, 10, 25, 13 y 23 s), margen 1000 ms. Registro de anomalías: **desbordes/descartes 0**, **huecos de captura 0**, **atascos de red 0**, escrituras HTTP máx. 15–23 ms, cola máx. 12–33 ms, tiempo de proceso por bloque ≤ 1,2 ms, ritmo estable 180–194 kB/s (nominal 192), búfer estimado del Sonos 1,2–1,5 s (min. 1,20 s: sin subejecución del Sonos inferida). Lo que **sí** aparece está provocado por el propio guion del autotest: 18 s de «no PLAYING» y 1 reconexión (pasos 18–20: pausa y Stop desde la app de Sonos, con recuperación en ≈ 6 s: «reintento 1/8 → reproducción correcta»), 7,8 MB de relleno del marcapasos (la app capturada deja de sonar a propósito) y 6 desconexiones (una por sesión más la reemisión del paso 19). Cero `cola`; los `relleno_sospechoso` (854/1019/51 ms a los 35–37 s de la primera sesión) se repiten con los mismos valores que en las ejecuciones anteriores. **No se pudo evaluar ningún corte audible** (tono de −60 dBFS).
+
+**Límites:** tres ejecuciones de ~2,5 min cada una; no es una sesión larga, ni con corte de hotspot, ni con Wi-Fi convencional, ni acústica; el tono es de −60 dBFS.
 
 ## 2. Qué se implementó (y por qué)
 
@@ -110,6 +112,16 @@ Nuevas (47 en Core; Core total 112, App 176, Backup 12 = 300; Core repetido 3 ve
 
 **Sesión completa contra un Sonos falso** (`StreamingSessionDiagnosticsTests`, 13 s): una `StreamingSession` real (captura WASAPI real de «Steam Streaming», marcapasos, servidor HTTP, vigilante y monitor de 1 Hz) contra un Sonos de pega en `127.0.0.1:1400` que contesta las llamadas UPnP de la sesión y descarga el flujo como un reproductor; a los 3 s el «reproductor» deja de leer 4 s y vuelve. Comprueba: el Sonos falso recibió `SetAVTransportURI` y `Play` y descargó el flujo; se crea **un** `diag-*.jsonl` con todas las líneas JSON válidas, `inicio` (modo), `resumen10s`, `resumen`, `http_abierta`, `http_cerrada`, **`episodio`** y **`descartes`** del atasco, sin IP ni nombre de sala y < 64 KB; la sesión informa `diagnóstico:` y `diagnóstico detallado: diag-…` y el CSV guarda el veredicto; y la sesión **no pasa a `Failed`** por el atasco. Esto ejecuta el enganche de `StreamingSession` (creación, Tick, Note, Finish y Dispose en el cierre). Sigue siendo un Sonos falso: no prueba nada del comportamiento del hardware. **Sin la salida «Steam Streaming» la prueba no hace nada** (termina en verde y escribe «OMITIDA» en su salida; xunit 2.5 no permite omitir en tiempo de ejecución): un equipo sin esa salida **no** ejecuta esta comprobación, salvo que se defina `AUDIORA_REQUIRE_SESSION_TEST=1`, que convierte la ausencia en un fallo. En este equipo se ejecutó con esa variable puesta (pasó en ≈ 17 s). Los tiempos son fijos (3 s + 4 s + 9 s) y el puerto 1400 del Sonos falso debe estar libre (y el 8795 de la sesión).
 
+**Recuento de pruebas por commit** (comprobado compilando y listando cada commit; las 298 → 300 no son una pérdida):
+
+| Commit | Backup | App | Core | Total |
+|---|---|---|---|---|
+| `a5ef2e5` (revisión de regresiones del lote 2) | 12 | 176 | 110 | **298** |
+| `10d7b82` (+ prueba de sesión contra el Sonos falso) | 12 | 176 | 111 | 299 |
+| `56df763` … `1b8fb16` (+ prueba del margen entregado al conectar) | 12 | 176 | 112 | **300** |
+
+Entre `a5ef2e5` y `1b8fb16` (11 commits, historia lineal, sin fusiones): **0 archivos borrados o renombrados, 0 pruebas desaparecidas** (los nombres de las 298 de `a5ef2e5` siguen todos en `1b8fb16`) y solo 2 pruebas nuevas; en `src/` solo hay 13 líneas añadidas y 3 borradas (el contador `DroppedBytes`, el umbral de «cola» con el margen y la lectura atómica de `_connectedAtSec`); el resto son pruebas (+248, 0 borradas), herramientas (+156) y documentación.
+
 Distinguir: **simuladas/aceleradas** (las anteriores y el soak local) vs **reales** (los registros de uso de §1.1). Una simulación rápida no prueba por sí sola seis minutos de estabilidad: el soak de 7 min es tiempo real pero solo cubre el PC.
 La prueba existente `Backlog_grows_while_the_player_stops_reading_and_recovers` se ajustó **a propósito** a la política nueva (ya no se retienen 20 s de audio: se descarta lo antiguo y se cuenta); tres pruebas mías fallaron primero por errores de la propia prueba (redondeo a enteros, margen incluido en el flujo, productor sin ritmo real) y se corrigieron sin tocar el código.
 
@@ -120,6 +132,28 @@ Sin bloqueos en la cola nueva (sin pérdida de despertar, contabilidad consisten
 Segunda revisión independiente, solo lectura: **sin regresiones graves ni bloqueantes**. Verificó el escape de las expresiones regulares (sin ReDoS ni falsos positivos sobre `5000ms`, `cliente#3`, `cola 1500ms`), que el saneado cubre todas las vías de texto libre hacia el archivo, `OpenFile` (hasta 5 nombres, `FilePath` solo si se abrió), el límite de cola para margen 0/1/2/3 s (1,5/2/3/4 s: siempre margen + 1 s, nunca < 1,5 s) y el orden `Finish → Dispose` del cierre. Tres defectos menores **corregidos**: el recorte de 160 caracteres cortaba justo los contadores finales de `http_cerrada` (ahora 300), el recorte podía partir un par sustituto y desactivar todo el archivo (ahora no), y `Sanitize(null)` lanzaría (ahora devuelve vacío); con pruebas. Observaciones sobre pruebas: `Two_sessions_in_the_same_millisecond…` valida el resultado pero no fuerza la colisión del milisegundo; el umbral de descartes de la prueba de 100 s depende de la velocidad de drenado del cliente (sin jitter observado en 6 ejecuciones del Core). No comprobado por el revisor: ejecución de pruebas, comportamiento bajo carga.
 
 ## 4. Validación pendiente (necesita autorización: toca el Sonos real)
+
+### Recomendación para la prueba de resistencia de 10 minutos (no ejecutada)
+**Qué es y qué no:** una sesión real con el Sonos por el hotspot, con el tono de −60 dBFS (inaudible), margen 1 s. Mide el **transporte** (conexión, cola, búfer estimado, ritmo, reconexiones), no lo que se oye. Diez minutos cubren **la ventana de 5–6 min dos veces**, pero **no bastan para afirmar ni descartar una periodicidad** (el analizador exige ≥ 4 episodios: con un periodo de 5–6 min serían ≥ 20–30 min). Sirve como humo antes de la prueba de 30 min.
+
+**Condiciones previas (como el autotest):** Audiora instalada cerrada, Chrome/Edge/Brave cerrados, puerto 8780 libre, nada sonando, volúmenes del PC y del Sonos sin tocar (registrarlos antes y después), hotspot habitual.
+
+**Ejecución** (un tono que dure ≥ 900 s y el modo solo-resistencia, que captura únicamente el tono, sin silenciar el PC ni transmitir otras aplicaciones):
+```
+SonosFlow.CaptureCheck.exe tone-quiet 200 900 "Steam Streaming"        (anotar el PID)
+SonosFlow.exe --selftest-session <PID> --selftest-out <archivo.txt> --selftest-soak-only --selftest-soak-seconds 600 --minimized
+```
+**Análisis:** `python tools/analizar-sesiones.py 300` sobre el CSV, más el `diag-*.jsonl` de la sesión (episodios, `escritura_max_ms`, `hueco_tras_audio_max_ms`, `relleno_sospechoso`).
+
+**Criterios de aceptación propuestos** (régimen estable: se excluyen los 12 primeros segundos y los 8 s posteriores a cada conexión):
+- 0 reconexiones, 0 descartes, 0 huecos de captura, 0 «atasco de red», 0 «vigilante: NotPlaying»; transporte `PLAYING` en el 100 % de las filas.
+- Búfer estimado del Sonos ≥ 0,8 s en todo momento (margen 1 s); sin excursiones < 0,5 s de más de 2 s.
+- Cola máx. < 400 ms; ritmo entre 185 y 199 kB/s.
+- Diagnóstico: 0 episodios; escritura máx. < 250 ms; hueco de captura tras audio < 250 ms; 0 `relleno_sospechoso`.
+- Recursos (columnas del CSV): crecimiento de `private_memory_mb` < 10 MB entre el inicio y el final; `process_cpu_pct` medio < 2 %.
+- Al terminar: ninguna salida silenciada, sin registros de restauración pendientes, volúmenes idénticos a los anotados, puerto libre.
+
+**Qué hacer con el resultado:** limpio → repetir 30 min (≥ 5 ciclos de 5–6 min, y deriva con ≥ 120 s de captura continua); con episodios → anotar sus segundos (el analizador calcula periodicidad solo con ≥ 4) y repetir con margen 2 s para comparar. Una escucha manual de 10 min con música, hecha por el usuario, complementa lo que este tono no puede medir.
 
 > **Estado a 31/10/2026:** se ejecutaron y autorizaron dos autotests reales (35/35 y 35/35, §1.5). Se propuso además una sesión de resistencia real de 10 o 30 min con el tono de −60 dBFS (modo `--selftest-soak-only`, margen 1 s, por el hotspot actual) y **el usuario la declinó**: queda pendiente **por decisión**, no por imposibilidad. Los puntos 2–4 siguientes no se han ejecutado.
 
