@@ -24,7 +24,7 @@ No se modifican Core, red, captura ni rutas de audio. Se conservan los textos ex
 ## Recuperación
 
 Copia previa verificada SHA-256: `C:\Users\Admin\SonosFlow-Backups\SonosFlow_2026-10-30_12-47-36` (774 archivos). Los cambios están en una rama propia; main y la rama de estabilidad no se modifican. Para retirar esta entrega, revertir únicamente su commit en una rama de trabajo, después de revisar Git. No limpiar ni sobrescribir `.codex/`, que ya estaba sin seguimiento. No se instala ni se publica la aplicación.
-## Ampliación tras la aclaración del usuario: interacción y sonidos
+## Ampliación tras la aclaración del usuario: interacción y sonidos (HISTÓRICO: la parte de sonidos fue sustituida por la integración descrita al final)
 
 - El indicador de selección de la barra lateral se desplaza entre los elementos reales (posición y altura medidas), sin mover controles ni interceptar el foco. Pantallas entrantes: 24 DIP laterales, 240 ms, curva espacial (0.32,0.72,0,1), dirección invertida en RTL. Paneles: 10 DIP en 240 ms. Botones: hover 1.02 y pulsación 0.97, con reversión continua. Teclado y movimiento desactivado siguen siendo inmediatos.
 - Nueva opción «Sonidos de la interfaz» en General, con título y descripción en doce idiomas. `InterfaceSounds=true` es el valor compatible con JSON anteriores; se puede desactivar. En la vista previa la elección solo vive en memoria.

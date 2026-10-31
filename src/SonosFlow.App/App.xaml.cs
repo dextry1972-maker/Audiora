@@ -95,7 +95,7 @@ public partial class App : Application
             SoundUiHooks.Register(() => _sounds);
         }
         _window = new MainWindow(_vm);
-        if (motionPreview) { _window.Title += " · Vista previa · interacción y sonidos"; _vm.MiniVisible = false; }
+        if (motionPreview) { _window.Title += " · Vista previa · movimiento (sin sonidos)"; _vm.MiniVisible = false; }
         _window.Closing += OnWindowClosing;
         _window.StateChanged += OnMainStateChanged;
         _mini = new MiniPlayerWindow(_vm);
