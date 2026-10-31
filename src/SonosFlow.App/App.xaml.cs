@@ -62,11 +62,12 @@ public partial class App : Application
             return;
         }
 
+        bool motionPreview = args.Contains("--preview-motion");
         string? screenshot = Arg("--screenshot");
         string? miniShot = Arg("--screenshot-mini");
         string? hudShot = Arg("--screenshot-hud");
         string? welcomeShot = Arg("--screenshot-welcome");
-        bool testCapture = screenshot is not null || miniShot is not null || hudShot is not null || welcomeShot is not null
+        bool testCapture = motionPreview || screenshot is not null || miniShot is not null || hudShot is not null || welcomeShot is not null
                            || Arg("--selftest-session") is not null;
         if (!testCapture && !AcquireSingleInstance()) return;
         if (testCapture) AppSettings.PersistenceEnabled = false;
@@ -94,6 +95,7 @@ public partial class App : Application
             SoundUiHooks.Register(() => _sounds);
         }
         _window = new MainWindow(_vm);
+        if (motionPreview) { _window.Title += " · Vista previa · movimiento (sin sonidos)"; _vm.MiniVisible = false; }
         _window.Closing += OnWindowClosing;
         _window.StateChanged += OnMainStateChanged;
         _mini = new MiniPlayerWindow(_vm);
@@ -126,7 +128,7 @@ public partial class App : Application
         ApplyMiniVisibility();
 
         // The HUD capture needs no speaker; other test modes never resume a stream from the saved settings.
-        if (hudShot is null) await _vm.InitializeAsync(autoStart: args.Contains("--autostart"), allowResume: !testCapture);
+        if (hudShot is null && !motionPreview) await _vm.InitializeAsync(autoStart: args.Contains("--autostart"), allowResume: !testCapture);
 
         if (int.TryParse(Arg("--selftest-session"), out var tonePid) && Arg("--selftest-out") is { } outFile)
         {

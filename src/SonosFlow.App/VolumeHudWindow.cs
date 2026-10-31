@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -61,9 +61,7 @@ public sealed class VolumeHudWindow : Window
         _hide.Tick += (_, _) =>
         {
             _hide.Stop();
-            var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(250));
-            fade.Completed += (_, _) => { if (!_hide.IsEnabled) Hide(); };
-            BeginAnimation(OpacityProperty, fade);
+            Hide(); // Frequent keyboard feedback has no presentation delay.
         };
         SourceInitialized += (_, _) =>
         {

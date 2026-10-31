@@ -4,7 +4,7 @@
              IsHitTestVisible="False" Focusable="False" SnapsToDevicePixels="False">
     <!--
         The "liquid glass" panels show this through their translucent fill. Drawn once on a 1280×840 canvas scaled to the
-        window and cached as bitmaps, so the slow drift below only moves cached layers (no re-render per frame).
+        window and cached as bitmaps; the composition stays still while the controls provide purposeful feedback.
     -->
     <Grid>
         <Rectangle>
