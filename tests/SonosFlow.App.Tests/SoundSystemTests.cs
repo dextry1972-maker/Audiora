@@ -44,6 +44,29 @@ public sealed class EnchantedSynthTests
         Assert.InRange(EnchantedSynth.Render(id).Length * 1000.0 / EnchantedSynth.SampleRate, minMs, maxMs);
 
     [Fact]
+    public void Marimba_is_the_voice_in_use()
+    {
+        Assert.Equal(Timbre.Marimba, EnchantedSynth.DefaultTimbre);
+        Assert.True(EnchantedSynth.Render(SoundId.Connected).AsSpan().SequenceEqual(EnchantedSynth.Render(SoundId.Connected, Timbre.Marimba)));
+        Assert.False(EnchantedSynth.Render(SoundId.Connected).AsSpan().SequenceEqual(EnchantedSynth.Render(SoundId.Connected, Timbre.Ocarina)));
+    }
+
+    [Fact]
+    public void Every_timbre_of_every_sound_is_clean_so_any_of_them_can_be_chosen()
+    {
+        foreach (var timbre in Enum.GetValues<Timbre>())
+            foreach (var id in SoundCatalog.All)
+            {
+                var x = EnchantedSynth.Render(id, timbre);
+                string what = $"{id}/{timbre}";
+                Assert.True(x.All(float.IsFinite), what);
+                Assert.True(x.Max(Math.Abs) is > 0.05f and <= EnchantedSynth.PeakCeiling + 0.001f, what);
+                Assert.True(Math.Abs(x[0]) < 1e-3 && Math.Abs(x[^1]) < 1e-3, what);
+                Assert.True(x.Skip(1).Select((s, i) => Math.Abs(s - x[i])).Max() < 0.30f, what);
+            }
+    }
+
+    [Fact]
     public void Rendering_is_deterministic()
     {
         foreach (var id in SoundCatalog.All)
@@ -600,5 +623,34 @@ public sealed class SoundIsolationTests
             Assert.True(peakDevice > 0.05f, $"the whole-device capture should have heard the effects: peak {peakDevice}");
         }
         finally { try { child.Kill(true); } catch (InvalidOperationException) { } }
+    }
+}
+
+/// <summary>Writes one audition WAV per timbre when AUDIORA_DEMO_DIR is set; otherwise does nothing.</summary>
+public sealed class SoundDemoExport
+{
+    [Fact]
+    public void Export_timbre_demos_when_asked()
+    {
+        var dir = Environment.GetEnvironmentVariable("AUDIORA_DEMO_DIR");
+        if (string.IsNullOrEmpty(dir)) return;
+        Directory.CreateDirectory(dir);
+        SoundId[] order = [SoundId.Connected, SoundId.ConnectionLost, SoundId.Error, SoundId.StreamStart, SoundId.StreamStop,
+            SoundId.ConfigChanged, SoundId.ToggleOn, SoundId.ToggleOff, SoundId.Navigate, SoundId.Reconnected];
+        foreach (var timbre in Enum.GetValues<Timbre>())
+        {
+            var samples = new List<float>();
+            foreach (var id in order)
+            {
+                samples.AddRange(EnchantedSynth.Render(id, timbre).Select(x => x * 0.85f));
+                samples.AddRange(new float[(int)(EnchantedSynth.SampleRate * 0.9)]); // a pause between sounds
+            }
+            using var w = new BinaryWriter(File.Create(Path.Combine(dir, $"{(int)timbre + 1}-{timbre}.wav")));
+            int bytes = samples.Count * 4;
+            w.Write("RIFF"u8); w.Write(36 + bytes); w.Write("WAVEfmt "u8); w.Write(16); w.Write((short)1); w.Write((short)2);
+            w.Write(EnchantedSynth.SampleRate); w.Write(EnchantedSynth.SampleRate * 4); w.Write((short)4); w.Write((short)16);
+            w.Write("data"u8); w.Write(bytes);
+            foreach (var x in samples) { short v = (short)Math.Round(Math.Clamp(x, -1f, 1f) * short.MaxValue); w.Write(v); w.Write(v); }
+        }
     }
 }

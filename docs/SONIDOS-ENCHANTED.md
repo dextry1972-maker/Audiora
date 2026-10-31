@@ -1,6 +1,6 @@
 # Audiora — Sonidos «Enchanted»
 
-Sistema de sonidos de interfaz: originales (síntesis, sin grabaciones ni melodías ajenas), locales y **aislados del motor de transmisión**. Código en `src/SonosFlow.App/Sound/` y `ViewModels/MainViewModel.Sounds.cs`. `src/SonosFlow.Core` no cambia.
+Sistema de sonidos de interfaz: originales (síntesis, sin grabaciones ni melodías ajenas), locales y **aislados del motor de transmisión**. Voz principal: **marimba suave** con acentos de campanilla de cristal (elegida tras probar ocarina, cristal, arpa, kalimba y marimba; el resto siguen en `EnchantedSynth` como alternativas: `DefaultTimbre`). Código en `src/SonosFlow.App/Sound/` y `ViewModels/MainViewModel.Sounds.cs`. `src/SonosFlow.Core` no cambia.
 
 ## 1. Lo que condicionó el diseño (auditoría)
 
@@ -15,7 +15,7 @@ Sistema de sonidos de interfaz: originales (síntesis, sin grabaciones ni melod�
 | Pieza | Responsabilidad |
 |---|---|
 | `SoundCatalog` | 10 sonidos: categoría (qué interruptor lo gobierna), prioridad, intervalo mínimo, nivel relativo |
-| `EnchantedSynth` | Síntesis determinista (ocarina suave + campanilla de cristal + reverb corta), ADSR con fundidos, normalizado de nivel, sin clics |
+| `EnchantedSynth` | Síntesis determinista (marimba suave + campanilla de cristal + reverb corta), ADSR con fundidos, normalizado de nivel, sin clics; 5 timbres disponibles, marimba por defecto |
 | `SoundPolicy` | Decide: interruptores, volumen 0, conflicto de captura, limitación por sonido y por grupo, tope de 3 voces |
 | `SoundGate` | ¿Un sonido en este dispositivo llegaría al Sonos ahora? |
 | `WasapiEffectOutput` | Un cliente WASAPI compartido + mezclador con limitador suave (nunca llega a plena escala); se abre al primer sonido, se cierra a los 3 s de reposo, se reabre si cambia el dispositivo, se aparca 10 s si falla (un aviso en el registro por caída); libera el dispositivo COM al cerrar |
