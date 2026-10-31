@@ -653,7 +653,7 @@ public sealed class StreamingSession : IAsyncDisposable
     {
         try { _log?.WriteLine($"# {DateTime.Now:HH:mm:ss.fff} {message}"); } catch (IOException) { } catch (ObjectDisposedException) { }
         // The diagnostics file keeps the event but not what the user named («…» holds application names).
-        _diag?.Event("nota", System.Text.RegularExpressions.Regex.Replace(message, "«[^»]*»", "«…»"));
+        _diag?.Event("nota", message); // sanitised by the diagnostics: no names, paths, addresses or programs reach the file
         Diagnostic?.Invoke(message);
     }
 
@@ -780,12 +780,15 @@ public sealed class StreamingSession : IAsyncDisposable
         {
             var d = _diag;
             if (d is null) return;
-            var summary = d.Finish();
-            try { _log?.WriteLine($"# {DateTime.Now:HH:mm:ss.fff} diagnóstico: {summary}"); } catch (IOException) { } catch (ObjectDisposedException) { }
-            Diagnostic?.Invoke($"diagnóstico: {summary}");
-            if (d.FilePath is not null) Diagnostic?.Invoke($"diagnóstico detallado: {Path.GetFileName(d.FilePath)}");
             _diag = null;
-            d.Dispose();
+            try
+            {
+                var summary = d.Finish();
+                try { _log?.WriteLine($"# {DateTime.Now:HH:mm:ss.fff} diagnóstico: {summary}"); } catch (IOException) { } catch (ObjectDisposedException) { }
+                Diagnostic?.Invoke($"diagnóstico: {summary}");
+                if (d.FilePath is not null) Diagnostic?.Invoke($"diagnóstico detallado: {Path.GetFileName(d.FilePath)}");
+            }
+            finally { d.Dispose(); }
         });
         Step(() => { var l = _log; _log = null; l?.Dispose(); });
 

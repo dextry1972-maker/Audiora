@@ -50,13 +50,13 @@ public sealed class WavStreamServer : IDisposable
     public event Action<string>? ConnectionEvent;
 
     /// <param name="prebufferMs">Audio sent at once when a player connects (0 = pure live, minimum latency).</param>
-    /// <param name="maxPendingMs">Bound of the per-player queue in TIME (0 = margin + 1 s, between 1.5 and 4 s). A count of
+    /// <param name="maxPendingMs">Bound of the per-player queue in TIME (0 = margin + 1 s, at least 1.5 s). A count of
     /// chunks would mean 2 s of 10 ms app-capture chunks but ~10 s of 50 ms device-capture chunks.</param>
     public WavStreamServer(IPAddress bindAddress, int port, WaveFormat format, IEnumerable<IPAddress> allowedPeers, int prebufferMs = 0, int maxPendingMs = 0)
     {
         _format = format;
         PrebufferMs = Math.Max(0, prebufferMs);
-        MaxPendingMs = maxPendingMs > 0 ? maxPendingMs : Math.Clamp(PrebufferMs + 1000, 1500, 4000);
+        MaxPendingMs = maxPendingMs > 0 ? maxPendingMs : Math.Max(1500, PrebufferMs + 1000); // always room for the whole margin plus a second
         long pendingBytes = (long)format.AverageBytesPerSecond * MaxPendingMs / 1000;
         _maxPendingBytes = pendingBytes - pendingBytes % format.BlockAlign;
         int historyBytes = (int)((long)format.AverageBytesPerSecond * PrebufferMs / 1000);
@@ -166,7 +166,10 @@ public sealed class WavStreamServer : IDisposable
                 continue;
             }
 
-            if (tcp.Client.RemoteEndPoint is not IPEndPoint remoteEndPoint) { tcp.Dispose(); continue; }
+            IPEndPoint? remoteEndPoint;
+            try { remoteEndPoint = tcp.Client.RemoteEndPoint as IPEndPoint; }
+            catch (Exception) { remoteEndPoint = null; } // the socket closed right after being accepted
+            if (remoteEndPoint is null) { tcp.Dispose(); continue; }
             var peer = remoteEndPoint.Address;
             if (!_allowed.Contains(peer))
             {

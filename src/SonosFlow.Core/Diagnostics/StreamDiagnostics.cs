@@ -39,6 +39,7 @@ public sealed class StreamDiagnostics : IDisposable
     private readonly object _fileLock = new();
     private readonly Queue<DiagEvent> _recent = new();
     private readonly long _maxFileBytes;
+    private readonly long _bytesPerSecond;
     private StreamWriter? _file;
     private long _fileBytes;
     private bool _truncated;
@@ -61,7 +62,7 @@ public sealed class StreamDiagnostics : IDisposable
     private double _lastTickSec;
     private int _secondsSinceSummary;
 
-    public string? FilePath { get; }
+    public string? FilePath { get; private set; }
     public IReadOnlyList<double> EpisodeStarts => _episodes.Starts;
     public PeriodicityResult Periodicity => PeriodicityAnalyzer.Analyze(_episodes.Starts);
     public (double Ppm, double UncertaintyPpm)? Drift => _drift.Estimate();
@@ -74,21 +75,50 @@ public sealed class StreamDiagnostics : IDisposable
     public StreamDiagnostics(string? directory, int sampleRate, string mode, long maxFileBytes = 1 << 20)
     {
         _maxFileBytes = maxFileBytes;
+        _bytesPerSecond = (long)sampleRate * 4; // 16 bit stereo, the only format the engine sends
         _drift = new DriftEstimator(sampleRate);
-        if (directory is null) return;
+        if (directory is not null) OpenFile(directory);
+        Event("inicio", $"formato={FormatVersion} reloj=Stopwatch({Freq} Hz) modo={mode} muestreo={sampleRate} inicio_local={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+    }
+
+    /// <summary>A tool that only measures must never be the reason a session fails: whatever goes wrong here disables the file.</summary>
+    private void OpenFile(string directory)
+    {
         try
         {
             Directory.CreateDirectory(directory);
             PruneOldFiles(directory);
-            FilePath = Path.Combine(directory, $"diag-{DateTime.Now:yyyyMMdd-HHmmss}-{Environment.ProcessId}.jsonl");
-            _file = new StreamWriter(new FileStream(FilePath, FileMode.CreateNew, FileAccess.Write, FileShare.Read), new UTF8Encoding(false));
+            for (int attempt = 0; attempt < 5 && _file is null; attempt++)
+            {
+                var path = Path.Combine(directory, $"diag-{DateTime.Now:yyyyMMdd-HHmmss-fff}-{Environment.ProcessId}{(attempt == 0 ? "" : "-" + attempt)}.jsonl");
+                try
+                {
+                    _file = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read), new UTF8Encoding(false));
+                    FilePath = path;
+                }
+                catch (IOException) when (File.Exists(path)) { } // same millisecond, same process: next name
+            }
+            FileDisabled = _file is null;
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception)
         {
             FileDisabled = true;
             _file = null;
         }
-        Event("inicio", $"formato={FormatVersion} reloj=Stopwatch({Freq} Hz) modo={mode} muestreo={sampleRate} inicio_local={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+    }
+
+    /// <summary>
+    /// Free text from the session may carry what the file promises not to hold: names in «…», executable names, IPv4
+    /// addresses (with port), Windows paths, device ids. Those are replaced, and the text is cut at 160 characters.
+    /// </summary>
+    public static string Sanitize(string text)
+    {
+        text = System.Text.RegularExpressions.Regex.Replace(text, "«[^»]*»", "«…»");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[A-Za-z]:\\[^\s;,)]*", "<ruta>");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\b\d{1,3}(\.\d{1,3}){3}(:\d+)?\b", "<ip>");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\{[0-9A-Fa-f.\-]{8,}\}(\.\{[0-9A-Fa-f\-]{8,}\})?", "<id>");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"[\w.\-]+\.(exe|dll|lnk)\b", "<programa>", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return text.Length <= 160 ? text : text[..160] + "…";
     }
 
     public static long Timestamp() => Stopwatch.GetTimestamp();
@@ -144,6 +174,7 @@ public sealed class StreamDiagnostics : IDisposable
     /// <summary>A discrete event (connection opened/closed, recovery, ...). Written to disk while the cap allows.</summary>
     public void Event(string kind, string detail)
     {
+        detail = Sanitize(detail);
         var e = new DiagEvent(NowSec, kind, detail);
         lock (_fileLock)
         {
@@ -175,15 +206,17 @@ public sealed class StreamDiagnostics : IDisposable
         if (!paused)
         {
             if (gapAfterAudio > CaptureGapAnomalyMs) reasons.Add($"hueco_captura {gapAfterAudio:0}ms");
-            if (suspicious > 0) reasons.Add($"relleno_sospechoso {suspicious * 1000L / (48000L * 4):0}ms");
+            if (suspicious > 0) reasons.Add($"relleno_sospechoso {suspicious * 1000L / _bytesPerSecond:0}ms");
         }
         if (write.MaxMs >= StallMs || stalls > 0) reasons.Add($"escritura_lenta {write.MaxMs:0}ms");
         if (backlogMs > BacklogAnomalyMs) reasons.Add($"cola {backlogMs:0}ms");
         if (dropped > 0) reasons.Add($"descartes {dropped}");
         if (proc.MaxMs > SlowProcessMs) reasons.Add($"proceso_lento {proc.MaxMs:0}ms");
 
+        backlogMs = Finite(backlogMs); sendRateKBps = Finite(sendRateKBps);
+        double? buffer = bufferEstS is { } b0 && double.IsFinite(b0) ? b0 : null;
         var s = new DiagSecond(t, blocks, gap.MaxMs, gapAfterAudio, frames, fill, suspicious, proc.Count, proc.MaxMs,
-            write.Count, write.MaxMs, stalls, dropped, droppedBytes, backlogMs, bufferEstS, sendRateKBps, [.. reasons]);
+            write.Count, write.MaxMs, stalls, dropped, droppedBytes, backlogMs, buffer, sendRateKBps, [.. reasons]);
 
         _drift.AddSecond(t, frames, continuous: !paused && blocks >= 10 && fill == 0 && t - _lastTickSec < 1.6);
         _lastTickSec = t;
@@ -235,12 +268,14 @@ public sealed class StreamDiagnostics : IDisposable
             _file.WriteLine(json);
             _fileBytes += bytes;
         }
-        catch (Exception ex) when (ex is IOException or ObjectDisposedException)
+        catch (Exception)
         {
-            FileDisabled = true; // diagnostics must never take the session down
+            FileDisabled = true; // diagnostics must never take the session down (I/O, serialisation, anything)
             _file = null;
         }
     }
+
+    private static double Finite(double value, double fallback = 0) => double.IsFinite(value) ? value : fallback;
 
     private static void PruneOldFiles(string directory)
     {

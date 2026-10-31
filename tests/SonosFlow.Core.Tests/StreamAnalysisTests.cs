@@ -263,6 +263,65 @@ public sealed class StreamDiagnosticsTests : IDisposable
         finally { File.Delete(blocker); }
     }
 
+    [Theory]
+    [InlineData("no se pudo volver a capturar «Mi Sala»: Access denied", "«…»")]
+    [InlineData("2 instancia(s) más de chrome.exe tampoco sonará(n)", "<programa>")]
+    [InlineData("conexión 192.168.137.158:37456 GET /x", "<ip>")]
+    [InlineData(@"fallo en C:\Users\Persona\AppData\x.log", "<ruta>")]
+    [InlineData("salida {0.0.0.00000000}.{8f0d8b58-aaaa-bbbb-cccc-0123456789ab}", "<id>")]
+    public void Free_text_never_carries_names_programs_addresses_paths_or_device_ids(string raw, string marker)
+    {
+        var clean = StreamDiagnostics.Sanitize(raw);
+        Assert.Contains(marker, clean);
+        Assert.DoesNotContain("Mi Sala", clean);
+        Assert.DoesNotContain("chrome", clean);
+        Assert.DoesNotContain("192.168", clean);
+        Assert.DoesNotContain("Persona", clean);
+        Assert.DoesNotContain("8f0d8b58", clean);
+    }
+
+    [Fact]
+    public void Events_written_to_the_file_are_sanitised_and_long_text_is_cut()
+    {
+        using (var d = new StreamDiagnostics(_dir, 48000, "app"))
+            d.Event("nota", "reinicio de «Mi Sala» en 10.0.0.5:8780 con chrome.exe " + new string('z', 400));
+        var text = File.ReadAllText(Directory.GetFiles(_dir, "diag-*.jsonl").Single());
+        Assert.DoesNotContain("Mi Sala", text);
+        Assert.DoesNotContain("10.0.0.5", text);
+        Assert.DoesNotContain("chrome", text);
+        Assert.DoesNotContain(new string('z', 200), text);
+    }
+
+    [Fact]
+    public void Two_sessions_in_the_same_millisecond_get_their_own_files()
+    {
+        for (int i = 0; i < 4; i++) { var d = new StreamDiagnostics(_dir, 48000, "app"); Assert.False(d.FileDisabled); d.Dispose(); }
+        Assert.Equal(4, Directory.GetFiles(_dir, "diag-*.jsonl").Length);
+    }
+
+    [Fact]
+    public void Non_finite_numbers_and_odd_locations_never_throw()
+    {
+        using var d = new StreamDiagnostics(_dir, 48000, "app");
+        var s = d.Tick(double.NaN, double.PositiveInfinity, double.NegativeInfinity);
+        Assert.False(s.Anomaly);
+        Assert.Null(s.BufferEstS);
+        for (int i = 0; i < 10; i++) d.Tick(double.NaN, double.NaN, double.NaN);   // forces a summary line too
+        Assert.False(d.FileDisabled);
+        foreach (var odd in new[] { "", "\0bad", "?:\\no\\such", new string('a', 400) })
+            using (new StreamDiagnostics(odd, 48000, "app")) { } // whatever the location, construction must not throw
+    }
+
+    [Fact]
+    public void The_suspicious_fill_is_reported_in_ms_of_the_real_format()
+    {
+        using var d = new StreamDiagnostics(null, 44100, "system");
+        d.CaptureBlock(441, audible: true);
+        d.PacerFill(44100 * 4 / 10);                       // 100 ms at 44.1 kHz stereo 16 bit
+        var s = d.Tick(0, null, 0);
+        Assert.Contains(s.Reasons, r => r == "relleno_sospechoso 100ms");
+    }
+
     [Fact]
     public async Task Recording_from_many_threads_loses_nothing_and_is_consistent()
     {
