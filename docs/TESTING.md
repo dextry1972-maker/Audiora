@@ -49,6 +49,8 @@ Total (contado en los archivos de `a7e2b36`): **42 casos** = 30 de Core (26 `[Fa
 | `tone-quiet <hz> <s> <salida>` | Hijo: seno a **−60 dBFS** (ganancia 0,001). Su PID alimenta el autotest | — |
 | `endpoint` | Silencia la salida de prueba y la baja al 10 %: la captura de la app no debe cambiar (Δ < 1 dB); muestra cuánto baja la del dispositivo. **Restaura** silencio y volumen de esa salida en `finally` | código 0 |
 | `edge-isolation` | Edge sin ventana con el perfil aislado: árbol de procesos propio y reconocido como «YouTube Music (instancia aislada)» | 2 × `OK` |
+| `threads` | Silencioso, ≈ 8 s. Muestra qué hilo entrega el audio capturado y con qué prioridad (gestionada y nativa) en «Todo el PC» y en «Una aplicación» | — |
+| `stall [--seconds N] [--margin ms] [--maxpending-ms N] [--line-speed]` | Silencioso, ≈ 1 min. Atasco inyectado en la cadena real (captura por aplicación y de dispositivo → marcapasos → servidor → «reproductor» que deja de leer N s): descartes, cola máx., cortes en la onda y **latencia extremo a extremo del modelo** que queda 25 s después de recuperarse (cola + búferes TCP + búfer del reproductor; solo la diferencia antes/después significa algo; con reproductor a ritmo real). Incluye el diagnóstico real y comprueba que no registra IP. `--maxpending-ms 60000` emula la cola anterior; `--line-speed` = lector a velocidad de línea (integridad, no latencia) | — |
 | `soak <min> [--inject] [--margin ms]` | Seno 1 kHz → dos cadenas a la vez («Una aplicación» y «Todo el PC») → marcapasos → `WavStreamServer` en 127.0.0.1:8791/8792 → lector local. Detecta cualquier rotura de la onda a nivel de muestra; carga paralela de `AudioApps.List` cada 2,5 s. Informe cada 30 s | 0 cortes en ambas, código 0. Con `--inject` (corte deliberado de 300 ms a los 20 s) **debe** detectarse: código 1 esperado |
 | `session <ip>` | Extremo a extremo con `StreamingSession` | No usable aquí: el firewall bloquea a CaptureCheck (ver §4) |
 
@@ -145,3 +147,21 @@ Claude es una app empaquetada: lo que lanza puede escribir en una copia virtual 
 - [ ] Vigilancia o reintentos tocados: pruebas de `PlaybackWatchdog`/`RecoveryPolicy` en verde y comprobaciones 18–20 del autotest correctas (`fin: Se pausó…` / `fin: Se detuvo…` en el CSV, sin `Stop` de Audiora).
 - [ ] Al final: PC sin silenciar, sin `output-guard.json`, sin procesos `SonosFlow`/`CaptureCheck`, puerto 8780 libre, volumen y ecualizador del Sonos sin cambios (tras el autotest el Sonos queda en `STOPPED`).
 - [ ] Informe con lo que cambió respecto al estado anterior y cualquier fallo, sin afirmar que funciona lo que no se ha comprobado.
+
+
+## Fase 1 de estabilidad (30/10/2026)
+
+Regresión actual: **164/164** (65 Core, 87 App, 12 Backup), con compilación Release no incremental sin avisos. Se conservan todas las pruebas anteriores. Detalle y resultados de hardware: [FASE1-ESTABILIDAD.md](FASE1-ESTABILIDAD.md).
+
+Al copiar fuentes preparadas en otra carpeta, `Copy-Item` puede conservar fechas anteriores: usar `dotnet build SonosFlow.sln -c Release --no-restore --no-incremental` antes de `dotnet test ... --no-build`. Un ensamblado incremental viejo produjo un falso fallo al verificar la corrección de saturación.
+
+El autotest admite `--selftest-soak-seconds N` (0–7200, por defecto 0) junto con `--selftest-session PID --selftest-out archivo`. Añade, entre las comprobaciones 7 y 9, un tramo sobre el tono tenue de la aplicación sin silenciar el PC. El tono debe vivir al menos 7500 s para el ensayo de dos horas. Cada segundo comprueba estado, presencia del tono (−66…−54 dBFS), caudal >150 kB/s, cliente único, fuente disponible, estadísticas recientes y ausencia de nuevos descartes/reconexiones/atascos sobre el margen. Los CSV permiten medir memoria, CPU y discontinuidades. Esto acredita continuidad por telemetría, no una medición acústica de cortes a nivel de muestra.
+
+`SonosFlow.exe --diagnostic-report archivo-nuevo.json` exporta una instantánea permitida de versiones y contadores, sin audio ni registros sin filtrar, y sale sin controlar audio o Sonos. Rechaza sobrescribir un archivo. Sus métricas son del proceso exportador, no de una sesión que ya estaba abierta.
+
+Las simulaciones de `SonosClientTests` usan un transporte HTTP controlado y la política de reintentos real: no sustituyen una sesión de extremo a extremo, SSDP ni un corte real de Wi-Fi.
+
+
+### Actualización solicitada: ensayo inicial de diez minutos
+
+Usar `--selftest-session PID --selftest-out archivo --selftest-soak-only --selftest-soak-seconds 600 --minimized`, con tono tenue que dure al menos 900 s. Captura solo la aplicación, sin silenciar el PC ni ejecutar las partes A/B/C. Ejecutar después de las pruebas virtuales que comparten endpoint. Leer RESULTADO y CSV, no solo el código de salida. El usuario pidió terminar antes de completar el ensayo: diez minutos completos y validación de dos horas siguen pendientes. Evidencia y resultados: FASE1-ESTABILIDAD.md.

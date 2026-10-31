@@ -13,12 +13,17 @@ public sealed class SonosSoapException(string action, int? upnpErrorCode, string
 }
 
 /// <summary>Minimal UPnP SOAP client for a Sonos player (local port 1400). Control only — audio is pulled by the player over HTTP.</summary>
-public sealed class SonosClient(IPAddress address) : IDisposable
+public sealed class SonosClient : IDisposable
 {
     private const string AvTransport = "urn:schemas-upnp-org:service:AVTransport:1";
     private const string RenderingControl = "urn:schemas-upnp-org:service:RenderingControl:1";
 
-    private readonly HttpClient _http = new() { BaseAddress = new Uri($"http://{address}:1400"), Timeout = TimeSpan.FromSeconds(5) };
+    private readonly HttpClient _http;
+
+    public SonosClient(IPAddress address)
+        : this(new HttpClient { BaseAddress = new Uri($"http://{address}:1400"), Timeout = TimeSpan.FromSeconds(5) }) { }
+
+    internal SonosClient(HttpClient http) => _http = http;
 
     public Task SetStreamAsync(string streamUrl, string mimeType, string title, CancellationToken ct = default)
     {

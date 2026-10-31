@@ -49,6 +49,9 @@ public sealed class LoopbackSource : IDisposable
     public long CaptureDiscontinuities =>
         OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041) && _capture is ProcessLoopbackCapture p ? p.Discontinuities : 0;
 
+    /// <summary>Optional diagnostics (set by the session): capture timing and pacer fills. Measures, never changes anything.</summary>
+    public SonosFlow.Core.Diagnostics.StreamDiagnostics? Diagnostics { get; set; }
+
     public long CapturedBytes { get; private set; }
     public long SilenceBytes { get; private set; }
     /// <summary>Peak of the last captured block, 0..1. Real measurement of what was captured.</summary>
@@ -68,16 +71,16 @@ public sealed class LoopbackSource : IDisposable
         _capture = new WasapiLoopbackCapture(device);
         (_sourceChannels, _sourceBytesPerSample, _sourceIsFloat, SourceFormatDescription, OutputFormat) = Describe(_capture.WaveFormat);
         _capture.DataAvailable += OnDataAvailable;
-        _capture.RecordingStopped += (_, e) => CaptureError ??= e.Exception;
+        _capture.RecordingStopped += OnRecordingStopped;
     }
 
-    private LoopbackSource(IWaveIn capture, string name)
+    internal LoopbackSource(IWaveIn capture, string name)
     {
         DeviceName = name;
         _capture = capture;
         (_sourceChannels, _sourceBytesPerSample, _sourceIsFloat, SourceFormatDescription, OutputFormat) = Describe(_capture.WaveFormat);
         _capture.DataAvailable += OnDataAvailable;
-        _capture.RecordingStopped += (_, e) => CaptureError ??= e.Exception;
+        _capture.RecordingStopped += OnRecordingStopped;
     }
 
     /// <summary>
@@ -111,6 +114,11 @@ public sealed class LoopbackSource : IDisposable
         _pacer.Start();
     }
 
+    private void OnRecordingStopped(object? sender, StoppedEventArgs e)
+    {
+        if (_running) CaptureError ??= e.Exception ?? new IOException("La captura terminó inesperadamente.");
+    }
+
     public void Stop()
     {
         _running = false;
@@ -136,6 +144,8 @@ public sealed class LoopbackSource : IDisposable
             WriteInt16(dst, f * 4, l);
             WriteInt16(dst, f * 4 + 2, r);
         }
+
+        Diagnostics?.CaptureBlock(frames, peak > 0.0003f); // above ≈ −70 dBFS counts as audio
 
         lock (_emitLock)
         {
@@ -182,6 +192,7 @@ public sealed class LoopbackSource : IDisposable
                 int bytes = frames * OutputFormat.BlockAlign;
                 LastPeak = 0f;
                 SilenceBytes += bytes;
+                Diagnostics?.PacerFill(bytes);
                 _emittedFrames += frames;
                 PcmAvailable?.Invoke(silence.AsMemory(0, bytes));
             }

@@ -388,6 +388,87 @@ if (args is ["tone-quiet", var qhz, var qsecs, var qdev])
     return 0;
 }
 
+if (args is ["threads"])
+{
+    // Which thread delivers the captured audio, and at what priority? (Silent: the tone plays on the unheard output.)
+    // Answers "is the whole-PC capture thread at a lower priority than the pacer?" with a measurement instead of a guess.
+    using var thrDev = FindDevice("Steam Streaming") ?? throw new InvalidOperationException("Sin salida de prueba");
+    using var thrTone = StartTone(1000, 20, "Steam Streaming");
+    Thread.Sleep(2000);
+    foreach (var (name, make) in new (string, Func<LoopbackSource>)[]
+    {
+        ("Todo el PC (dispositivo)", () => new LoopbackSource(thrDev)),
+        ("Una aplicación", () => LoopbackSource.ForProcess(thrTone.Id, "tono", 48000)),
+    })
+    {
+        using var src = make();
+        var seen = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
+        src.PcmAvailable += pcm =>
+        {
+            var t = Thread.CurrentThread;
+            string key = $"{(string.IsNullOrEmpty(t.Name) ? "(sin nombre)" : t.Name)} | prioridad gestionada {t.Priority} | prioridad nativa {NativeThreadPriority()} | pool={t.IsThreadPoolThread} | audio={(pcm.Span.Length > 0 && pcm.Span.ToArray().Any(b => b != 0) ? "con señal" : "silencio")}";
+            seen.AddOrUpdate(key, 1, (_, n) => n + 1);
+        };
+        src.Start();
+        Thread.Sleep(3000);
+        src.Stop();
+        Console.WriteLine($"== {name}");
+        foreach (var kv in seen.OrderByDescending(k => k.Value)) Console.WriteLine($"   {kv.Value,5} bloques  ←  {kv.Key}");
+    }
+    thrTone.Kill();
+    return 0;
+
+    static int NativeThreadPriority() => GetThreadPriority(GetCurrentThread());
+}
+
+[System.Runtime.InteropServices.DllImport("kernel32.dll")] static extern IntPtr GetCurrentThread();
+[System.Runtime.InteropServices.DllImport("kernel32.dll")] static extern int GetThreadPriority(IntPtr thread);
+
+if (args is ["stall", ..])
+{
+    // Stalled-player test (silent, about 1 min): the "Sonos" reader stops taking audio for N seconds, then resumes. Shows, on the
+    // real capture chain, what the server's queue does: drops (counted), peak queue, cuts heard in the sine, and how far
+    // behind live the stream stays AFTER recovering. --maxpending-ms 60000 emulates the old behaviour (no useful bound).
+    int Opt(string name, int fallback) => args.SkipWhile(a => a != name).Skip(1).Select(int.Parse).FirstOrDefault(fallback);
+    int stallSeconds = Opt("--seconds", 8), stallMargin = Opt("--margin", 1000), maxPending = Opt("--maxpending-ms", 0);
+    using var stallDev = FindDevice("Steam Streaming") ?? throw new InvalidOperationException("Sin salida de prueba");
+    using var stallTone = StartTone(1000, 25 + stallSeconds + 25 + 40, "Steam Streaming");
+    Thread.Sleep(2000);
+    var stallClock = Stopwatch.StartNew();
+    string diagDir = Path.Combine(Path.GetTempPath(), $"audiora-stall-{Guid.NewGuid():N}");
+    var stallPipes = new[]
+    {
+        SoakPipe.Start("Una aplicación", LoopbackSource.ForProcess(stallTone.Id, "tono", 48000), 8793, stallClock, stallMargin, maxPending, diagDir),
+        SoakPipe.Start("Todo el PC (dispositivo)", new LoopbackSource(stallDev), 8794, stallClock, stallMargin, maxPending, diagDir),
+    };
+    foreach (var p in stallPipes) p.RealTimePlayer = !args.Contains("--line-speed"); // default: a player that consumes in real time
+    Thread.Sleep(TimeSpan.FromSeconds(25) - stallClock.Elapsed);
+    var latencyBefore = stallPipes.Select(p => p.LatencySeconds).ToArray();
+    Console.WriteLine($"[{stallClock.Elapsed.TotalSeconds:0.0} s] el lector deja de leer durante {stallSeconds} s (margen {stallMargin} ms, límite de cola {(maxPending > 0 ? maxPending + " ms" : "automático")})");
+    foreach (var p in stallPipes) p.PauseReader = true;
+    Thread.Sleep(TimeSpan.FromSeconds(stallSeconds));
+    foreach (var p in stallPipes) p.PauseReader = false;
+    Console.WriteLine($"[{stallClock.Elapsed.TotalSeconds:0.0} s] el lector vuelve a leer");
+    Thread.Sleep(TimeSpan.FromSeconds(25));
+    var latencyAfter = stallPipes.Select(p => p.LatencySeconds).ToArray();
+    foreach (var p in stallPipes) p.Stop();
+    stallTone.Kill();
+    Console.WriteLine();
+    for (int i = 0; i < stallPipes.Length; i++)
+    {
+        stallPipes[i].Report();
+        Console.WriteLine($"   latencia extremo a extremo del modelo (cola + búferes TCP + búfer del reproductor), cambio tras el atasco: Δ {(latencyAfter[i] - latencyBefore[i]) * 1000:+0;-0} ms  [reproductor {(stallPipes[i].RealTimePlayer ? "a ritmo real" : "a velocidad de línea: NO mide latencia")}]");
+        Console.WriteLine($"   diagnóstico: {stallPipes[i].FinishDiagnostics()}");
+    }
+    foreach (var f in Directory.GetFiles(diagDir, "diag-*.jsonl"))
+    {
+        var lines = File.ReadAllLines(f);
+        Console.WriteLine($"   archivo {Path.GetFileName(f)}: {lines.Length} líneas, {new FileInfo(f).Length / 1024} KB; episodios: {lines.Count(l => l.Contains("\"k\":\"episodio\""))}; http_cerrada: {lines.Count(l => l.Contains("http_cerrada"))}; con IP: {lines.Count(l => System.Text.RegularExpressions.Regex.IsMatch(l, @"\d+\.\d+\.\d+\.\d+"))}");
+    }
+    try { Directory.Delete(diagDir, true); } catch (IOException) { }
+    return 0;
+}
+
 if (args is ["soak", var minutesArg, ..])
 {
     bool inject = args.Contains("--inject"); // positive control: a deliberate 300 ms cut at t = 20 s

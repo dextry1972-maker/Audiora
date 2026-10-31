@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using SonosFlow.Core.Audio;
+using SonosFlow.Core.Diagnostics;
 using SonosFlow.Core.Net;
 
 /// <summary>
@@ -18,12 +19,31 @@ internal sealed class SoakPipe
     public List<(double AtSec, double Ms)> PacketGaps { get; } = [];
     public List<(double AtSec, double Ms)> ReadStalls { get; } = [];
     public long SamplesReceived { get; private set; }
+    /// <summary>The reader stops taking audio (a stalled Sonos): the server's queue must cope.</summary>
+    public volatile bool PauseReader;
+    public double MaxBacklogMs { get; private set; }
+    /// <summary>
+    /// A player that consumes in REAL time (like a Sonos): it keeps about <see cref="PlayerLeadSeconds"/> of audio buffered
+    /// and cannot play faster than the clock, so whatever is still queued in the server is latency that stays.
+    /// False = the reader takes everything at line speed (a test of integrity, not of latency).
+    /// </summary>
+    public bool RealTimePlayer { get; set; }
+    public double PlayerLeadSeconds { get; set; } = 1.0;
+    public long ProducedBytes;
+    private double _playedSeconds;
+    /// <summary>
+    /// End-to-end latency of the MODEL player, up to a constant: audio produced − audio discarded by the server − audio already
+    /// played. It includes the server queue, the TCP buffers on both sides and the player's own buffer, which the server's
+    /// backlog metric does not see. Only the DIFFERENCE between two instants means anything (the constant is the stream's start).
+    /// </summary>
+    public double LatencySeconds => (Interlocked.Read(ref ProducedBytes) - Interlocked.Read(ref _server.DroppedBytes)) / (_source.OutputFormat.SampleRate * 4.0) - Volatile.Read(ref _playedSeconds);
+    public StreamDiagnostics? Diagnostics { get; private set; }
 
     private readonly LoopbackSource _source;
     private readonly WavStreamServer _server;
     private readonly Stopwatch _clock;
     private readonly CancellationTokenSource _cts = new();
-    private Task? _reader;
+    private Task? _reader, _ticker;
     private double _lastPacket = -1;
 
     private SoakPipe(string name, LoopbackSource source, WavStreamServer server, Stopwatch clock)
@@ -34,13 +54,22 @@ internal sealed class SoakPipe
         _clock = clock;
     }
 
-    public static SoakPipe Start(string name, LoopbackSource source, int port, Stopwatch clock, int prebufferMs = 0)
+    public static SoakPipe Start(string name, LoopbackSource source, int port, Stopwatch clock, int prebufferMs = 0, int maxPendingMs = 0, string? diagDir = null)
     {
-        var server = new WavStreamServer(IPAddress.Loopback, port, source.OutputFormat, [IPAddress.Loopback], prebufferMs);
+        var server = new WavStreamServer(IPAddress.Loopback, port, source.OutputFormat, [IPAddress.Loopback], prebufferMs, maxPendingMs);
         var spectrum = new SpectrumAnalyzer(source.OutputFormat.SampleRate); // same work as in the app
         var pipe = new SoakPipe(name, source, server, clock);
+        if (diagDir is not null)
+        {
+            // The same measurements the session takes, on this chain: proves the hooks work with real capture.
+            pipe.Diagnostics = new StreamDiagnostics(diagDir, source.OutputFormat.SampleRate, name.StartsWith("Una") ? "app" : "system");
+            source.Diagnostics = pipe.Diagnostics;
+            server.Diagnostics = pipe.Diagnostics;
+        }
+        var diag = pipe.Diagnostics;
         source.PcmAvailable += pcm =>
         {
+            long started = StreamDiagnostics.Timestamp();
             double now = clock.Elapsed.TotalMilliseconds;
             if (pipe._lastPacket >= 0)
             {
@@ -49,9 +78,21 @@ internal sealed class SoakPipe
                 if (gap > 60) lock (pipe.PacketGaps) pipe.PacketGaps.Add((now / 1000, gap));
             }
             pipe._lastPacket = now;
+            Interlocked.Add(ref pipe.ProducedBytes, pcm.Length);
             server.Write(pcm);
             spectrum.Process(pcm.Span);
+            diag?.Processed(started);
         };
+        pipe._ticker = Task.Run(async () =>
+        {
+            while (!pipe._cts.IsCancellationRequested)
+            {
+                try { await Task.Delay(1000, pipe._cts.Token); } catch (OperationCanceledException) { return; }
+                double backlog = server.TakeMaxBacklogMs();
+                if (backlog > pipe.MaxBacklogMs) pipe.MaxBacklogMs = backlog;
+                diag?.Tick(backlog, null, 0);
+            }
+        });
         source.Start();
         if (prebufferMs > 0) Thread.Sleep(prebufferMs + 200); // let the margin fill before the "Sonos" connects
         pipe._reader = Task.Run(() => pipe.ReadAsync(port));
@@ -124,9 +165,27 @@ internal sealed class SoakPipe
         var leftover = pending.Skip(pending.Count - carry).ToArray();
         try
         {
+            double played = 0, lastLoop = _clock.Elapsed.TotalSeconds;
             while (!_cts.IsCancellationRequested)
             {
-                int n = await s.ReadAsync(buf.AsMemory(leftover.Length), _cts.Token);
+                while (PauseReader && !_cts.IsCancellationRequested)
+                {
+                    if (RealTimePlayer) { double t = _clock.Elapsed.TotalSeconds; played += Math.Min(t - lastLoop, Math.Max(0, SamplesReceived / (double)rate - played)); lastLoop = t; Volatile.Write(ref _playedSeconds, played); }
+                    await Task.Delay(20);
+                }
+                int want = buf.Length - leftover.Length;
+                if (RealTimePlayer)
+                {
+                    // The player advances with the clock while it has audio; it only asks for more while its buffer is below the lead.
+                    double t = _clock.Elapsed.TotalSeconds;
+                    played += Math.Min(t - lastLoop, Math.Max(0, SamplesReceived / (double)rate - played));
+                    lastLoop = t;
+                    Volatile.Write(ref _playedSeconds, played);
+                    double buffered = SamplesReceived / (double)rate - played;
+                    if (buffered >= PlayerLeadSeconds) { await Task.Delay(10); continue; }
+                    want = Math.Min(want, Math.Max(4096, (int)((PlayerLeadSeconds - buffered) * rate * 4)));
+                }
+                int n = await s.ReadAsync(buf.AsMemory(leftover.Length, want), _cts.Token);
                 if (n == 0) break;
                 double now = _clock.Elapsed.TotalMilliseconds;
                 double stall = now - lastRead;
@@ -151,6 +210,17 @@ internal sealed class SoakPipe
         _source.Dispose();
         _server.Dispose();
         try { _reader?.Wait(2000); } catch (AggregateException) { }
+        try { _ticker?.Wait(2000); } catch (AggregateException) { }
+    }
+
+    /// <summary>Closes the diagnostics (summary line) and returns its one-line verdict, or null without diagnostics.</summary>
+    public string? FinishDiagnostics()
+    {
+        var d = Diagnostics;
+        if (d is null) return null;
+        var text = d.Finish();
+        d.Dispose();
+        return text;
     }
 
     public void Report()
@@ -162,7 +232,7 @@ internal sealed class SoakPipe
         Console.WriteLine($"   relleno de silencio del marcapasos: {_source.SilenceBytes / 1000} kB");
         Console.WriteLine($"   hueco máx. entre paquetes de captura: {MaxPacketGapMs:0.0} ms; >60 ms: {PacketGaps.Count}" + (PacketGaps.Count > 0 ? "  " + string.Join(" ", PacketGaps.Take(20).Select(g => $"{g.AtSec:0.0}s:{g.Ms:0}ms")) : ""));
         Console.WriteLine($"   bloqueo máx. de lectura (lado «Sonos»): {MaxReadStallMs:0.0} ms; >150 ms: {ReadStalls.Count}" + (ReadStalls.Count > 0 ? "  " + string.Join(" ", ReadStalls.Take(20).Select(g => $"{g.AtSec:0.0}s:{g.Ms:0}ms")) : ""));
-        Console.WriteLine($"   descartes en el servidor: {_server.DroppedChunks}");
+        Console.WriteLine($"   descartes en el servidor: {_server.DroppedChunks}  (cola máx. {MaxBacklogMs:0} ms, límite de cola {_server.MaxPendingMs} ms)");
     }
 
     private static int IndexOf(List<byte> hay, byte[] needle)

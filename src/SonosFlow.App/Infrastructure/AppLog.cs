@@ -12,10 +12,11 @@ public static class AppLog
             lock (Gate)
             {
                 Directory.CreateDirectory(AppPaths.Logs);
-                File.AppendAllText(Path.Combine(AppPaths.Logs, "app-events.log"),
+                SonosFlow.Core.Diagnostics.RotatingLog.Append(Path.Combine(AppPaths.Logs, "app-events.log"),
                     $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{Environment.ProcessId}] {message}{Environment.NewLine}");
             }
         }
         catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
     }
 }

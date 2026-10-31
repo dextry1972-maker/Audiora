@@ -21,11 +21,27 @@ namespace SonosFlow.Core.Audio;
 [SupportedOSPlatform("windows")]
 public sealed class AppOutputRedirect : IDisposable
 {
-    private sealed record Entry(string ExePath, string? PreviousDeviceId, string TargetDeviceId, int OwnerPid);
+    private sealed record Entry(string ExePath, string? PreviousDeviceId, string TargetDeviceId, int OwnerPid, string? GuardId = null);
 
     private const string MutexName = @"Local\SonosFlow-AppOutputGuard";
     private static readonly HashSet<string> Active = new(StringComparer.OrdinalIgnoreCase); // live redirects of this process
 
+    internal interface IRouting
+    {
+        string? Get(int pid);
+        void Set(int pid, string? deviceId);
+        IReadOnlyList<int> ProcessesOf(string exePath);
+    }
+
+    private sealed class WindowsRouting : IRouting
+    {
+        public string? Get(int pid) => AppOutputRouting.Get(pid);
+        public void Set(int pid, string? deviceId) => AppOutputRouting.Set(pid, deviceId);
+        public IReadOnlyList<int> ProcessesOf(string exePath) => AudioApps.ProcessesOf(exePath);
+    }
+
+    private readonly IRouting _routing;
+    private readonly string _guardId = Guid.NewGuid().ToString("N");
     private readonly string _exePath;
     private readonly string _stateFile;
     private bool _disposed;
@@ -34,7 +50,11 @@ public sealed class AppOutputRedirect : IDisposable
     public bool Restored { get; private set; }
 
     public AppOutputRedirect(int sessionProcessId, string exePath, string targetDeviceId, string stateFile)
+        : this(sessionProcessId, exePath, targetDeviceId, stateFile, new WindowsRouting()) { }
+
+    internal AppOutputRedirect(int sessionProcessId, string exePath, string targetDeviceId, string stateFile, IRouting routing)
     {
+        _routing = routing;
         _exePath = exePath;
         _stateFile = stateFile;
         using (StateLock())
@@ -42,37 +62,52 @@ public sealed class AppOutputRedirect : IDisposable
             var entries = Load(stateFile);
             // A record left by a lost restore still holds the app's real previous output: keep it, never our target.
             var existing = entries.FirstOrDefault(e => Same(e.ExePath, exePath));
-            string? previous = existing is not null ? existing.PreviousDeviceId : AppOutputRouting.Get(sessionProcessId);
+            if (existing is not null && IsLive(existing))
+                throw new InvalidOperationException("The application already has a live output redirect.");
+            var current = _routing.Get(sessionProcessId);
+            string? previous = existing is not null && Same(current, existing.TargetDeviceId)
+                ? existing.PreviousDeviceId : current;
             if (Same(previous, targetDeviceId)) previous = null;
             entries.RemoveAll(e => Same(e.ExePath, exePath));
-            var entry = new Entry(exePath, previous, targetDeviceId, Environment.ProcessId);
+            var entry = new Entry(exePath, previous, targetDeviceId, Environment.ProcessId, _guardId);
             entries.Add(entry);
             Save(stateFile, entries); // recorded before anything changes
             try
             {
-                AppOutputRouting.Set(sessionProcessId, targetDeviceId);
+                _routing.Set(sessionProcessId, targetDeviceId);
             }
             catch (Exception ex) when (IsRoutingFailure(ex))
             {
                 // One role may already have changed: put it back; if that also fails the record stays pending.
-                if (TryRestore(entry)) { entries.Remove(entry); Save(stateFile, entries); }
+                if (TryRestore(entry, _routing)) { entries.Remove(entry); Save(stateFile, entries); }
                 throw;
             }
+            lock (Active) Active.Add(_guardId);
         }
-        lock (Active) Active.Add(exePath);
     }
 
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-        lock (Active) Active.Remove(_exePath);
-        using (StateLock())
+        IDisposable stateLock;
+        try { stateLock = StateLock(); }
+        catch
         {
-            var entries = Load(_stateFile);
-            var entry = entries.FirstOrDefault(e => Same(e.ExePath, _exePath));
-            Restored = entry is null || TryRestore(entry);
-            if (entry is not null && Restored) { entries.Remove(entry); Save(_stateFile, entries); }
+            // Leave the undo record pending for recovery even when teardown cannot acquire its lock.
+            lock (Active) Active.Remove(_guardId);
+            throw;
+        }
+        using (stateLock)
+        {
+            if (_disposed) return;
+            try
+            {
+                var entries = Load(_stateFile);
+                var entry = entries.FirstOrDefault(e => Same(e.ExePath, _exePath) && e.GuardId == _guardId);
+                Restored = entry is null || TryRestore(entry, _routing);
+                if (entry is not null && Restored) { entries.Remove(entry); Save(_stateFile, entries); }
+                _disposed = true;
+            }
+            finally { lock (Active) Active.Remove(_guardId); }
         }
     }
 
@@ -80,22 +115,27 @@ public sealed class AppOutputRedirect : IDisposable
     /// Restores apps left redirected by a crash or a failed restore. Skips live redirects (this process's and another
     /// running Audiora's). True when nothing is pending any more.
     /// </summary>
-    public static bool RecoverPending(string stateFile)
+    public static bool RecoverPending(string stateFile) => RecoverPending(stateFile, new WindowsRouting());
+
+    internal static bool RecoverPending(string stateFile, IRouting routing)
     {
-        if (!File.Exists(stateFile)) return true;
-        using (StateLock())
+        try
         {
-            var entries = Load(stateFile);
-            bool pending = false, changed = false;
-            foreach (var e in entries.ToList())
+            using (StateLock())
             {
-                if (IsLive(e)) continue;
-                if (TryRestore(e)) { entries.Remove(e); changed = true; }
-                else pending = true;
+                var entries = Load(stateFile);
+                bool pending = false, changed = false;
+                foreach (var e in entries.ToList())
+                {
+                    if (IsLive(e)) continue;
+                    if (TryRestore(e, routing)) { entries.Remove(e); changed = true; }
+                    else pending = true;
+                }
+                if (changed) Save(stateFile, entries);
+                return !pending;
             }
-            if (changed) Save(stateFile, entries);
-            return !pending;
         }
+        catch (Exception ex) when (IsRoutingFailure(ex)) { return false; }
     }
 
     /// <summary>Exceptions a failed per-app output call can raise (the factory is undocumented and may change).</summary>
@@ -105,7 +145,7 @@ public sealed class AppOutputRedirect : IDisposable
 
     private static bool IsLive(Entry e)
     {
-        if (e.OwnerPid == Environment.ProcessId) { lock (Active) return Active.Contains(e.ExePath); }
+        if (e.OwnerPid == Environment.ProcessId) { lock (Active) return Active.Contains(e.GuardId ?? e.ExePath); }
         try
         {
             using var owner = Process.GetProcessById(e.OwnerPid);
@@ -117,14 +157,14 @@ public sealed class AppOutputRedirect : IDisposable
         }
     }
 
-    private static bool TryRestore(Entry e)
+    private static bool TryRestore(Entry e, IRouting routing)
     {
-        foreach (var pid in AudioApps.ProcessesOf(e.ExePath))
+        foreach (var pid in routing.ProcessesOf(e.ExePath))
         {
             try
             {
                 // Only undo our own change: if the user picked another output meanwhile, leave theirs.
-                if (Same(AppOutputRouting.Get(pid), e.TargetDeviceId)) AppOutputRouting.Set(pid, e.PreviousDeviceId);
+                if (Same(routing.Get(pid), e.TargetDeviceId)) routing.Set(pid, e.PreviousDeviceId);
                 return true;
             }
             catch (Exception ex) when (IsRoutingFailure(ex)) { /* this process has no audio session: try the next */ }
@@ -136,9 +176,17 @@ public sealed class AppOutputRedirect : IDisposable
 
     private static List<Entry> Load(string stateFile)
     {
-        try { return File.Exists(stateFile) ? JsonSerializer.Deserialize<List<Entry>>(File.ReadAllText(stateFile)) ?? [] : []; }
-        catch (JsonException) { return []; } // written atomically, so only a hand-edited file gets here
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return []; }
+        try
+        {
+            var entries = JsonSerializer.Deserialize<List<Entry>>(File.ReadAllText(stateFile));
+            if (entries is null || entries.Any(e => e is null || string.IsNullOrWhiteSpace(e.ExePath)
+                    || string.IsNullOrWhiteSpace(e.TargetDeviceId)))
+                throw new IOException("The output redirect recovery state is invalid.");
+            return entries;
+        }
+        catch (FileNotFoundException) { return []; }
+        catch (DirectoryNotFoundException) { return []; }
+        catch (JsonException ex) { throw new IOException("The output redirect recovery state is unreadable.", ex); }
     }
 
     private static void Save(string stateFile, List<Entry> entries)
@@ -146,24 +194,36 @@ public sealed class AppOutputRedirect : IDisposable
         if (entries.Count == 0) { try { File.Delete(stateFile); } catch (IOException) { } return; }
         Directory.CreateDirectory(Path.GetDirectoryName(stateFile)!);
         var tmp = stateFile + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(entries));
+        using (var stream = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            JsonSerializer.Serialize(stream, entries);
+            stream.Flush(flushToDisk: true);
+        }
         File.Move(tmp, stateFile, overwrite: true);
     }
 
     private static IDisposable StateLock()
     {
         var mutex = new Mutex(false, MutexName);
-        try { mutex.WaitOne(TimeSpan.FromSeconds(3)); } // short: a sign-out restore waits for this inside a 4 s budget
-        catch (AbandonedMutexException) { /* the previous owner died: the file is still consistent (atomic writes) */ }
-        return new Releaser(mutex);
+        try
+        {
+            try
+            {
+                if (!mutex.WaitOne(TimeSpan.FromSeconds(3)))
+                    throw new IOException("Timed out waiting for the output redirect recovery lock.");
+            }
+            catch (AbandonedMutexException) { /* The abandoned mutex is now owned by this thread. */ }
+            return new Releaser(mutex);
+        }
+        catch { mutex.Dispose(); throw; }
     }
 
     private sealed class Releaser(Mutex mutex) : IDisposable
     {
         public void Dispose()
         {
-            try { mutex.ReleaseMutex(); } catch (ApplicationException) { /* not owned (wait timed out) */ }
-            mutex.Dispose();
+            try { mutex.ReleaseMutex(); }
+            finally { mutex.Dispose(); }
         }
     }
 }
