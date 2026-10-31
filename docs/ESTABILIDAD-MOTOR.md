@@ -86,11 +86,11 @@ Descartes con la política nueva: 488 / 92–95 trozos (≈ 4,9 s de audio, cont
 
 **Primera ejecución real del diagnóstico** (5 sesiones del autotest → 5 `diag-*.jsonl` en los registros reales, 1–2 KB cada uno): todas las líneas son JSON válido, 0 con direcciones IP, ciclo completo `inicio → http_abierta → … → resumen10s → http_cerrada → resumen`, y los veredictos llegan al registro de eventos («diagnóstico: … / diagnóstico detallado: diag-…»). Esto confirma con hardware lo que antes solo estaba probado contra un Sonos falso.
 
-**Lo que encontró (y corregí):** el episodio `cola 1010 ms` a los 3,2 s de la primera sesión era el **margen de 1 s entregado de golpe al conectar el Sonos**, no un atasco: un falso positivo del propio diagnóstico. Ahora, durante los 8 s posteriores a abrirse la conexión, el margen no cuenta como cola anómala (el umbral sube en `margen` ms); y una cola real mayor que margen + 400 ms sigue marcándose (prueba nueva). Límite: en esos 8 s (también tras una reconexión del Sonos, que vuelve a entregar el margen) una cola real de entre 400 ms y margen + 400 ms **no** se marca; `descartes` y `escritura_lenta` siguen activos. La expiración de los 8 s y la reconexión no tienen prueba (el reloj no es inyectable). **Sin repetir el autotest tras la corrección** (la autorización fue para una ejecución): la corrección está probada por pruebas unitarias, no con el Sonos.
+**Lo que encontró (y corregí):** el episodio `cola 1010 ms` a los 3,2 s de la primera sesión era el **margen de 1 s entregado de golpe al conectar el Sonos**, no un atasco: un falso positivo del propio diagnóstico. Ahora, durante los 8 s posteriores a abrirse la conexión, el margen no cuenta como cola anómala (el umbral sube en `margen` ms); y una cola real mayor que margen + 400 ms sigue marcándose (prueba nueva). Límite: en esos 8 s (también tras una reconexión del Sonos, que vuelve a entregar el margen) una cola real de entre 400 ms y margen + 400 ms **no** se marca; `descartes` y `escritura_lenta` siguen activos. La expiración de los 8 s y la reconexión no tienen prueba (el reloj no es inyectable). **Repetido tras la corrección** (02:31, con autorización del usuario, compilación `f1ca40e`): **35/35 de nuevo**, 5 `diag-*.jsonl` nuevos válidos y sin IP, y **0 episodios de `cola`** en las 5 sesiones (antes: `cola 1010 ms` a los 3,2 s). Nada silenciado. Quedan los mismos `relleno_sospechoso` en los pasos de cambio de fuente/pausa (785/1014/128 ms en la primera sesión frente a 779/1016/126 ms la vez anterior: un patrón reproducible, coherente con un paso fijo del autotest y no con un fallo aleatorio).
 
 **Cómo leer los demás episodios:** los `relleno_sospechoso` (779/1016/126 ms a los 36–38 s de la sesión 1 y 26 ms en la 3) caen en el tramo de cambios de fuente, pausa y silencio local del autotest, donde el audio capturado se interrumpe a propósito; el clasificador es una **heurística** (relleno del marcapasos en los 2 s siguientes a audio audible) y no distingue una interrupción deliberada de un fallo de captura. Que coincidan con esos pasos es lo esperable, pero **no lo he verificado paso a paso**.
 
-**Límites:** una sola ejecución de ~2 min; no es una sesión larga, ni con corte de hotspot, ni con Wi-Fi convencional, ni acústica; el tono es de −60 dBFS.
+**Límites:** dos ejecuciones de ~2,5 min cada una; no es una sesión larga, ni con corte de hotspot, ni con Wi-Fi convencional, ni acústica; el tono es de −60 dBFS.
 
 ## 2. Qué se implementó (y por qué)
 
@@ -121,7 +121,7 @@ Segunda revisión independiente, solo lectura: **sin regresiones graves ni bloqu
 
 ## 4. Validación pendiente (necesita autorización: toca el Sonos real)
 
-1. ~~Autotest con el Sonos~~ **Hecho el 31/10 con autorización: 35/35** (ver §1.5). Conviene repetirlo tras la corrección del margen para confirmar que el falso `cola` desaparece.
+1. ~~Autotest con el Sonos~~ **Hecho el 31/10 con autorización: 35/35** (ver §1.5). Repetido tras la corrección del margen: 35/35 y sin falso `cola` (ver §1.5).
 2. **Sesión larga real (≥ 30 min) con hotspot y con Wi-Fi convencional**, margen 1 s y margen 0, anotando la hora de cada corte audible; después `python tools/analizar-sesiones.py` y el `diag-*.jsonl` correspondiente (episodios, `relleno_sospechoso`, `escritura_lenta`, descartes, periodicidad, deriva).
 3. **Baja latencia frente a estable:** margen 0 / 1 s / 2 s en la misma red, comparando cortes oídos y `buffer_est`.
 4. Corte controlado de Wi-Fi (apagar el hotspot unos segundos) para ver el recorte de cola y el tiempo de recuperación reales.
