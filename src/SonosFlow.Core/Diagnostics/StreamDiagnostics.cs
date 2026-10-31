@@ -187,7 +187,7 @@ public sealed class StreamDiagnostics : IDisposable
         var e = new DiagEvent(NowSec, kind, detail);
         lock (_fileLock)
         {
-            if (kind == "http_abierta") _connectedAtSec = e.TSec;
+            if (kind == "http_abierta") Volatile.Write(ref _connectedAtSec, e.TSec);
             _recent.Enqueue(e);
             while (_recent.Count > RecentEventsKept) _recent.Dequeue();
             WriteLine(new Dictionary<string, object?> { ["t"] = Math.Round(e.TSec, 3), ["k"] = kind, ["d"] = detail });
@@ -220,7 +220,7 @@ public sealed class StreamDiagnostics : IDisposable
         }
         if (write.MaxMs >= StallMs || stalls > 0) reasons.Add($"escritura_lenta {write.MaxMs:0}ms");
         // Found by the first real run: the margin delivered when the Sonos connects (1 s at once) read as a 1010 ms "backlog".
-        double backlogLimit = BacklogAnomalyMs + (t - _connectedAtSec < 8 ? _prebufferMs : 0);
+        double backlogLimit = BacklogAnomalyMs + (t - Volatile.Read(ref _connectedAtSec) < 8 ? _prebufferMs : 0);
         if (backlogMs > backlogLimit) reasons.Add($"cola {backlogMs:0}ms");
         if (dropped > 0) reasons.Add($"descartes {dropped}");
         if (proc.MaxMs > SlowProcessMs) reasons.Add($"proceso_lento {proc.MaxMs:0}ms");
