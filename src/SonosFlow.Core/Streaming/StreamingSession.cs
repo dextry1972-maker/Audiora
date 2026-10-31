@@ -152,7 +152,7 @@ public sealed class StreamingSession : IAsyncDisposable
             _source = CreateSource(_spec, out _captureDevice);
             _streamRate = _source.OutputFormat.SampleRate;
             Spectrum = new SpectrumAnalyzer(_streamRate);
-            _diag = new SonosFlow.Core.Diagnostics.StreamDiagnostics(_options.LogDirectory, _streamRate, _spec.Kind == CaptureKind.Application ? "app" : "system");
+            _diag = new SonosFlow.Core.Diagnostics.StreamDiagnostics(_options.LogDirectory, _streamRate, _spec.Kind == CaptureKind.Application ? "app" : "system", prebufferMs: _options.PrebufferMs);
             _source.Diagnostics = _diag;
             _server = new WavStreamServer(localIp, _options.Port, _source.OutputFormat, _allowedPeers, _options.PrebufferMs) { Diagnostics = _diag };
             _server.ConnectionEvent += msg =>

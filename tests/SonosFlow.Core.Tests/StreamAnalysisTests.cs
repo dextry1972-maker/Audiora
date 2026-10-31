@@ -168,6 +168,18 @@ public sealed class StreamDiagnosticsTests : IDisposable
     }
 
     [Fact]
+    public void The_margin_handed_over_when_the_player_connects_is_not_a_backlog_anomaly_but_a_real_one_still_is()
+    {
+        using var d = new StreamDiagnostics(null, 48000, "system", prebufferMs: 1000);
+        d.Event("http_abierta", "cliente#1 GET margen=1000ms");
+        Assert.False(d.Tick(backlogMs: 1010, bufferEstS: null, sendRateKBps: 192).Anomaly);   // the real first run saw exactly this
+        var real = d.Tick(backlogMs: 1500, bufferEstS: null, sendRateKBps: 20);               // beyond margin + 400 ms: a genuine stall
+        Assert.Contains(real.Reasons, r => r.StartsWith("cola"));
+        using var noMargin = new StreamDiagnostics(null, 48000, "app");                       // without a margin the old threshold stands
+        Assert.Contains(noMargin.Tick(500, null, 0).Reasons, r => r.StartsWith("cola"));
+    }
+
+    [Fact]
     public void A_pause_on_purpose_is_never_reported_as_a_capture_problem()
     {
         using var d = new StreamDiagnostics(null, 48000, "app");

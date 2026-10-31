@@ -41,6 +41,8 @@ public sealed class StreamDiagnostics : IDisposable
     private readonly Queue<DiagEvent> _recent = new();
     private readonly long _maxFileBytes;
     private readonly long _bytesPerSecond;
+    private readonly int _prebufferMs;
+    private double _connectedAtSec = double.NegativeInfinity;
     private StreamWriter? _file;
     private long _fileBytes;
     private bool _truncated;
@@ -73,8 +75,10 @@ public sealed class StreamDiagnostics : IDisposable
     /// <param name="directory">Where <c>diag-*.jsonl</c> goes; null = in memory only.</param>
     /// <param name="sampleRate">Output sample rate (frames per second), for the drift estimate.</param>
     /// <param name="mode">"system" or "app": the kind of capture, nothing that identifies an application.</param>
-    public StreamDiagnostics(string? directory, int sampleRate, string mode, long maxFileBytes = 1 << 20)
+    /// <param name="prebufferMs">The margin handed to the player when it connects: that audio is queued at once, which is not a backlog.</param>
+    public StreamDiagnostics(string? directory, int sampleRate, string mode, long maxFileBytes = 1 << 20, int prebufferMs = 0)
     {
+        _prebufferMs = Math.Max(0, prebufferMs);
         _maxFileBytes = maxFileBytes;
         _bytesPerSecond = (long)sampleRate * 4; // 16 bit stereo, the only format the engine sends
         _drift = new DriftEstimator(sampleRate);
@@ -183,6 +187,7 @@ public sealed class StreamDiagnostics : IDisposable
         var e = new DiagEvent(NowSec, kind, detail);
         lock (_fileLock)
         {
+            if (kind == "http_abierta") _connectedAtSec = e.TSec;
             _recent.Enqueue(e);
             while (_recent.Count > RecentEventsKept) _recent.Dequeue();
             WriteLine(new Dictionary<string, object?> { ["t"] = Math.Round(e.TSec, 3), ["k"] = kind, ["d"] = detail });
@@ -214,7 +219,9 @@ public sealed class StreamDiagnostics : IDisposable
             if (suspicious > 0) reasons.Add($"relleno_sospechoso {suspicious * 1000L / _bytesPerSecond:0}ms");
         }
         if (write.MaxMs >= StallMs || stalls > 0) reasons.Add($"escritura_lenta {write.MaxMs:0}ms");
-        if (backlogMs > BacklogAnomalyMs) reasons.Add($"cola {backlogMs:0}ms");
+        // Found by the first real run: the margin delivered when the Sonos connects (1 s at once) read as a 1010 ms "backlog".
+        double backlogLimit = BacklogAnomalyMs + (t - _connectedAtSec < 8 ? _prebufferMs : 0);
+        if (backlogMs > backlogLimit) reasons.Add($"cola {backlogMs:0}ms");
         if (dropped > 0) reasons.Add($"descartes {dropped}");
         if (proc.MaxMs > SlowProcessMs) reasons.Add($"proceso_lento {proc.MaxMs:0}ms");
 
