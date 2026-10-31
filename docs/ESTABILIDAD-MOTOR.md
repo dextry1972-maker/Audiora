@@ -121,6 +121,8 @@ Segunda revisión independiente, solo lectura: **sin regresiones graves ni bloqu
 
 ## 4. Validación pendiente (necesita autorización: toca el Sonos real)
 
+> **Estado a 31/10/2026:** se ejecutaron y autorizaron dos autotests reales (35/35 y 35/35, §1.5). Se propuso además una sesión de resistencia real de 10 o 30 min con el tono de −60 dBFS (modo `--selftest-soak-only`, margen 1 s, por el hotspot actual) y **el usuario la declinó**: queda pendiente **por decisión**, no por imposibilidad. Los puntos 2–4 siguientes no se han ejecutado.
+
 1. ~~Autotest con el Sonos~~ **Hecho el 31/10 con autorización: 35/35** (ver §1.5). Repetido tras la corrección del margen: 35/35 y sin falso `cola` (ver §1.5).
 2. **Sesión larga real (≥ 30 min) con hotspot y con Wi-Fi convencional**, margen 1 s y margen 0, anotando la hora de cada corte audible; después `python tools/analizar-sesiones.py` y el `diag-*.jsonl` correspondiente (episodios, `relleno_sospechoso`, `escritura_lenta`, descartes, periodicidad, deriva).
 3. **Baja latencia frente a estable:** margen 0 / 1 s / 2 s en la misma red, comparando cortes oídos y `buffer_est`.
