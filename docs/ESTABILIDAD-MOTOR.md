@@ -31,8 +31,10 @@ Analizador: `python tools/analizar-sesiones.py 300` (solo lectura).
 **Hipótesis respaldadas (sin confirmar)**
 - Escucha ligada a una IP (192.168.137.1 del hotspot): si el adaptador la retira y la repone, el `TcpListener` podría quedar sordo sin excepción; el reintento solo reemite la URI.
 - Deriva del reloj del dispositivo más lenta que el monotónico → relleno de ceros a ≈ 6 min con ~170–200 ppm (coincidencia numérica, sin evidencia; el soak de 7–9 min no la muestra).
-- Hilo de captura de «Todo el PC» (NAudio) con prioridad distinta al marcapasos (AboveNormal): ceros delante de audio tardío.
+- ~~Hilo de captura de «Todo el PC» con prioridad distinta al marcapasos~~ → **medido, ver abajo**: la prioridad es distinta (confirmado); que eso cause ceros delante de audio tardío **no** está demostrado (0 rellenos sospechosos en los registros).
 - Pausas de 15,6 ms del temporizador de Windows (`Thread.Sleep(10)`).
+
+**Medido (`CaptureCheck threads`, silencioso, 31/10/2026):** el hilo que entrega el audio de «Todo el PC» (`WasapiLoopbackCapture` de NAudio) no tiene nombre, es de prioridad **Normal (nativa 0)** y no es del pool (≈ 16 bloques/s); el de «Una aplicación» (`ProcessLoopback-<pid>`) es AboveNormal gestionada y **nativa 15 (tiempo crítico, MMCSS «Pro Audio»)** (≈ 100 bloques/s); el marcapasos (`SilencePacer`) es AboveNormal por código. Es decir, en «Todo el PC» el marcapasos puede adelantarse al hilo de captura bajo carga de CPU. Mitigación candidata (no aplicada, sin evidencia de daño): registrar el hilo de captura en MMCSS desde su primera devolución de llamada, como ya hace la captura por aplicación; se decidiría si `relleno_sospechoso` aparece en sesiones reales.
 
 **No investigado / no comprobable aquí:** búfer real y reglas internas del Sonos, comportamiento real ante cabecera WAV de tamaño máximo, DHCP/escaneo de radio del hotspot, `IAudioClient3` en el loopback (no se pudo verificar la API del dispositivo virtual de captura por proceso), código fuente de NAudio 2.2.1 (modo eventos/sondeo de «Todo el PC»).
 

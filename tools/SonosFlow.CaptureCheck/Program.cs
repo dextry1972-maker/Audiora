@@ -388,6 +388,42 @@ if (args is ["tone-quiet", var qhz, var qsecs, var qdev])
     return 0;
 }
 
+if (args is ["threads"])
+{
+    // Which thread delivers the captured audio, and at what priority? (Silent: the tone plays on the unheard output.)
+    // Answers "is the whole-PC capture thread at a lower priority than the pacer?" with a measurement instead of a guess.
+    using var thrDev = FindDevice("Steam Streaming") ?? throw new InvalidOperationException("Sin salida de prueba");
+    using var thrTone = StartTone(1000, 20, "Steam Streaming");
+    Thread.Sleep(2000);
+    foreach (var (name, make) in new (string, Func<LoopbackSource>)[]
+    {
+        ("Todo el PC (dispositivo)", () => new LoopbackSource(thrDev)),
+        ("Una aplicación", () => LoopbackSource.ForProcess(thrTone.Id, "tono", 48000)),
+    })
+    {
+        using var src = make();
+        var seen = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
+        src.PcmAvailable += pcm =>
+        {
+            var t = Thread.CurrentThread;
+            string key = $"{(string.IsNullOrEmpty(t.Name) ? "(sin nombre)" : t.Name)} | prioridad gestionada {t.Priority} | prioridad nativa {NativeThreadPriority()} | pool={t.IsThreadPoolThread} | audio={(pcm.Span.Length > 0 && pcm.Span.ToArray().Any(b => b != 0) ? "con señal" : "silencio")}";
+            seen.AddOrUpdate(key, 1, (_, n) => n + 1);
+        };
+        src.Start();
+        Thread.Sleep(3000);
+        src.Stop();
+        Console.WriteLine($"== {name}");
+        foreach (var kv in seen.OrderByDescending(k => k.Value)) Console.WriteLine($"   {kv.Value,5} bloques  ←  {kv.Key}");
+    }
+    thrTone.Kill();
+    return 0;
+
+    static int NativeThreadPriority() => GetThreadPriority(GetCurrentThread());
+}
+
+[System.Runtime.InteropServices.DllImport("kernel32.dll")] static extern IntPtr GetCurrentThread();
+[System.Runtime.InteropServices.DllImport("kernel32.dll")] static extern int GetThreadPriority(IntPtr thread);
+
 if (args is ["stall", ..])
 {
     // Stalled-player test (silent, about 1 min): the "Sonos" reader stops taking audio for N seconds, then resumes. Shows, on the
