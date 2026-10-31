@@ -101,6 +101,8 @@ public sealed class StreamingSession : IAsyncDisposable
     private volatile bool _sourceAvailable = true;
     private byte[] _silence = new byte[19200];
     private float _peakSinceLog;
+    private TimeSpan _lastCpuTime = ReadCpuTime();
+    private long _lastCpuSample = System.Diagnostics.Stopwatch.GetTimestamp();
 
     public SessionState State { get; private set; } = SessionState.Starting;
     public SonosDevice Target => _target;
@@ -703,9 +705,15 @@ public sealed class StreamingSession : IAsyncDisposable
             // Written from the monitor, the server's connection events and Note(): serialize the writes.
             _log = TextWriter.Synchronized(new StreamWriter(path) { AutoFlush = true });
             _log.WriteLine($"# target={_target.RoomName} {_target.ModelName} {_target.Address}; capture={CaptureDeviceName}; {SourceFormat}; margen={_options.PrebufferMs} ms");
-            _log.WriteLine("elapsed_s,state,transport,clients,send_rate_kBps,bytes_sent,silence_kB,dropped_chunks,reconnects,buffer_est_s,error,source,paused,peak_dbfs,backlog_ms,capture_gaps");
+            _log.WriteLine("elapsed_s,state,transport,clients,send_rate_kBps,bytes_sent,silence_kB,dropped_chunks,reconnects,buffer_est_s,error,source,paused,peak_dbfs,backlog_ms,capture_gaps,private_memory_mb,working_set_mb,process_cpu_pct");
         }
         catch (IOException) { _log = null; }
+    }
+
+    private static TimeSpan ReadCpuTime()
+    {
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        return process.TotalProcessorTime;
     }
 
     private void WriteLog(StreamStats s)
@@ -714,15 +722,26 @@ public sealed class StreamingSession : IAsyncDisposable
         var inv = CultureInfo.InvariantCulture;
         try
         {
+            using var process = System.Diagnostics.Process.GetCurrentProcess();
+            var cpu = process.TotalProcessorTime;
+            var now = System.Diagnostics.Stopwatch.GetTimestamp();
+            double seconds = System.Diagnostics.Stopwatch.GetElapsedTime(_lastCpuSample, now).TotalSeconds;
+            double cpuPercent = Math.Clamp((cpu - _lastCpuTime).TotalSeconds / Math.Max(0.001, seconds)
+                / Environment.ProcessorCount * 100, 0, 100);
+            _lastCpuTime = cpu;
+            _lastCpuSample = now;
             _log.WriteLine(string.Join(',',
                 s.Elapsed.TotalSeconds.ToString("F0", inv), s.State, s.TransportState, s.Clients,
                 s.SendRateKBps.ToString("F1", inv), s.BytesSent, (s.SilenceBytes / 1000).ToString(inv),
                 s.DroppedChunks, s.Reconnects, s.BufferEstimateSeconds?.ToString("F1", inv) ?? "",
                 s.LastError?.Replace(',', ';') ?? "", s.SourceName.Replace(',', ';'), s.Paused ? 1 : 0,
                 double.IsNegativeInfinity(s.PeakDbfs) ? "" : s.PeakDbfs.ToString("F1", inv),
-                s.BacklogMaxMs.ToString("F0", inv), _source?.CaptureDiscontinuities ?? 0));
+                s.BacklogMaxMs.ToString("F0", inv), _source?.CaptureDiscontinuities ?? 0,
+                (process.PrivateMemorySize64 / 1048576.0).ToString("F1", inv),
+                (process.WorkingSet64 / 1048576.0).ToString("F1", inv), cpuPercent.ToString("F2", inv)));
         }
-        catch (IOException) { }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+            or System.ComponentModel.Win32Exception or InvalidOperationException) { }
     }
 
     private async Task TearDownAsync(bool stopSonos)

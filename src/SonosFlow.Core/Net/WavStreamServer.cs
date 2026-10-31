@@ -181,11 +181,11 @@ public sealed class WavStreamServer : IDisposable
         await stream.WriteAsync(BuildWavHeader(_format), ct);
 
         // 200 chunks (≈2 s of 10 ms app-capture chunks, more with larger device packets) plus the prebuffer;
-        // a full queue means the player stopped reading.
+        // TryWrite stays non-blocking; Wait mode reports a full queue instead of silently dropping a write.
         using var client = new Client(Channel.CreateBounded<byte[]>(new BoundedChannelOptions(200)
         {
             SingleReader = true,
-            FullMode = BoundedChannelFullMode.DropWrite
+            FullMode = BoundedChannelFullMode.Wait
         }), CancellationTokenSource.CreateLinkedTokenSource(ct));
         lock (_clients)
         {

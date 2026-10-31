@@ -145,3 +145,21 @@ Claude es una app empaquetada: lo que lanza puede escribir en una copia virtual 
 - [ ] Vigilancia o reintentos tocados: pruebas de `PlaybackWatchdog`/`RecoveryPolicy` en verde y comprobaciones 18–20 del autotest correctas (`fin: Se pausó…` / `fin: Se detuvo…` en el CSV, sin `Stop` de Audiora).
 - [ ] Al final: PC sin silenciar, sin `output-guard.json`, sin procesos `SonosFlow`/`CaptureCheck`, puerto 8780 libre, volumen y ecualizador del Sonos sin cambios (tras el autotest el Sonos queda en `STOPPED`).
 - [ ] Informe con lo que cambió respecto al estado anterior y cualquier fallo, sin afirmar que funciona lo que no se ha comprobado.
+
+
+## Fase 1 de estabilidad (30/10/2026)
+
+Regresión actual: **164/164** (65 Core, 87 App, 12 Backup), con compilación Release no incremental sin avisos. Se conservan todas las pruebas anteriores. Detalle y resultados de hardware: [FASE1-ESTABILIDAD.md](FASE1-ESTABILIDAD.md).
+
+Al copiar fuentes preparadas en otra carpeta, `Copy-Item` puede conservar fechas anteriores: usar `dotnet build SonosFlow.sln -c Release --no-restore --no-incremental` antes de `dotnet test ... --no-build`. Un ensamblado incremental viejo produjo un falso fallo al verificar la corrección de saturación.
+
+El autotest admite `--selftest-soak-seconds N` (0–7200, por defecto 0) junto con `--selftest-session PID --selftest-out archivo`. Añade, entre las comprobaciones 7 y 9, un tramo sobre el tono tenue de la aplicación sin silenciar el PC. El tono debe vivir al menos 7500 s para el ensayo de dos horas. Cada segundo comprueba estado, presencia del tono (−66…−54 dBFS), caudal >150 kB/s, cliente único, fuente disponible, estadísticas recientes y ausencia de nuevos descartes/reconexiones/atascos sobre el margen. Los CSV permiten medir memoria, CPU y discontinuidades. Esto acredita continuidad por telemetría, no una medición acústica de cortes a nivel de muestra.
+
+`SonosFlow.exe --diagnostic-report archivo-nuevo.json` exporta una instantánea permitida de versiones y contadores, sin audio ni registros sin filtrar, y sale sin controlar audio o Sonos. Rechaza sobrescribir un archivo. Sus métricas son del proceso exportador, no de una sesión que ya estaba abierta.
+
+Las simulaciones de `SonosClientTests` usan un transporte HTTP controlado y la política de reintentos real: no sustituyen una sesión de extremo a extremo, SSDP ni un corte real de Wi-Fi.
+
+
+### Actualización solicitada: ensayo inicial de diez minutos
+
+Usar `--selftest-session PID --selftest-out archivo --selftest-soak-only --selftest-soak-seconds 600 --minimized`, con tono tenue que dure al menos 900 s. Captura solo la aplicación, sin silenciar el PC ni ejecutar las partes A/B/C. Ejecutar después de las pruebas virtuales que comparten endpoint. Leer RESULTADO y CSV, no solo el código de salida. El usuario pidió terminar antes de completar el ensayo: diez minutos completos y validación de dos horas siguen pendientes. Evidencia y resultados: FASE1-ESTABILIDAD.md.
