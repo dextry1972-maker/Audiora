@@ -93,6 +93,7 @@ public sealed class StreamingSession : IAsyncDisposable
     private readonly string _redirectStateFile;
     private Task? _monitor;
     private TextWriter? _log;
+    private SonosFlow.Core.Diagnostics.StreamDiagnostics? _diag;
     private DateTime _startedAt;
     private long _sentAtPlaybackStart;
     private int _reconnects;
@@ -151,7 +152,9 @@ public sealed class StreamingSession : IAsyncDisposable
             _source = CreateSource(_spec, out _captureDevice);
             _streamRate = _source.OutputFormat.SampleRate;
             Spectrum = new SpectrumAnalyzer(_streamRate);
-            _server = new WavStreamServer(localIp, _options.Port, _source.OutputFormat, _allowedPeers, _options.PrebufferMs);
+            _diag = new SonosFlow.Core.Diagnostics.StreamDiagnostics(_options.LogDirectory, _streamRate, _spec.Kind == CaptureKind.Application ? "app" : "system");
+            _source.Diagnostics = _diag;
+            _server = new WavStreamServer(localIp, _options.Port, _source.OutputFormat, _allowedPeers, _options.PrebufferMs) { Diagnostics = _diag };
             _server.ConnectionEvent += msg =>
             {
                 try { _log?.WriteLine($"# {DateTime.Now:HH:mm:ss.fff} {msg}"); } catch (IOException) { } catch (ObjectDisposedException) { }
@@ -220,6 +223,7 @@ public sealed class StreamingSession : IAsyncDisposable
                 old = _source;
                 oldDevice = _captureDevice;
                 if (old is not null) old.PcmAvailable -= OnPcm;
+                next.Diagnostics = _diag;
                 next.PcmAvailable += OnPcm;
                 _source = next;
                 _captureDevice = nextDevice;
@@ -437,6 +441,7 @@ public sealed class StreamingSession : IAsyncDisposable
 
     private void OnPcm(ReadOnlyMemory<byte> pcm)
     {
+        long started = SonosFlow.Core.Diagnostics.StreamDiagnostics.Timestamp();
         if (_paused)
         {
             if (_silence.Length < pcm.Length) _silence = new byte[pcm.Length];
@@ -448,6 +453,7 @@ public sealed class StreamingSession : IAsyncDisposable
         float peak = 0;
         for (int i = 0; i + 1 < span.Length; i += 2) peak = MathF.Max(peak, MathF.Abs(BitConverter.ToInt16(span.Slice(i, 2)) / 32768f));
         if (peak > _peakSinceLog) _peakSinceLog = peak; // what was actually sent, after pause
+        _diag?.Processed(started);
     }
 
     public Task StopAsync() => Task.Run(StopCoreAsync);
@@ -646,6 +652,8 @@ public sealed class StreamingSession : IAsyncDisposable
     private void Note(string message)
     {
         try { _log?.WriteLine($"# {DateTime.Now:HH:mm:ss.fff} {message}"); } catch (IOException) { } catch (ObjectDisposedException) { }
+        // The diagnostics file keeps the event but not what the user named («…» holds application names).
+        _diag?.Event("nota", System.Text.RegularExpressions.Regex.Replace(message, "«[^»]*»", "«…»"));
         Diagnostic?.Invoke(message);
     }
 
@@ -683,6 +691,7 @@ public sealed class StreamingSession : IAsyncDisposable
             _peakSinceLog > 0 ? 20 * Math.Log10(_peakSinceLog) : double.NegativeInfinity,
             _server.TakeMaxBacklogMs());
         _peakSinceLog = 0;
+        _diag?.Tick(stats.BacklogMaxMs, stats.BufferEstimateSeconds, stats.SendRateKBps, _paused);
         _stalls ??= new StallTracker(_streamRate * 4 / 1000.0, _options.PrebufferMs);
         if (_stalls.Observe(stats) is { } shortfall)
         {
@@ -767,6 +776,17 @@ public sealed class StreamingSession : IAsyncDisposable
         Step(() => { var s = _server; _server = null; s?.Dispose(); });
         Step(() => { var c = _sonos; _sonos = null; c?.Dispose(); });
         Step(() => { var d = _captureDevice; _captureDevice = null; d?.Dispose(); });
+        Step(() =>
+        {
+            var d = _diag;
+            if (d is null) return;
+            var summary = d.Finish();
+            try { _log?.WriteLine($"# {DateTime.Now:HH:mm:ss.fff} diagnóstico: {summary}"); } catch (IOException) { } catch (ObjectDisposedException) { }
+            Diagnostic?.Invoke($"diagnóstico: {summary}");
+            if (d.FilePath is not null) Diagnostic?.Invoke($"diagnóstico detallado: {Path.GetFileName(d.FilePath)}");
+            _diag = null;
+            d.Dispose();
+        });
         Step(() => { var l = _log; _log = null; l?.Dispose(); });
 
         void Step(Action step)

@@ -49,6 +49,9 @@ public sealed class LoopbackSource : IDisposable
     public long CaptureDiscontinuities =>
         OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041) && _capture is ProcessLoopbackCapture p ? p.Discontinuities : 0;
 
+    /// <summary>Optional diagnostics (set by the session): capture timing and pacer fills. Measures, never changes anything.</summary>
+    public SonosFlow.Core.Diagnostics.StreamDiagnostics? Diagnostics { get; set; }
+
     public long CapturedBytes { get; private set; }
     public long SilenceBytes { get; private set; }
     /// <summary>Peak of the last captured block, 0..1. Real measurement of what was captured.</summary>
@@ -142,6 +145,8 @@ public sealed class LoopbackSource : IDisposable
             WriteInt16(dst, f * 4 + 2, r);
         }
 
+        Diagnostics?.CaptureBlock(frames, peak > 0.0003f); // above ≈ −70 dBFS counts as audio
+
         lock (_emitLock)
         {
             LastPeak = peak;
@@ -187,6 +192,7 @@ public sealed class LoopbackSource : IDisposable
                 int bytes = frames * OutputFormat.BlockAlign;
                 LastPeak = 0f;
                 SilenceBytes += bytes;
+                Diagnostics?.PacerFill(bytes);
                 _emittedFrames += frames;
                 PcmAvailable?.Invoke(silence.AsMemory(0, bytes));
             }

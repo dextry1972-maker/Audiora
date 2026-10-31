@@ -1,8 +1,9 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Channels;
 using NAudio.Wave;
+using SonosFlow.Core.Diagnostics;
 
 namespace SonosFlow.Core.Net;
 
@@ -27,6 +28,8 @@ public sealed class WavStreamServer : IDisposable
     private readonly byte[] _history;   // ring with the most recent audio, for the prebuffer
     private int _historyStart, _historyCount;
     private long _maxBacklogBytes;
+    private readonly long _maxPendingBytes; // audio one player may have queued before the oldest is discarded
+    private int _clientSeq;
 
     public IPEndPoint Endpoint { get; }
     public string StreamUrl => $"http://{Endpoint.Address}:{Endpoint.Port}{StreamPath}";
@@ -34,17 +37,28 @@ public sealed class WavStreamServer : IDisposable
     public long BytesSent;
     public long DroppedChunks;
     public long RejectedConnections;
+    /// <summary>Unexpected failures while accepting connections (each one is logged; the loop keeps going).</summary>
+    public long AcceptErrors;
     public string? LastClientInfo { get; private set; }
     public int PrebufferMs { get; }
+    /// <summary>Most audio (ms) one player may have waiting; beyond it the OLDEST audio is dropped, counted and logged.</summary>
+    public int MaxPendingMs { get; }
+    /// <summary>Optional diagnostics (set by the session). Measures; never changes behaviour.</summary>
+    public StreamDiagnostics? Diagnostics { get; set; }
 
     /// <summary>Raised (on a pool thread) when a player connects or disconnects, for the logs.</summary>
     public event Action<string>? ConnectionEvent;
 
     /// <param name="prebufferMs">Audio sent at once when a player connects (0 = pure live, minimum latency).</param>
-    public WavStreamServer(IPAddress bindAddress, int port, WaveFormat format, IEnumerable<IPAddress> allowedPeers, int prebufferMs = 0)
+    /// <param name="maxPendingMs">Bound of the per-player queue in TIME (0 = margin + 1 s, between 1.5 and 4 s). A count of
+    /// chunks would mean 2 s of 10 ms app-capture chunks but ~10 s of 50 ms device-capture chunks.</param>
+    public WavStreamServer(IPAddress bindAddress, int port, WaveFormat format, IEnumerable<IPAddress> allowedPeers, int prebufferMs = 0, int maxPendingMs = 0)
     {
         _format = format;
         PrebufferMs = Math.Max(0, prebufferMs);
+        MaxPendingMs = maxPendingMs > 0 ? maxPendingMs : Math.Clamp(PrebufferMs + 1000, 1500, 4000);
+        long pendingBytes = (long)format.AverageBytesPerSecond * MaxPendingMs / 1000;
+        _maxPendingBytes = pendingBytes - pendingBytes % format.BlockAlign;
         int historyBytes = (int)((long)format.AverageBytesPerSecond * PrebufferMs / 1000);
         _history = new byte[historyBytes - historyBytes % format.BlockAlign];
         _allowed = [.. allowedPeers];
@@ -64,8 +78,18 @@ public sealed class WavStreamServer : IDisposable
             var copy = pcm.ToArray();
             foreach (var c in _clients)
             {
-                if (!c.Queue.Writer.TryWrite(copy)) { Interlocked.Increment(ref DroppedChunks); continue; }
-                long pending = Interlocked.Add(ref c.PendingBytes, copy.Length);
+                Interlocked.Add(ref c.PendingBytes, copy.Length);
+                c.Queue.Enqueue(copy, _maxPendingBytes, out int droppedChunks, out long droppedBytes);
+                if (droppedChunks > 0)
+                {
+                    // Never silent: the oldest audio was discarded to keep latency bounded; counted here and in the diagnostics.
+                    Interlocked.Add(ref c.PendingBytes, -droppedBytes);
+                    Interlocked.Add(ref DroppedChunks, droppedChunks);
+                    c.DroppedChunks += droppedChunks;
+                    c.DroppedBytes += droppedBytes;
+                    for (int i = 0; i < droppedChunks; i++) Diagnostics?.Dropped((int)(droppedBytes / droppedChunks));
+                }
+                long pending = Interlocked.Read(ref c.PendingBytes);
                 if (pending > _maxBacklogBytes) _maxBacklogBytes = pending;
             }
         }
@@ -128,21 +152,42 @@ public sealed class WavStreamServer : IDisposable
             TcpClient tcp;
             try { tcp = await _listener.AcceptTcpClientAsync(ct); }
             catch (Exception) when (ct.IsCancellationRequested) { return; }
-            catch (SocketException)
+            catch (Exception ex)
             {
-                // Transient (e.g. the adapter is reconfiguring): don't spin.
-                try { await Task.Delay(100, ct); } catch (OperationCanceledException) { return; }
+                // Transient (e.g. the adapter is reconfiguring) or unexpected: never let the loop die silently, and
+                // never spin. The first failures and then one in sixty are logged, so a persistent one stays readable.
+                long n = Interlocked.Increment(ref AcceptErrors);
+                if (n <= 5 || n % 60 == 0)
+                {
+                    ConnectionEvent?.Invoke($"error al aceptar conexiones ({n}): {ex.GetType().Name}: {ex.Message}");
+                    Diagnostics?.Event("http_error_aceptar", $"{ex.GetType().Name} (n={n})");
+                }
+                try { await Task.Delay(ex is SocketException ? 100 : 1000, ct); } catch (OperationCanceledException) { return; }
                 continue;
             }
 
-            var peer = ((IPEndPoint)tcp.Client.RemoteEndPoint!).Address;
+            if (tcp.Client.RemoteEndPoint is not IPEndPoint remoteEndPoint) { tcp.Dispose(); continue; }
+            var peer = remoteEndPoint.Address;
             if (!_allowed.Contains(peer))
             {
                 Interlocked.Increment(ref RejectedConnections);
+                Diagnostics?.Event("http_rechazada", "cliente fuera de la lista permitida");
                 tcp.Dispose();
                 continue;
             }
-            _ = HandleClientAsync(tcp, peer, ct);
+            _ = HandleClientSafeAsync(tcp, peer, ct);
+        }
+    }
+
+    /// <summary>A failure in one connection (a header write on a socket that just closed, say) is logged, never left unobserved.</summary>
+    private async Task HandleClientSafeAsync(TcpClient tcp, IPAddress peer, CancellationToken ct)
+    {
+        try { await HandleClientAsync(tcp, peer, ct); }
+        catch (Exception) when (ct.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            ConnectionEvent?.Invoke($"conexión interrumpida antes de transmitir: {ex.GetType().Name}: {ex.Message}");
+            Diagnostics?.Event("http_error_conexion", ex.GetType().Name);
         }
     }
 
@@ -180,26 +225,27 @@ public sealed class WavStreamServer : IDisposable
 
         await stream.WriteAsync(BuildWavHeader(_format), ct);
 
-        // 200 chunks (≈2 s of 10 ms app-capture chunks, more with larger device packets) plus the prebuffer;
-        // TryWrite stays non-blocking; Wait mode reports a full queue instead of silently dropping a write.
-        using var client = new Client(Channel.CreateBounded<byte[]>(new BoundedChannelOptions(200)
-        {
-            SingleReader = true,
-            FullMode = BoundedChannelFullMode.Wait
-        }), CancellationTokenSource.CreateLinkedTokenSource(ct));
+        // Per-player queue bounded in TIME (see MaxPendingMs); Write never blocks the audio thread.
+        int id = Interlocked.Increment(ref _clientSeq);
+        using var client = new Client(new PendingQueue(), CancellationTokenSource.CreateLinkedTokenSource(ct));
+        Diagnostics?.Event("http_abierta", $"cliente#{id} {method} margen={PrebufferMs}ms cola_max={MaxPendingMs}ms{(headers.ContainsKey("range") ? " con_Range" : "")}");
         lock (_clients)
         {
             // Prebuffer and live audio are queued under the same lock: no gap and no duplicate between them.
             var prebuffer = HistorySnapshot();
-            if (prebuffer.Length > 0 && client.Queue.Writer.TryWrite(prebuffer)) client.PendingBytes = prebuffer.Length;
+            if (prebuffer.Length > 0) { client.Queue.Enqueue(prebuffer, long.MaxValue, out int _noDrops, out long _noDropBytes); client.PendingBytes = prebuffer.Length; }
             _clients.Add(client);
         }
         string reason = "fin normal";
         try
         {
-            await foreach (var chunk in client.Queue.Reader.ReadAllAsync(client.Abort.Token))
+            while (await client.Queue.DequeueAsync(client.Abort.Token) is { } chunk)
             {
+                long started = Stopwatch.GetTimestamp();
                 await stream.WriteAsync(chunk, client.Abort.Token);
+                long ticks = Stopwatch.GetTimestamp() - started;
+                Diagnostics?.ServerWrite(ticks);
+                client.NoteWrite(ticks, chunk.Length);
                 Interlocked.Exchange(ref client.LastProgressTicks, Environment.TickCount64);
                 Interlocked.Add(ref client.PendingBytes, -chunk.Length);
                 Interlocked.Add(ref BytesSent, chunk.Length);
@@ -214,7 +260,13 @@ public sealed class WavStreamServer : IDisposable
         finally
         {
             lock (_clients) _clients.Remove(client);
-            ConnectionEvent?.Invoke($"desconexión {remote} tras {(DateTime.UtcNow - connectedAt).TotalSeconds:0} s: {reason}");
+            string extra = client.DroppedChunks > 0 || client.SlowWrites > 0
+                ? $" (descartes {client.DroppedChunks} = {client.DroppedBytes * 1000 / _format.AverageBytesPerSecond} ms, escrituras lentas {client.SlowWrites})"
+                : "";
+            ConnectionEvent?.Invoke($"desconexión {remote} tras {(DateTime.UtcNow - connectedAt).TotalSeconds:0} s: {reason}{extra}");
+            Diagnostics?.Event("http_cerrada",
+                $"cliente#{id} {(DateTime.UtcNow - connectedAt).TotalSeconds:0.0}s motivo={reason} enviado={client.BytesWritten / 1000}kB " +
+                $"descartes={client.DroppedChunks} ({client.DroppedBytes * 1000 / _format.AverageBytesPerSecond}ms) escrituras_lentas={client.SlowWrites} escritura_max={client.MaxWriteMs:0}ms");
         }
     }
 
@@ -280,7 +332,7 @@ public sealed class WavStreamServer : IDisposable
         _cts.Cancel();
         _listener.Stop();
         lock (_clients)
-            foreach (var c in _clients) c.Queue.Writer.TryComplete();
+            foreach (var c in _clients) c.Queue.Complete();
     }
 
     /// <summary>
@@ -312,12 +364,88 @@ public sealed class WavStreamServer : IDisposable
         }
     }
 
-    private sealed class Client(Channel<byte[]> queue, CancellationTokenSource abort) : IDisposable
+    private sealed class Client(PendingQueue queue, CancellationTokenSource abort) : IDisposable
     {
-        public Channel<byte[]> Queue { get; } = queue;
+        public PendingQueue Queue { get; } = queue;
         public CancellationTokenSource Abort { get; } = abort;
         public long PendingBytes; // queued for this player but not yet written to its socket
         public long LastProgressTicks = Environment.TickCount64;
+        public long DroppedChunks, DroppedBytes, SlowWrites, BytesWritten;
+        public double MaxWriteMs;
+
+        public void NoteWrite(long ticks, int bytes)
+        {
+            BytesWritten += bytes;
+            double ms = StreamDiagnostics.ToMs(ticks);
+            if (ms > MaxWriteMs) MaxWriteMs = ms;
+            if (ms >= 250) SlowWrites++;
+        }
+
         public void Dispose() => Abort.Dispose();
+    }
+
+    /// <summary>
+    /// FIFO of audio chunks bounded in bytes (= in time). The producer never waits: when the bound is exceeded the OLDEST
+    /// chunks go, so a player that stalls and recovers resumes near live instead of replaying seconds of stale audio.
+    /// </summary>
+    internal sealed class PendingQueue
+    {
+        private readonly object _lock = new();
+        private readonly LinkedList<byte[]> _items = new();
+        private long _bytes;
+        private bool _completed;
+        private TaskCompletionSource? _signal;
+
+        public void Enqueue(byte[] chunk, long limitBytes, out int droppedChunks, out long droppedBytes)
+        {
+            droppedChunks = 0; droppedBytes = 0;
+            TaskCompletionSource? wake;
+            lock (_lock)
+            {
+                if (_completed) return;
+                _items.AddLast(chunk);
+                _bytes += chunk.Length;
+                while (_bytes > limitBytes && _items.Count > 1)
+                {
+                    var oldest = _items.First!.Value;
+                    _items.RemoveFirst();
+                    _bytes -= oldest.Length;
+                    droppedChunks++;
+                    droppedBytes += oldest.Length;
+                }
+                wake = _signal;
+                _signal = null;
+            }
+            wake?.TrySetResult();
+        }
+
+        /// <returns>The next chunk, or null once the queue was completed and emptied.</returns>
+        public async ValueTask<byte[]?> DequeueAsync(CancellationToken ct)
+        {
+            while (true)
+            {
+                Task wait;
+                lock (_lock)
+                {
+                    if (_items.First is { } first)
+                    {
+                        _items.RemoveFirst();
+                        _bytes -= first.Value.Length;
+                        return first.Value;
+                    }
+                    if (_completed) return null;
+                    _signal ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    wait = _signal.Task;
+                }
+                await wait.WaitAsync(ct);
+            }
+        }
+
+        public void Complete()
+        {
+            TaskCompletionSource? wake;
+            lock (_lock) { _completed = true; wake = _signal; _signal = null; }
+            wake?.TrySetResult();
+        }
     }
 }
