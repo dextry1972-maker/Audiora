@@ -168,6 +168,9 @@ public sealed class StreamingSessionDiagnosticsTests(Xunit.Abstractions.ITestOut
         if (steam is null || !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
         {
             log.WriteLine("OMITIDA: este equipo no tiene la salida «Steam Streaming»; la prueba de sesión completa no se ejecutó.");
+            // AUDIORA_REQUIRE_SESSION_TEST=1 turns "could not run" into a failure, for a machine that must run it.
+            Assert.False(Environment.GetEnvironmentVariable("AUDIORA_REQUIRE_SESSION_TEST") == "1",
+                "AUDIORA_REQUIRE_SESSION_TEST=1 exige ejecutar la prueba de sesión, pero falta la salida «Steam Streaming».");
             return;
         }
 
