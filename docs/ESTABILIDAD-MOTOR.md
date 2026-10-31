@@ -67,17 +67,17 @@ Después (commit `bdd2587`, mismas condiciones, 7 min reales, 31/10 00:48):
 
 | Atasco de 8 s — latencia añadida que queda 25 s después | Por aplicación | Todo el PC |
 |---|---|---|
-| **Política nueva** (2 ejecuciones) | +2117 / +2125 ms | +2334 / +2189 ms |
-| **Anterior emulada** (2 ejecuciones) | +7014 / +7001 ms | +6974 / +7018 ms |
-| Atasco de 3 s, política nueva (1 ejecución) | +2005 ms | +1981 ms |
+| **Política nueva** (n = 5) | **2126 ms** (sd 5; 2117–2131) | **2313 ms** (sd 68; 2189–2397) |
+| **Anterior emulada** (n = 5) | **7010 ms** (sd 8; 7000–7019) | **7002 ms** (sd 24; 6974–7035) |
+| Atasco de 3 s, política nueva (n = 1) | +2005 ms | +1981 ms |
 
 Descartes con la política nueva: 488 / 92–95 trozos (≈ 4,9 s de audio, contados); con la anterior, 0. Cola máxima del servidor: 2010–2030 ms (límite 2000 ms) frente a 6670–6900 ms.
 
-**Lectura:** la política nueva reduce la latencia que se queda tras un atasco largo en ≈ 4,8 s (de ≈ 7,0 s a ≈ 2,1–2,3 s, ~70 %), repetible a ±0,2 s entre ejecuciones, a cambio de **perder ≈ 4,9 s de contenido** (un salto). **No elimina la latencia:** queda ≈ el límite de la cola (margen + 1 s) más búferes TCP. Y un hallazgo que no esperaba: **incluso un atasco corto de 3 s, sin descartes, deja ≈ +2 s permanentes** en este modelo (un reproductor a ritmo real no puede adelantarse). Ninguna de las dos políticas «se pone al día». Recuperar ese retraso exigiría un mecanismo explícito (p. ej. recortar audio hasta volver al margen) que **no se implementa**: sin evidencia con un Sonos real de que el retraso persista y moleste, sería un cambio especulativo que añade saltos audibles.
+**Lectura:** la política nueva reduce la latencia que se queda tras un atasco largo en ≈ 4,8 s (de ≈ 7,0 s a ≈ 2,1–2,3 s, ~70 %), con una dispersión de 5–68 ms entre las 5 ejecuciones por caso (frente a una diferencia de ≈ 4,7 s), a cambio de **perder ≈ 4,9 s de contenido** (un salto). **No elimina la latencia:** queda ≈ el límite de la cola (margen + 1 s) más búferes TCP. Y un hallazgo que no esperaba: **incluso un atasco corto de 3 s, sin descartes, deja ≈ +2 s permanentes** en este modelo (un reproductor a ritmo real no puede adelantarse). Ninguna de las dos políticas «se pone al día». Recuperar ese retraso exigiría un mecanismo explícito (p. ej. recortar audio hasta volver al margen) que **no se implementa**: sin evidencia con un Sonos real de que el retraso persista y moleste, sería un cambio especulativo que añade saltos audibles.
 
 **Correcciones a mi propio trabajo (para que no se repitan los errores):** (1) una primera medida con el lector a velocidad de línea mostraba «+4,9 s de retraso» con la política nueva y 0 con la anterior: era una métrica errónea (medía contenido no recibido; un lector así recupera todo lo retenido, algo que un Sonos no puede hacer). (2) La segunda, «cola que queda en el servidor» (10 / 310 ms con la nueva), solo contaba la cola del servidor y dejaba fuera los búferes TCP y el del reproductor: **sobreestimaba la mejora** (la revisión independiente lo detectó). Sustituida por la métrica extremo a extremo de arriba.
 
-**Límites:** (a) el seno de 1 kHz y los trozos de 10/50 ms (múltiplos enteros de su periodo) hacen que **el empalme del descarte no se vea como discontinuidad** (0 cortes detectados); con música puede haber un clic; (b) no se sabe qué hace un Sonos real tras un atasco largo (puede cortar la conexión, como el 28/10) ni su búfer interno; (c) 2 repeticiones por caso (5 ejecuciones en total): da una idea del ruido, no una estadística; (d) la latencia absoluta del modelo no es la del Sonos.
+**Límites:** (a) el seno de 1 kHz y los trozos de 10/50 ms (múltiplos enteros de su periodo) hacen que **el empalme del descarte no se vea como discontinuidad** (0 cortes detectados); con música puede haber un clic; (b) no se sabe qué hace un Sonos real tras un atasco largo (puede cortar la conexión, como el 28/10) ni su búfer interno; (c) 5 repeticiones por caso para el atasco de 8 s (1 para el de 3 s), todas en el mismo equipo y la misma sesión de trabajo: la dispersión es pequeña pero no cubre otras máquinas, cargas ni dispositivos; (d) la latencia absoluta del modelo no es la del Sonos.
 
 ## 2. Qué se implementó (y por qué)
 
