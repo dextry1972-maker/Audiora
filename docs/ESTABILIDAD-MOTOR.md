@@ -162,6 +162,29 @@ SonosFlow.exe --selftest-session <PID> --selftest-out <archivo.txt> --selftest-s
 3. **Baja latencia frente a estable:** margen 0 / 1 s / 2 s en la misma red, comparando cortes oídos y `buffer_est`.
 4. Corte controlado de Wi-Fi (apagar el hotspot unos segundos) para ver el recorte de cola y el tiempo de recuperación reales.
 
+### 4.1 Sesión de escucha real en «Sin margen» (31/10/2026, supervisada por el usuario)
+
+**Condiciones:** rama `motor/estabilidad-diagnostico` (build `27d9c99`), margen 0 ms (`PrebufferMs = 0`), captura de todo el PC (BenQ EX270QM), Brave + YouTube, con cambios constantes de vídeo, adelantar/retroceder, saltos, pausas y reanudaciones. Sin tonos de prueba, sin tocar volúmenes. **Resultado auditivo (informado por el usuario): 30 minutos sin ningún corte audible**, en el modo en que antes había cortes al cambiar de vídeo.
+
+**Métricas del registro (`stream-20261031-085355.csv`, 30,4 min a la hora del análisis; la sesión seguía abierta, sin `resumen` de cierre):**
+
+| Métrica | Valor |
+|---|---|
+| Descartes de cola / reconexiones / atascos de red / desconexiones | 0 / 0 / 0 / 0 |
+| Segundos fuera de PLAYING | 0 |
+| Cola del servidor | máx. 85 ms, p99 62 ms |
+| Ritmo de envío (kB/s; nominal 192) | 180–203, mediana 192 |
+| Escritura HTTP máxima | 4 ms |
+| Tiempo de proceso por bloque, máx. | 8,2 ms |
+| Búfer estimado del Sonos (±1 s de resolución) | mediana 0,60 s; primeros 2 min 0,50 → últimos 2 min 0,50 s; tendencia +0,000 s/min (sin acumulación de latencia) |
+| CPU media / memoria privada | 0,55 % / 234 → 187 MB (estable) |
+
+El diagnóstico registró los cambios de vídeo como lo que son: **silencios de origen** (huecos de captura de ≈ 0,6–1 s y uno de 11,2 s a las 08:55:02, máximo de la sesión 17,7 s) que el marcapasos rellenó con silencio en tiempo real sin interrumpir el flujo (relleno total 30 MB = silencio legítimo de la fuente).
+
+**Investigación previa de los cortes en «Sin margen»** (sesiones del 31/10 03:01–03:04 y el historial): no se encontró agotamiento de cola, fallo del servidor HTTP, error de WASAPI ni reconexión; ninguna causa quedó demostrada. Hipótesis **no demostrada**: la tolerancia de 120 ms del marcapasos (`AllowanceMs`) consume parte de la holgura del Sonos (≈ 100–200 ms con margen 0) en cada silencio; un modelo offline (sin audio) estima ≈ –65 ms de holgura tras un hueco de 1,1 s, y los CSV muestran caídas puntuales de ritmo (170–182 kB/s) en las transiciones. **No se modificó el marcapasos ni ningún parámetro de estabilidad.** Si reaparecen cortes, anotar la hora y cruzarla con `diag-*.jsonl` (`tools/analizar-sesion-escucha.py --cortes HH:MM:SS`); opciones con su coste de latencia: tolerancia ≈ 75 ms, compensar la tolerancia una vez por hueco, o un micro-margen visible de 150–250 ms.
+
+**Límites:** una sesión limpia no demuestra por sí sola que el problema esté resuelto (no se observa el búfer del Sonos); lo medido es el transporte desde el PC y la percepción del usuario.
+
 ## 5. Archivos
 
 Nuevos: `Core/Diagnostics/StreamDiagnostics.cs`, `StreamAnalysis.cs`; `tools/analizar-sesiones.py`; pruebas `StreamAnalysisTests.cs`, `StreamServerHardeningTests.cs`. Modificados: `Net/WavStreamServer.cs`, `Audio/LoopbackSource.cs`, `Streaming/StreamingSession.cs`, `WavStreamServerTests.cs`.
