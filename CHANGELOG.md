@@ -5,7 +5,7 @@ Formato: lo que cambia para quien usa Audiora, con el commit. Más reciente arri
 ## Sin publicar (rama `feature/sonidos-enchanted`)
 
 ### Sonidos «Audiora Enchanted»
-- Sonidos originales (síntesis: ocarina suave y campanilla de cristal, sin grabaciones ni melodías ajenas) para conexión, pérdida de señal, reconexión, error, iniciar/detener, cambio de ajuste, navegación e interruptores. Cada uno suena **solo después** de que el hecho ocurra de verdad.
+- Sonidos originales (síntesis: marimba suave y campanilla de cristal, sin grabaciones ni melodías ajenas) para conexión, pérdida de señal, reconexión, error, iniciar/detener, cambio de ajuste, navegación e interruptores. Cada uno suena **solo después** de que el hecho ocurra de verdad.
 - Ajustes → Sonidos: cinco interruptores, volumen independiente, dispositivo de reproducción, vista previa de cada sonido y restablecer. Persisten y están en los 12 idiomas.
 - **Nunca llegan al Sonos:** con «Todo el PC» y el mismo dispositivo que se transmite quedan en silencio (elige otro dispositivo para oírlos); con «Una aplicación» no se capturan.
 - Reproducción local, asíncrona, precargada (≈ 51 ms, 0,9 MB), con límites de frecuencia y sin tocar el motor de transmisión. Detalles: `docs/SONIDOS-ENCHANTED.md`.
