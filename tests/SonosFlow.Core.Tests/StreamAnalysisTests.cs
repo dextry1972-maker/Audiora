@@ -289,7 +289,25 @@ public sealed class StreamDiagnosticsTests : IDisposable
         Assert.DoesNotContain("Mi Sala", text);
         Assert.DoesNotContain("10.0.0.5", text);
         Assert.DoesNotContain("chrome", text);
-        Assert.DoesNotContain(new string('z', 200), text);
+        Assert.DoesNotContain(new string('z', StreamDiagnostics.MaxTextLength), text);
+    }
+
+    [Fact]
+    public void A_long_connection_line_keeps_its_counters_and_a_cut_never_splits_an_emoji_or_disables_the_file()
+    {
+        using var d = new StreamDiagnostics(_dir, 48000, "app");
+        // the real http_cerrada detail with a long socket message: the counters at its END must survive
+        string closed = "cliente#2 12.3s motivo=" + new string('m', 120) + " enviado=900kB descartes=4 (200ms) escrituras_lentas=1 escritura_max=420ms";
+        Assert.EndsWith("escritura_max=420ms", StreamDiagnostics.Sanitize(closed));
+        // a surrogate pair exactly at the cut
+        string tricky = new string('x', StreamDiagnostics.MaxTextLength - 1) + char.ConvertFromUtf32(0x1F600) + " resto";
+        var cut = StreamDiagnostics.Sanitize(tricky);
+        Assert.DoesNotContain(cut, c => char.IsSurrogate(c));            // the half pair was dropped, not kept
+        d.Event("nota", tricky);
+        d.Event("nota", "despues del emoji");
+        Assert.False(d.FileDisabled);
+        Assert.Equal("", StreamDiagnostics.Sanitize(null));
+        d.Event("nota", null!);                                          // a null message must not escape
     }
 
     [Fact]

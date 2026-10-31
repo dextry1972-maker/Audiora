@@ -30,6 +30,7 @@ public sealed record DiagEvent(double TSec, string Kind, string Detail);
 public sealed class StreamDiagnostics : IDisposable
 {
     public const int FormatVersion = 1;
+    public const int MaxTextLength = 300;
     private const long StallMs = 250;
     private const double CaptureGapAnomalyMs = 250, SlowProcessMs = 30, BacklogAnomalyMs = 400;
     private const int RecentEventsKept = 512, MaxFiles = 30, SummarySeconds = 10;
@@ -109,16 +110,20 @@ public sealed class StreamDiagnostics : IDisposable
 
     /// <summary>
     /// Free text from the session may carry what the file promises not to hold: names in «…», executable names, IPv4
-    /// addresses (with port), Windows paths, device ids. Those are replaced, and the text is cut at 160 characters.
+    /// addresses (with port), Windows paths, device ids. Those are replaced, and the text is cut at 300 characters
+    /// (never in the middle of a surrogate pair: that would make the whole line invalid JSON).
     /// </summary>
-    public static string Sanitize(string text)
+    public static string Sanitize(string? text)
     {
+        if (string.IsNullOrEmpty(text)) return "";
         text = System.Text.RegularExpressions.Regex.Replace(text, "«[^»]*»", "«…»");
         text = System.Text.RegularExpressions.Regex.Replace(text, @"[A-Za-z]:\\[^\s;,)]*", "<ruta>");
         text = System.Text.RegularExpressions.Regex.Replace(text, @"\b\d{1,3}(\.\d{1,3}){3}(:\d+)?\b", "<ip>");
         text = System.Text.RegularExpressions.Regex.Replace(text, @"\{[0-9A-Fa-f.\-]{8,}\}(\.\{[0-9A-Fa-f\-]{8,}\})?", "<id>");
         text = System.Text.RegularExpressions.Regex.Replace(text, @"[\w.\-]+\.(exe|dll|lnk)\b", "<programa>", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-        return text.Length <= 160 ? text : text[..160] + "…";
+        if (text.Length <= MaxTextLength) return text;
+        int cut = char.IsHighSurrogate(text[MaxTextLength - 1]) ? MaxTextLength - 1 : MaxTextLength;
+        return text[..cut] + "…";
     }
 
     public static long Timestamp() => Stopwatch.GetTimestamp();
