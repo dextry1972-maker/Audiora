@@ -36,6 +36,8 @@ public sealed class WavStreamServer : IDisposable
     public int ClientCount { get { lock (_clients) return _clients.Count; } }
     public long BytesSent;
     public long DroppedChunks;
+    /// <summary>Bytes of audio discarded by the time bound (with <see cref="DroppedChunks"/>).</summary>
+    public long DroppedBytes;
     public long RejectedConnections;
     /// <summary>Unexpected failures while accepting connections (each one is logged; the loop keeps going).</summary>
     public long AcceptErrors;
@@ -85,6 +87,7 @@ public sealed class WavStreamServer : IDisposable
                     // Never silent: the oldest audio was discarded to keep latency bounded; counted here and in the diagnostics.
                     Interlocked.Add(ref c.PendingBytes, -droppedBytes);
                     Interlocked.Add(ref DroppedChunks, droppedChunks);
+                    Interlocked.Add(ref DroppedBytes, droppedBytes);
                     c.DroppedChunks += droppedChunks;
                     c.DroppedBytes += droppedBytes;
                     for (int i = 0; i < droppedChunks; i++) Diagnostics?.Dropped((int)(droppedBytes / droppedChunks));

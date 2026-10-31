@@ -151,7 +151,7 @@ internal sealed class FakeSonos : IDisposable
 }
 
 [Collection("FakeSonos on port 1400")]
-public sealed class StreamingSessionDiagnosticsTests : IDisposable
+public sealed class StreamingSessionDiagnosticsTests(Xunit.Abstractions.ITestOutputHelper log) : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), $"audiora-session-{Guid.NewGuid():N}");
     public void Dispose() { try { Directory.Delete(_dir, true); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
@@ -162,10 +162,14 @@ public sealed class StreamingSessionDiagnosticsTests : IDisposable
     /// the episode and the summary, and hold no address. Without that output the test does nothing (and says so in the name).
     /// </summary>
     [Fact]
-    public async Task A_real_session_against_a_stand_in_Sonos_writes_a_sane_diagnostics_file_and_survives_a_stalled_player()
+    public async Task If_the_silent_output_exists_a_real_session_against_a_stand_in_Sonos_writes_a_sane_diagnostics_file_and_survives_a_stalled_player()
     {
         var steam = AudioDevices.ListOutputs().FirstOrDefault(d => d.Name.Contains("Steam Streaming", StringComparison.OrdinalIgnoreCase));
-        if (steam is null || !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041)) return;
+        if (steam is null || !OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
+        {
+            log.WriteLine("OMITIDA: este equipo no tiene la salida «Steam Streaming»; la prueba de sesión completa no se ejecutó.");
+            return;
+        }
 
         using var sonos = new FakeSonos();
         using var device = AudioDevices.Resolve(steam.Id);
@@ -190,7 +194,7 @@ public sealed class StreamingSessionDiagnosticsTests : IDisposable
         sonos.PauseReading = true;               // the player stops taking audio: more than the queue's time bound (margin 0.5 s + 1 s)
         await Task.Delay(4000);
         sonos.PauseReading = false;
-        await Task.Delay(6500);                  // recovers; enough ticks for a ten-second summary
+        await Task.Delay(9000);                  // recovers; leaves room for the ten-second summary even on a loaded machine
 
         await session.StopAsync();
 
@@ -206,8 +210,8 @@ public sealed class StreamingSessionDiagnosticsTests : IDisposable
         Assert.Contains("\"k\":\"resumen\"", text);
         Assert.Contains("http_abierta", text);
         Assert.Contains("http_cerrada", text);
-        Assert.Contains("\"k\":\"episodio\"", text);                                            // the stall was seen as an episode
-        Assert.Contains("descartes", text);                                                     // and the dropped audio was counted
+        Assert.Contains(lines, l => l.Contains("\"k\":\"episodio\""));                         // the stall was seen as an episode
+        Assert.Contains(lines, l => (l.Contains("\"k\":\"episodio\"") || l.Contains("\"k\":\"anomalia\"")) && l.Contains("descartes")); // and the dropped audio was counted
         Assert.DoesNotMatch(@"\d+\.\d+\.\d+\.\d+", text);                                       // no address
         Assert.DoesNotContain("Fake", text);                                                    // no room name
         Assert.True(new FileInfo(files[0]).Length < 64 * 1024, "small");

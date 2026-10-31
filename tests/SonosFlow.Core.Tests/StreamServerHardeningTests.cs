@@ -131,6 +131,7 @@ public sealed class StreamServerHardeningTests
         var received = await ReadAvailableAsync(s, extra, TimeSpan.FromMilliseconds(500));
         // 3 s produced against a 2 s bound: some audio is dropped and counted — but never more than exceeded the bound.
         Assert.Equal(frame * 4L - Interlocked.Read(ref server.DroppedChunks) * Frames50Ms * 4L, received.Length);
+        Assert.Equal(Interlocked.Read(ref server.DroppedChunks) * Frames50Ms * 4L, Interlocked.Read(ref server.DroppedBytes)); // bytes match chunks
     }
 
     /// <summary>A real producer runs at wall-clock rate; a test's loop is thousands of times faster, so it waits for the consumer.</summary>

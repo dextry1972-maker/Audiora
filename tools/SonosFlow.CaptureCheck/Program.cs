@@ -407,21 +407,21 @@ if (args is ["stall", ..])
     };
     foreach (var p in stallPipes) p.RealTimePlayer = !args.Contains("--line-speed"); // default: a player that consumes in real time
     Thread.Sleep(TimeSpan.FromSeconds(25) - stallClock.Elapsed);
-    var queueBefore = stallPipes.Select(p => p.CurrentQueueMs()).ToArray();
+    var latencyBefore = stallPipes.Select(p => p.LatencySeconds).ToArray();
     Console.WriteLine($"[{stallClock.Elapsed.TotalSeconds:0.0} s] el lector deja de leer durante {stallSeconds} s (margen {stallMargin} ms, límite de cola {(maxPending > 0 ? maxPending + " ms" : "automático")})");
     foreach (var p in stallPipes) p.PauseReader = true;
     Thread.Sleep(TimeSpan.FromSeconds(stallSeconds));
     foreach (var p in stallPipes) p.PauseReader = false;
     Console.WriteLine($"[{stallClock.Elapsed.TotalSeconds:0.0} s] el lector vuelve a leer");
     Thread.Sleep(TimeSpan.FromSeconds(25));
-    var queueAfter = stallPipes.Select(p => p.CurrentQueueMs()).ToArray();
+    var latencyAfter = stallPipes.Select(p => p.LatencySeconds).ToArray();
     foreach (var p in stallPipes) p.Stop();
     stallTone.Kill();
     Console.WriteLine();
     for (int i = 0; i < stallPipes.Length; i++)
     {
         stallPipes[i].Report();
-        Console.WriteLine($"   cola en el servidor (latencia que añade) antes del atasco {queueBefore[i]:0} ms → 25 s después de recuperarse {queueAfter[i]:0} ms  (Δ {queueAfter[i] - queueBefore[i]:+0;-0} ms)  [reproductor {(stallPipes[i].RealTimePlayer ? "a ritmo real" : "a velocidad de línea: NO mide latencia")}]");
+        Console.WriteLine($"   latencia extremo a extremo del modelo (cola + búferes TCP + búfer del reproductor), cambio tras el atasco: Δ {(latencyAfter[i] - latencyBefore[i]) * 1000:+0;-0} ms  [reproductor {(stallPipes[i].RealTimePlayer ? "a ritmo real" : "a velocidad de línea: NO mide latencia")}]");
         Console.WriteLine($"   diagnóstico: {stallPipes[i].FinishDiagnostics()}");
     }
     foreach (var f in Directory.GetFiles(diagDir, "diag-*.jsonl"))

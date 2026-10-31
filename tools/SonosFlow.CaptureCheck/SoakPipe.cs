@@ -29,13 +29,14 @@ internal sealed class SoakPipe
     /// </summary>
     public bool RealTimePlayer { get; set; }
     public double PlayerLeadSeconds { get; set; } = 1.0;
-    /// <summary>Audio waiting in the server for this player right now (ms): the latency added by the queue.</summary>
-    public double CurrentQueueMs()
-    {
-        _server.TakeMaxBacklogMs();            // start a fresh window
-        Thread.Sleep(1100);
-        return _server.TakeMaxBacklogMs();     // the largest value seen in the last second ≈ the standing queue
-    }
+    public long ProducedBytes;
+    private double _playedSeconds;
+    /// <summary>
+    /// End-to-end latency of the MODEL player, up to a constant: audio produced − audio discarded by the server − audio already
+    /// played. It includes the server queue, the TCP buffers on both sides and the player's own buffer, which the server's
+    /// backlog metric does not see. Only the DIFFERENCE between two instants means anything (the constant is the stream's start).
+    /// </summary>
+    public double LatencySeconds => (Interlocked.Read(ref ProducedBytes) - Interlocked.Read(ref _server.DroppedBytes)) / (_source.OutputFormat.SampleRate * 4.0) - Volatile.Read(ref _playedSeconds);
     public StreamDiagnostics? Diagnostics { get; private set; }
 
     private readonly LoopbackSource _source;
@@ -77,6 +78,7 @@ internal sealed class SoakPipe
                 if (gap > 60) lock (pipe.PacketGaps) pipe.PacketGaps.Add((now / 1000, gap));
             }
             pipe._lastPacket = now;
+            Interlocked.Add(ref pipe.ProducedBytes, pcm.Length);
             server.Write(pcm);
             spectrum.Process(pcm.Span);
             diag?.Processed(started);
@@ -168,7 +170,7 @@ internal sealed class SoakPipe
             {
                 while (PauseReader && !_cts.IsCancellationRequested)
                 {
-                    if (RealTimePlayer) { double t = _clock.Elapsed.TotalSeconds; played += Math.Min(t - lastLoop, Math.Max(0, SamplesReceived / (double)rate - played)); lastLoop = t; }
+                    if (RealTimePlayer) { double t = _clock.Elapsed.TotalSeconds; played += Math.Min(t - lastLoop, Math.Max(0, SamplesReceived / (double)rate - played)); lastLoop = t; Volatile.Write(ref _playedSeconds, played); }
                     await Task.Delay(20);
                 }
                 int want = buf.Length - leftover.Length;
@@ -178,6 +180,7 @@ internal sealed class SoakPipe
                     double t = _clock.Elapsed.TotalSeconds;
                     played += Math.Min(t - lastLoop, Math.Max(0, SamplesReceived / (double)rate - played));
                     lastLoop = t;
+                    Volatile.Write(ref _playedSeconds, played);
                     double buffered = SamplesReceived / (double)rate - played;
                     if (buffered >= PlayerLeadSeconds) { await Task.Delay(10); continue; }
                     want = Math.Min(want, Math.Max(4096, (int)((PlayerLeadSeconds - buffered) * rate * 4)));
