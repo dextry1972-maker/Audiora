@@ -106,16 +106,30 @@ public sealed class StreamServerHardeningTests
         var (tcp, s, extra) = await ConnectAsync(server);
         using var _ = tcp;
         await WaitForClientsAsync(server, 1);
+        const int produced = 80;
         int frame = 0;
-        for (int i = 0; i < 80; i++) { server.Write(Frames(frame, Frames50Ms)); frame += Frames50Ms; }
+        for (int i = 0; i < produced; i++) { server.Write(Frames(frame, Frames50Ms)); frame += Frames50Ms; }
         await Task.Delay(200);
         var received = await ReadAvailableAsync(s, extra, TimeSpan.FromMilliseconds(500));
         var samples = Enumerable.Range(0, received.Length / 4).Select(i => BitConverter.ToInt16(received, i * 4)).ToArray();
-        // After the one splice, the counter must be strictly sequential: no duplicates, no further holes.
-        int jumps = 0;
-        for (int i = 1; i < samples.Length; i++)
-            if (samples[i] != (short)((samples[i - 1] + 1) & 0x7FFF)) jumps++;
-        Assert.InRange(jumps, 0, 3); // one splice per dropped region (the socket buffer / the queue / the in-flight chunk)
+
+        // The queue drops WHOLE chunks, so what arrives is a series of intact chunks, each identified by its first sample.
+        // How many separate holes there are depends on when the sending thread happens to run between the producer's
+        // writes (it grows under CPU contention), so the count of splices is not an invariant — these are:
+        Assert.Equal(0, samples.Length % Frames50Ms);
+        var kept = new List<int>();
+        for (int at = 0; at < samples.Length; at += Frames50Ms)
+        {
+            for (int k = 1; k < Frames50Ms; k++)
+                Assert.True(samples[at + k] == (short)((samples[at] + k) & 0x7FFF), $"chunk at frame {at} is torn at offset {k}");
+            int index = Enumerable.Range(0, produced).Where(i => (short)((i * Frames50Ms) & 0x7FFF) == samples[at]).DefaultIfEmpty(-1).First();
+            Assert.True(index >= 0, $"chunk at frame {at} starts at a value no produced chunk starts at ({samples[at]})");
+            kept.Add(index);
+        }
+        for (int i = 1; i < kept.Count; i++)
+            Assert.True(kept[i] > kept[i - 1], $"chunks repeated or out of order: {string.Join(",", kept)}"); // never a duplicate or a reversal
+        Assert.Equal(produced, kept.Count + Interlocked.Read(ref server.DroppedChunks));                    // every missing chunk is a counted drop
+        Assert.Equal(Enumerable.Range(produced - 30, 30), kept.TakeLast(30));                              // the newest 1.5 s (the bound) always survives
     }
 
     [Fact]

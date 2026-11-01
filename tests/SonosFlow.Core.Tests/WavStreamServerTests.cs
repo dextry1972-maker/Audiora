@@ -140,11 +140,11 @@ public sealed class WavStreamServerTests
         for (int i = 0; i < 20; i++) server.Write(Frames(i * 100 * FramesPer10Ms, 100 * FramesPer10Ms));
         await Task.Delay(200);
         double stalled = server.TakeMaxBacklogMs();
-        Assert.True(stalled > 1000, $"backlog {stalled} ms");
+        Assert.True(stalled > 1000, $"backlog {stalled} ms (sent {Interlocked.Read(ref server.BytesSent)} B, dropped {Interlocked.Read(ref server.DroppedChunks)})");
         // 20 s stalled is far beyond the queue's time bound (margin + 1 s, here 1.5 s): the OLDEST audio is dropped so the
         // player resumes near live instead of replaying stale audio — never silently: every dropped chunk is counted.
         long dropped = Interlocked.Read(ref server.DroppedChunks);
-        Assert.True(dropped > 0, "the oldest audio beyond the bound must be dropped and counted");
+        Assert.True(dropped > 0, $"the oldest audio beyond the bound must be dropped and counted (backlog {stalled} ms, sent {Interlocked.Read(ref server.BytesSent)} B)");
 
         // Player catches up: it receives everything that was kept.
         await ReadFramesAsync(s, extra, (int)((20 - dropped) * 100 * FramesPer10Ms));

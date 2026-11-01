@@ -185,6 +185,14 @@ El diagnóstico registró los cambios de vídeo como lo que son: **silencios de 
 
 **Límites:** una sesión limpia no demuestra por sí sola que el problema esté resuelto (no se observa el búfer del Sonos); lo medido es el transporte desde el PC y la percepción del usuario.
 
+### 4.2 Fallo intermitente de dos pruebas de la cola del servidor (01/11/2026)
+
+**Síntoma:** `StreamServerHardeningTests.Dropping_keeps_the_stream_intact_after_the_splice` (1 vez) y `WavStreamServerTests.Backlog_grows_while_the_player_stops_reading_and_recovers` (3 de 15 ejecuciones) fallaron de forma esporádica; el mensaje no se capturó.
+
+**`Dropping_keeps_the_stream_intact_after_the_splice` — causa demostrada: defecto de la prueba, no del servidor.** Reproducido bajo contención de CPU (16 hilos ocupados, 2 clases de pruebas en paralelo): 2 de 10 y 2 de 8 ejecuciones, siempre `Assert.InRange(0..3) Actual: 4–5`. Con el detalle en el mensaje: 80 trozos de 50 ms producidos, 32 descartados (contados), 48 recibidos (`48 + 32 = 80`); los saltos caen siempre en límites de trozo (@2400, @4800, @9600, @43200) y los últimos 30 trozos (el límite de 1,5 s) llegan contiguos. Es decir, el servidor descarta trozos enteros, sin duplicar ni reordenar y sin perder nada sin contar; **cuántos huecos separados** quedan depende de cuándo corre el hilo de envío entre las escrituras del productor (más con la CPU saturada), y la prueba afirmaba `≤ 3`. Corrección: la prueba ahora afirma lo invariante (trozos íntegros, estrictamente crecientes, `recibidos + descartados = producidos`, los últimos 1,5 s siempre presentes). Verificación: 0 fallos en 12 ejecuciones bajo la misma carga, y una mutación (descartar el trozo más NUEVO) la hace fallar. No se tocó código de producción.
+
+**`Backlog_grows_while_the_player_stops_reading_and_recovers` — NO reproducido.** Sin carga (14 + 25 ejecuciones), con carga de 16 hilos (8 + 9 ejecuciones del ensamblado completo) y con carga moderada instrumentada (12): 0 fallos. Los 3 fallos originales ocurrieron a los ≈ 215 ms (justo después de la espera de 200 ms, antes de la fase de lectura), es decir en una de las dos primeras afirmaciones (`backlog > 1000 ms` o `descartes > 0`), que dependen de cuántos MB absorbe el socket de loopback antes de bloquear la escritura. Es una hipótesis compatible con la duración, **no demostrada**. Se añadió a esas dos afirmaciones el detalle (backlog, bytes enviados, descartes) para capturar el dato si vuelve a ocurrir.
+
 ## 5. Archivos
 
 Nuevos: `Core/Diagnostics/StreamDiagnostics.cs`, `StreamAnalysis.cs`; `tools/analizar-sesiones.py`; pruebas `StreamAnalysisTests.cs`, `StreamServerHardeningTests.cs`. Modificados: `Net/WavStreamServer.cs`, `Audio/LoopbackSource.cs`, `Streaming/StreamingSession.cs`, `WavStreamServerTests.cs`.
