@@ -13,7 +13,8 @@ public sealed record DiagSecond(
     long Writes, double WriteMaxMs, long WriteStalls,
     long DroppedChunks, long DroppedBytes,
     double BacklogMs, double? BufferEstS, double SendRateKBps,
-    string[] Reasons)
+    string[] Reasons,
+    long Dropouts = 0, double DropoutMaxMs = 0)
 {
     public bool Anomaly => Reasons.Length > 0;
 }
@@ -51,6 +52,7 @@ public sealed class StreamDiagnostics : IDisposable
     private long _lastCaptureTs, _lastAudibleTs, _captureBlocks, _captureFrames;
     private readonly IntervalStats _captureGap = new();
     private long _gapAfterAudioMaxTicks;
+    private long _dropouts, _dropoutMaxMicros;
     // pacer fill
     private long _fillBytes, _suspiciousFillBytes;
     // processing
@@ -155,6 +157,16 @@ public sealed class StreamDiagnostics : IDisposable
         if (audible) Volatile.Write(ref _lastAudibleTs, now);
     }
 
+    /// <summary>
+    /// Samples that are exactly zero for a few milliseconds in the MIDDLE of audio (a hole inside what Windows delivered:
+    /// the capture timing can be perfect while the content has a gap). Not a verdict: a track can contain digital silence.
+    /// </summary>
+    public void Dropout(double ms)
+    {
+        Interlocked.Increment(ref _dropouts);
+        MaxTicks(ref _dropoutMaxMicros, (long)(ms * 1000));
+    }
+
     /// <summary>The pacer had to send zeros because capture delivered nothing. Suspicious if audio was flowing just before.</summary>
     public void PacerFill(int bytes)
     {
@@ -211,12 +223,15 @@ public sealed class StreamDiagnostics : IDisposable
         long stalls = Interlocked.Exchange(ref _writeStalls, 0);
         long dropped = Interlocked.Exchange(ref _droppedChunks, 0), droppedBytes = Interlocked.Exchange(ref _droppedBytes, 0);
         double gapAfterAudio = ToMs(Interlocked.Exchange(ref _gapAfterAudioMaxTicks, 0));
+        long dropouts = Interlocked.Exchange(ref _dropouts, 0);
+        double dropoutMax = Interlocked.Exchange(ref _dropoutMaxMicros, 0) / 1000.0;
 
         var reasons = new List<string>();
         if (!paused)
         {
             if (gapAfterAudio > CaptureGapAnomalyMs) reasons.Add($"hueco_captura {gapAfterAudio:0}ms");
             if (suspicious > 0) reasons.Add($"relleno_sospechoso {suspicious * 1000L / _bytesPerSecond:0}ms");
+            if (dropouts > 0) reasons.Add($"ceros_en_audio {dropouts}x máx {dropoutMax:0.0}ms");
         }
         if (write.MaxMs >= StallMs || stalls > 0) reasons.Add($"escritura_lenta {write.MaxMs:0}ms");
         // Found by the first real run: the margin delivered when the Sonos connects (1 s at once) read as a 1010 ms "backlog".
@@ -228,7 +243,7 @@ public sealed class StreamDiagnostics : IDisposable
         backlogMs = Finite(backlogMs); sendRateKBps = Finite(sendRateKBps);
         double? buffer = bufferEstS is { } b0 && double.IsFinite(b0) ? b0 : null;
         var s = new DiagSecond(t, blocks, gap.MaxMs, gapAfterAudio, frames, fill, suspicious, proc.Count, proc.MaxMs,
-            write.Count, write.MaxMs, stalls, dropped, droppedBytes, backlogMs, buffer, sendRateKBps, [.. reasons]);
+            write.Count, write.MaxMs, stalls, dropped, droppedBytes, backlogMs, buffer, sendRateKBps, [.. reasons], dropouts, dropoutMax);
 
         _drift.AddSecond(t, frames, continuous: !paused && blocks >= 10 && fill == 0 && t - _lastTickSec < 1.6);
         _lastTickSec = t;
@@ -317,8 +332,8 @@ public sealed class StreamDiagnostics : IDisposable
     private sealed class SecondAggregate
     {
         private int _n, _anomalies;
-        private long _blocks, _fill, _suspicious, _writes, _stalls, _dropped, _droppedBytes;
-        private double _gapMax, _gapAudioMax, _procMax, _writeMax, _backlogMax;
+        private long _blocks, _fill, _suspicious, _writes, _stalls, _dropped, _droppedBytes, _dropouts;
+        private double _gapMax, _gapAudioMax, _procMax, _writeMax, _backlogMax, _dropoutMax;
         private double? _bufMin; private double _rateSum;
 
         public void Add(DiagSecond s)
@@ -329,6 +344,7 @@ public sealed class StreamDiagnostics : IDisposable
             _gapMax = Math.Max(_gapMax, s.CaptureGapMaxMs); _gapAudioMax = Math.Max(_gapAudioMax, s.CaptureGapAfterAudioMaxMs);
             _procMax = Math.Max(_procMax, s.ProcessMaxMs); _writeMax = Math.Max(_writeMax, s.WriteMaxMs);
             _backlogMax = Math.Max(_backlogMax, s.BacklogMs);
+            _dropouts += s.Dropouts; _dropoutMax = Math.Max(_dropoutMax, s.DropoutMaxMs);
             if (s.BufferEstS is { } b) _bufMin = _bufMin is null ? b : Math.Min(_bufMin.Value, b);
             _rateSum += s.SendRateKBps;
         }
@@ -344,12 +360,13 @@ public sealed class StreamDiagnostics : IDisposable
                 ["proceso_max_ms"] = Math.Round(_procMax, 2),
                 ["escrituras"] = _writes, ["escritura_max_ms"] = Math.Round(_writeMax, 1), ["escrituras_lentas"] = _stalls,
                 ["descartes"] = _dropped, ["descartes_kB"] = _droppedBytes / 1000,
+                ["ceros_en_audio"] = _dropouts, ["ceros_en_audio_max_ms"] = Math.Round(_dropoutMax, 1),
                 ["cola_max_ms"] = Math.Round(_backlogMax, 0), ["buffer_est_min_s"] = _bufMin is null ? null : Math.Round(_bufMin.Value, 2),
                 ["ritmo_medio_kBps"] = _n == 0 ? 0 : Math.Round(_rateSum / _n, 1),
             },
         };
 
-        public void Reset() { _n = _anomalies = 0; _blocks = _fill = _suspicious = _writes = _stalls = _dropped = _droppedBytes = 0; _gapMax = _gapAudioMax = _procMax = _writeMax = _backlogMax = 0; _bufMin = null; _rateSum = 0; }
+        public void Reset() { _n = _anomalies = 0; _blocks = _fill = _suspicious = _writes = _stalls = _dropped = _droppedBytes = 0; _gapMax = _gapAudioMax = _procMax = _writeMax = _backlogMax = _dropoutMax = 0; _dropouts = 0; _bufMin = null; _rateSum = 0; }
     }
 }
 

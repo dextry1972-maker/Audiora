@@ -26,6 +26,10 @@ public sealed class LoopbackSource : IDisposable
     private volatile bool _running;
     private long _emittedFrames;
     private byte[] _convertBuffer = [];
+    // Zero runs inside audio (capture thread only): a run of exactly-zero frames, preceded by audio, that ends with audio again.
+    private const int DropoutMinMs = 2, DropoutMaxMsLimit = 300, AudioBeforeMs = 1;
+    private long _zeroRun, _nonZeroStreak;
+    private bool _audioBeforeRun;
 
     private long AllowanceFrames => OutputFormat.SampleRate * AllowanceMs / 1000;
 
@@ -141,6 +145,7 @@ public sealed class LoopbackSource : IDisposable
             float l = ReadSample(src, f, 0);
             float r = _sourceChannels > 1 ? ReadSample(src, f, 1) : l;
             peak = MathF.Max(peak, MathF.Max(MathF.Abs(l), MathF.Abs(r)));
+            TrackZeroRun(l == 0f && r == 0f);
             WriteInt16(dst, f * 4, l);
             WriteInt16(dst, f * 4 + 2, r);
         }
@@ -157,6 +162,25 @@ public sealed class LoopbackSource : IDisposable
             _emittedFrames = Math.Clamp(_emittedFrames + frames, wall - AllowanceFrames, wall + AllowanceFrames);
             PcmAvailable?.Invoke(_convertBuffer.AsMemory(0, outBytes));
         }
+    }
+
+    /// <summary>Diagnostics only: never changes the audio. Counts a hole of exact zeros (2–300 ms) between audio and audio.</summary>
+    private void TrackZeroRun(bool zero)
+    {
+        if (zero)
+        {
+            if (_zeroRun == 0) _audioBeforeRun = _nonZeroStreak >= OutputFormat.SampleRate * AudioBeforeMs / 1000;
+            _zeroRun++;
+            _nonZeroStreak = 0;
+            return;
+        }
+        if (_zeroRun > 0)
+        {
+            double ms = _zeroRun * 1000.0 / OutputFormat.SampleRate;
+            if (_audioBeforeRun && ms >= DropoutMinMs && ms <= DropoutMaxMsLimit) Diagnostics?.Dropout(ms);
+            _zeroRun = 0;
+        }
+        _nonZeroStreak++;
     }
 
     private float ReadSample(ReadOnlySpan<byte> src, int frame, int channel)
