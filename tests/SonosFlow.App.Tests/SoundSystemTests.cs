@@ -548,17 +548,29 @@ public sealed class WasapiEffectOutputTests
     public void An_unknown_device_falls_back_without_throwing_and_does_not_leak()
     {
         using var current = Process.GetCurrentProcess();
-        current.Refresh();
-        int handlesBefore = current.HandleCount;
-        for (int i = 0; i < 12; i++)
+        static void Cycle(int i)
         {
             using var output = new WasapiEffectOutput();
             output.Play(Silent(0.05), 0f, i % 2 == 0 ? "{no-such-device}" : null);
             Thread.Sleep(30);
         }
-        GC.Collect(); GC.WaitForPendingFinalizers();
-        current.Refresh();
-        Assert.True(current.HandleCount - handlesBefore < 60, $"handles {handlesBefore} → {current.HandleCount}");
+        // The handle count is process-wide: other test classes running in parallel open and close their own (observed:
+        // +8..+80 for this loop with the whole project running, +13..+17 alone). One-time costs (COM, pool threads) are paid
+        // by a warm-up, and transient handles get time to drain; a real leak (several handles per cycle, never released)
+        // still exceeds the bound after the wait.
+        for (int i = 0; i < 3; i++) Cycle(i);
+        int Settled()
+        {
+            GC.Collect(); GC.WaitForPendingFinalizers();
+            current.Refresh();
+            return current.HandleCount;
+        }
+        int handlesBefore = Settled();
+        for (int i = 0; i < 12; i++) Cycle(i);
+        int after = Settled();
+        var wait = Stopwatch.StartNew();
+        while (after - handlesBefore >= 60 && wait.ElapsedMilliseconds < 6000) { Thread.Sleep(100); after = Settled(); }
+        Assert.True(after - handlesBefore < 60, $"handles {handlesBefore} → {after} (still {after - handlesBefore} after {wait.ElapsedMilliseconds} ms)");
     }
 
     [Fact]
