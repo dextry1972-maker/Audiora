@@ -14,20 +14,20 @@ namespace SonosFlow.Core.Tests;
 public sealed class TcpInfoTests
 {
     [Fact]
-    public void The_structure_layout_is_right_on_a_real_connection()
+    public async Task The_structure_layout_is_right_on_a_real_connection()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         using var client = new TcpClient();
         var accept = listener.AcceptTcpClientAsync();
-        client.Connect(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndpoint).Port);
-        using var server = accept.Result;
+        await client.ConnectAsync(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndpoint).Port);
+        using var server = await accept;
         var payload = new byte[300_000];
-        server.GetStream().Write(payload);
+        await server.GetStream().WriteAsync(payload);
         using var reader = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var buf = new byte[65536];
         long got = 0;
-        while (got < payload.Length) got += client.GetStream().Read(buf);
+        while (got < payload.Length) got += await client.GetStream().ReadAsync(buf, reader.Token);
 
         var snap = TcpInfo.Read(server.Client);
         Assert.NotNull(snap);
