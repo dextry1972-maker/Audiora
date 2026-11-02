@@ -231,7 +231,6 @@ public sealed class StreamDiagnostics : IDisposable
         {
             if (gapAfterAudio > CaptureGapAnomalyMs) reasons.Add($"hueco_captura {gapAfterAudio:0}ms");
             if (suspicious > 0) reasons.Add($"relleno_sospechoso {suspicious * 1000L / _bytesPerSecond:0}ms");
-            if (dropouts > 0) reasons.Add($"ceros_en_audio {dropouts}x máx {dropoutMax:0.0}ms");
         }
         if (write.MaxMs >= StallMs || stalls > 0) reasons.Add($"escritura_lenta {write.MaxMs:0}ms");
         // Found by the first real run: the margin delivered when the Sonos connects (1 s at once) read as a 1010 ms "backlog".
@@ -247,6 +246,9 @@ public sealed class StreamDiagnostics : IDisposable
 
         _drift.AddSecond(t, frames, continuous: !paused && blocks >= 10 && fill == 0 && t - _lastTickSec < 1.6);
         _lastTickSec = t;
+
+        // Its own event, outside the episodes: a track can hold digital silence, and that must not feed the periodicity analysis.
+        if (dropouts > 0 && !paused) Event("ceros_en_audio", $"{dropouts}x máx {dropoutMax:0.0}ms");
 
         if (s.Anomaly)
         {
