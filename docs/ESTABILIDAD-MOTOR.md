@@ -193,6 +193,13 @@ El diagnóstico registró los cambios de vídeo como lo que son: **silencios de 
 
 **`Backlog_grows_while_the_player_stops_reading_and_recovers` — NO reproducido.** Sin carga (14 + 25 ejecuciones), con carga de 16 hilos (8 + 9 ejecuciones del ensamblado completo) y con carga moderada instrumentada (12): 0 fallos. Los 3 fallos originales ocurrieron a los ≈ 215 ms (justo después de la espera de 200 ms, antes de la fase de lectura), es decir en una de las dos primeras afirmaciones (`backlog > 1000 ms` o `descartes > 0`), que dependen de cuántos MB absorbe el socket de loopback antes de bloquear la escritura. Es una hipótesis compatible con la duración, **no demostrada**. Se añadió a esas dos afirmaciones el detalle (backlog, bytes enviados, descartes) para capturar el dato si vuelve a ocurrir.
 
+**Otros dos fallos intermitentes, descubiertos al investigar (pruebas de `SonosFlow.App.Tests`, 01/11/2026).** Ambos son defectos de la propia prueba, no de código de producción; los dos se reprodujeron bajo contención de CPU (16 hilos ocupados):
+
+- `WasapiEffectOutputTests.An_unknown_device_falls_back_without_throwing_and_does_not_leak` — mensaje capturado: `handles 761 → 888` (límite: +60). Cuenta los handles de TODO el proceso de pruebas; con el proyecto completo en paralelo el mismo bucle dio de +8 a +80 (sola: +13 a +17, 15 ejecuciones), y los casos de +80 y +64 bajaron a +41 y +56 en 3–5 s, es decir, eran handles transitorios de otras pruebas, no una fuga. Corrección: calentamiento previo, medición sobre 12 ciclos y espera acotada (6 s) a que se estabilice; una fuga real (varios handles por ciclo, nunca liberados) sigue superando el límite. Riesgo residual: sigue siendo una medida de todo el proceso.
+- `MotionTests.Reversing_a_running_clock_preserves_its_current_value(spatial: False)` — mensaje: `Actual: 0.000245` (rango 0,001–5,999). El reloj de WPF sigue el tiempo real y un `Pump(100)` fijo puede rebasar la transición entera de 240 ms cuando la máquina está ocupada (la animación ya había terminado). Corrección: se bombea en pasos de 5 ms hasta que la animación se ha movido y se invierte entonces.
+
+Verificación de ambas: 0 fallos en 14 ejecuciones del proyecto completo bajo la misma carga (antes: 1 de 20 y 1 de 12). Es una muestra pequeña: la evidencia principal es el mecanismo medido, no la ausencia de fallos.
+
 ## 5. Archivos
 
 Nuevos: `Core/Diagnostics/StreamDiagnostics.cs`, `StreamAnalysis.cs`; `tools/analizar-sesiones.py`; pruebas `StreamAnalysisTests.cs`, `StreamServerHardeningTests.cs`. Modificados: `Net/WavStreamServer.cs`, `Audio/LoopbackSource.cs`, `Streaming/StreamingSession.cs`, `WavStreamServerTests.cs`.

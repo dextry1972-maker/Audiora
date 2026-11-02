@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -43,7 +44,10 @@ public sealed class MotionTests
         try {
         Pump(40);
         Motion.To(move, TranslateTransform.YProperty, 0, Motion.Transition, true, spatial: spatial);
-        Pump(100);
+        // Reverse while it is genuinely in flight. A fixed Pump(100) can overshoot the whole transition when the machine is
+        // busy (the clock follows wall time: seen 0.0002, i.e. already finished), so pump in small steps until it has moved.
+        var inFlight = Stopwatch.StartNew();
+        do Pump(5); while (Motion.Enabled && move.Y > 4 && inFlight.ElapsedMilliseconds < 1000);
         double current = move.Y;
         if (Motion.Enabled) Assert.InRange(current, 0.001, 5.999);
         Motion.To(move, TranslateTransform.YProperty, 6, Motion.Transition, true, spatial: spatial);
