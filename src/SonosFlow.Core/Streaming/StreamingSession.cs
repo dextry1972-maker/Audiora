@@ -699,6 +699,7 @@ public sealed class StreamingSession : IAsyncDisposable
             _peakSinceLog > 0 ? 20 * Math.Log10(_peakSinceLog) : double.NegativeInfinity,
             _server.TakeMaxBacklogMs());
         _peakSinceLog = 0;
+        if (_server.SampleTcp() is { } tcp) _diag?.Tcp(tcp.RttMs, tcp.ReceiveWindowBytes, tcp.RetransBytes, tcp.TimeoutEpisodes);
         _diag?.Tick(stats.BacklogMaxMs, stats.BufferEstimateSeconds, stats.SendRateKBps, _paused);
         _stalls ??= new StallTracker(_streamRate * 4 / 1000.0, _options.PrebufferMs);
         if (_stalls.Observe(stats) is { } shortfall)
