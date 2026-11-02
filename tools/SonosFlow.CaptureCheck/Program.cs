@@ -41,7 +41,7 @@ if (args is ["route-browser", var browserExe, var pageFile])
     // its own instance (temporary profile, window off-screen) plays a quiet tone on the default output; we send
     // its audio process to the unheard output and measure where it plays. The per-app output of that browser
     // executable is restored at the end.
-    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    var silent = AudioDevices.FindSilentOutput() ?? throw new InvalidOperationException("Sin salida silenciosa");
     using var silentDev = AudioDevices.Resolve(silent.Id);
     using var defaultDev = AudioDevices.Resolve(null);
     var profile = Path.Combine(Path.GetTempPath(), "sf-route-browser-" + Environment.ProcessId);
@@ -136,7 +136,7 @@ if (args is ["follow-check"])
 {
     // Does a plain WASAPI app on a fixed device follow a per-app output change? (Audiora's redirect check must spot
     // it when it doesn't.) Quiet tone on the default output, redirected, then: where is it playing? Nothing is muted.
-    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    var silent = AudioDevices.FindSilentOutput() ?? throw new InvalidOperationException("Sin salida silenciosa");
     using var fc = Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "tone-default 1000 20 0.001")
         { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true })!;
     Console.WriteLine(fc.StandardOutput.ReadLine());
@@ -198,7 +198,7 @@ if (args is ["redirect-crash", var crashBrowser, var crashPage])
 {
     // Audiora's own redirect (AppOutputRedirect) on a private browser instance that is playing: a child process
     // redirects it and dies without restoring; RecoverPending must then put the browser back where it was.
-    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    var silent = AudioDevices.FindSilentOutput() ?? throw new InvalidOperationException("Sin salida silenciosa");
     using var silentDev = AudioDevices.Resolve(silent.Id);
     using var defaultDev = AudioDevices.Resolve(null);
     var state = Path.Combine(Path.GetTempPath(), $"sf-redirect-crash-{Environment.ProcessId}.json");
@@ -262,7 +262,7 @@ if (args is ["route"])
     // gets it, (b) it now plays on the unheard output and (c) not on the user's default output. Quiet tone
     // (−60 dBFS); the app's previous per-app output is restored at the end.
     if (!AppOutputRouting.IsSupported) { Console.WriteLine("Windows sin soporte (build < 21390)"); return 2; }
-    var silent = AudioDevices.FindSilentOutput(null) ?? throw new InvalidOperationException("Sin salida silenciosa");
+    var silent = AudioDevices.FindSilentOutput() ?? throw new InvalidOperationException("Sin salida silenciosa");
     using var silentDev = AudioDevices.Resolve(silent.Id);
     using var defaultDev = AudioDevices.Resolve(null);
     Console.WriteLine($"Salida silenciosa: {silent.Name} · predeterminada: {defaultDev.FriendlyName}");

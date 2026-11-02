@@ -28,13 +28,19 @@ public static class AudioDevices
     // VB-Audio CABLE Input and Voicemeeter, which are commonly listened to or routed to the speakers.
     private static readonly string[] SilentOutputNames = ["Steam Streaming"];
 
+    public static bool IsSilentOutputName(string name) =>
+        SilentOutputNames.Any(n => name.Contains(n, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>
-    /// An active output nobody hears (a known virtual device), never the system default nor
-    /// <paramref name="excludeId"/>; null when this PC has none.
+    /// An active output nobody hears (a known virtual device), never the system default; null when this PC has none.
+    /// There is deliberately no "except the output the app is on": Windows keeps the per-application output per executable,
+    /// so a browser that was just restarted is BORN on the silent output, and excluding that one left no destination at all
+    /// (the redirect then fell back to muting the silent output itself: the 02/11/2026 incident).
     /// </summary>
-    public static OutputDeviceInfo? FindSilentOutput(string? excludeId) =>
-        ListOutputs().FirstOrDefault(d => !d.IsDefault && d.Id != excludeId
-            && SilentOutputNames.Any(n => d.Name.Contains(n, StringComparison.OrdinalIgnoreCase)));
+    public static OutputDeviceInfo? FindSilentOutput() => PickSilentOutput(ListOutputs());
+
+    internal static OutputDeviceInfo? PickSilentOutput(IEnumerable<OutputDeviceInfo> outputs) =>
+        outputs.FirstOrDefault(d => !d.IsDefault && IsSilentOutputName(d.Name));
 
     /// <summary>The device with <paramref name="id"/>, or the current default when null/missing.</summary>
     public static MMDevice Resolve(string? id)

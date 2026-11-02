@@ -358,7 +358,15 @@ public sealed class StreamingSession : IAsyncDisposable
     {
         if (_tornDown) return; // also reached from the monitor's retry, which doesn't go through ApplyGuard
         if (TryRedirectApp() || _redirectPending) return; // pending: done as soon as the app opens its audio
-        _guardDevice = AudioDevices.Resolve(_spec.DeviceId);
+        var device = AudioDevices.Resolve(_spec.DeviceId);
+        if (AudioDevices.IsSilentOutputName(device.FriendlyName))
+        {
+            // Muting an output nobody hears protects nothing, and the real one would keep playing: say so instead.
+            Note($"silencio local: «{_spec.DisplayName}» está en una salida silenciosa y no hay otra a la que redirigirla; no se silencia nada");
+            device.Dispose();
+            return;
+        }
+        _guardDevice = device;
         _guard = new LocalOutputGuard(_guardDevice, fullLevel: false, _guardStateFile);
         Note($"silencio local: salida «{_guardDevice.FriendlyName}» silenciada (no se pudo apartar solo «{_spec.DisplayName}»)");
     }
@@ -373,7 +381,7 @@ public sealed class StreamingSession : IAsyncDisposable
         if (!AppOutputRouting.IsSupported || _spec.ExePath is null) return false;
         try
         {
-            var silent = AudioDevices.FindSilentOutput(_spec.DeviceId);
+            var silent = AudioDevices.FindSilentOutput();
             if (silent is null) return false;
             int sessionPid = AudioApps.SessionProcessOf(_spec.ProcessId);
             if (sessionPid == 0) { _redirectPending = true; return false; }
