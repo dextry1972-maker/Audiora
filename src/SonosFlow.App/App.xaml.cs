@@ -67,8 +67,10 @@ public partial class App : Application
         string? miniShot = Arg("--screenshot-mini");
         string? hudShot = Arg("--screenshot-hud");
         string? welcomeShot = Arg("--screenshot-welcome");
+        string? nameShot = Arg("--screenshot-name");
+        string? backShot = Arg("--screenshot-back");
         bool testCapture = motionPreview || screenshot is not null || miniShot is not null || hudShot is not null || welcomeShot is not null
-                           || Arg("--selftest-session") is not null;
+                           || nameShot is not null || backShot is not null || Arg("--selftest-session") is not null;
         if (!testCapture && !AcquireSingleInstance()) return;
         if (testCapture) AppSettings.PersistenceEnabled = false;
 
@@ -84,7 +86,32 @@ public partial class App : Application
             try { welcome.SaveScreenshot(welcomeShot); } finally { welcome.Close(); Shutdown(); }
             return;
         }
-        ChooseLanguage(settings, forced: Arg("--lang"), allowWelcome: !testCapture);
+        if (nameShot is not null || backShot is not null)
+        {
+            if (Arg("--lang") is { } previewLang) Loc.Instance.SetLanguage(previewLang);
+            string sample = Arg("--name") ?? "Elian";
+            if (nameShot is not null)
+            {
+                var ask = new Views.NameWindow();
+                ask.Show();
+                await Task.Delay(900);
+                try { ask.SaveScreenshot(nameShot, Arg("--name")); } finally { ask.Close(); }
+            }
+            if (backShot is not null)
+            {
+                var back = new Views.WelcomeBackWindow(sample);
+                back.Show();
+                await Task.Delay(900);
+                try { back.SaveScreenshot(backShot); } finally { back.Close(); }
+            }
+            Shutdown();
+            return;
+        }
+        bool showedFirstRun = ChooseLanguage(settings, forced: Arg("--lang"), allowWelcome: !testCapture);
+        // Next launches: a short greeting by name. Never for automatic starts (minimized, resuming a stream) or captures.
+        if (!testCapture && !showedFirstRun && !args.Contains("--minimized") && settings.PersonalizedWelcome
+            && !string.IsNullOrEmpty(settings.UserName) && !(settings.ResumeOnLaunch && settings.WasStreaming))
+            Views.WelcomeBackWindow.ShowFor(settings.UserName);
         Loc.Instance.LanguageChanged += ShowHotkeysStatus; // only the "in use" note is text: no re-registration
         _vm = new MainViewModel(settings);
         if (!testCapture) // captures and the Sonos self-test stay silent: no audio device is touched
@@ -192,30 +219,38 @@ public partial class App : Application
     /// Spanish for settings from before languages existed, or the nearest supported one for an invalid value.
     /// Other settings are never touched.
     /// </summary>
-    private static void ChooseLanguage(AppSettings settings, string? forced, bool allowWelcome)
+    private static bool ChooseLanguage(AppSettings settings, string? forced, bool allowWelcome)
     {
         if (forced is not null) // test and screenshot runs: preview a language without saving anything
         {
             Loc.Instance.SetLanguage(forced);
-            return;
+            return false;
         }
         // An unreadable file lost its settings anyway (a copy is kept): ask again instead of forcing Spanish.
         var decision = LanguageStartup.Decide(AppSettings.LastLoadFoundFile && !AppSettings.LastLoadUnreadable, settings.Language, settings.LanguageOnboardingDone,
             Languages.SuggestFromSystem());
         string language = decision.Language;
-        if (decision.ShowWelcome && allowWelcome)
+        bool firstRun = decision.ShowWelcome && allowWelcome;
+        if (firstRun)
         {
             Loc.Instance.SetLanguage(decision.Language);
             language = Views.LanguageWindow.Ask(decision.Language) ?? decision.Language;
         }
         Loc.Instance.SetLanguage(language);
+        if (firstRun)
+        {
+            // Second step, in the language just chosen: what to call the user. Optional; skipping asks nothing again.
+            if (Views.NameWindow.Ask() is { } name) settings.UserName = name;
+            settings.NameOnboardingDone = true;
+        }
         if (decision.ShowWelcome || decision.MustPersist)
         {
             settings.Language = Loc.Instance.Code;
             settings.LanguageOnboardingDone = true;
             settings.Save(); // no-op in test runs
         }
-        AppLog.Write($"idioma: {Loc.Instance.Code} ({decision.Kind})");
+        AppLog.Write($"idioma: {Loc.Instance.Code} ({decision.Kind})"); // the name is personal data: never logged
+        return firstRun;
     }
 
     private bool AcquireSingleInstance()
