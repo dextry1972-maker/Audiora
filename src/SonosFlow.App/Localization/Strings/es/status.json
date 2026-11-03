@@ -55,6 +55,8 @@
   "choices.prebuffer.none": "Sin margen (mínima latencia)",
   "choices.prebuffer.recommended": "1 s (recomendado)",
   "choices.prebuffer.seconds": "{0} s",
+  "choices.prebuffer.ms": "{0} ms",
+  "choices.prebuffer.custom": "Personalizado",
   "choices.sleep.off": "Sin temporizador",
   "choices.sleep.after": "Detener en {0} min",
 

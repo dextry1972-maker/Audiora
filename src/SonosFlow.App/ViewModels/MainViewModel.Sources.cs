@@ -318,25 +318,54 @@ public sealed partial class MainViewModel
         _settings.Save();
     }
 
+    /// <summary>Quick presets for the margin; any other value (the slider) shows as "Custom".</summary>
     public IReadOnlyList<ChoiceItem> PrebufferChoices { get; } =
     [
         new("0", () => L.T("choices.prebuffer.none")),
+        new("100", () => L.F("choices.prebuffer.ms", 100)),
+        new("300", () => L.F("choices.prebuffer.ms", 300)),
         new("1000", () => L.T("choices.prebuffer.recommended")),
-        new("2000", () => L.F("choices.prebuffer.seconds", 2)),
-        new("3000", () => L.F("choices.prebuffer.seconds", 3)),
+        new(PrebufferScale.CustomKey, () => L.T("choices.prebuffer.custom")),
     ];
 
     /// <summary>"Margen anti-cortes", applied when a stream starts.</summary>
     public int PrebufferMs
     {
         get => _settings.PrebufferMs;
-        set { if (_settings.PrebufferMs == value) return; _settings.PrebufferMs = value; _settings.Save(); OnPropertyChanged(); OnPropertyChanged(nameof(PrebufferKey)); }
+        set
+        {
+            value = Math.Max(0, value);
+            if (_settings.PrebufferMs == value) return;
+            _settings.PrebufferMs = value;
+            _settings.Save();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(PrebufferKey));
+            OnPropertyChanged(nameof(PrebufferSliderMs));
+            OnPropertyChanged(nameof(PrebufferText));
+        }
     }
+
+    /// <summary>The slider's value: snapped to the step, and capped at the slider's end (older settings may hold up to 3 s).</summary>
+    public double PrebufferSliderMs
+    {
+        get => PrebufferScale.ToSlider(PrebufferMs);
+        set => PrebufferMs = PrebufferScale.FromSlider(value);
+    }
+
+    /// <summary>The exact value in use ("300 ms"), shown next to the slider.</summary>
+    public string PrebufferText => L.F("choices.prebuffer.ms", PrebufferMs);
 
     public string PrebufferKey
     {
-        get => PrebufferMs.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        set { if (int.TryParse(value, out var ms)) PrebufferMs = ms; }
+        get
+        {
+            return PrebufferScale.KeyFor(PrebufferMs);
+        }
+        set
+        {
+            if (int.TryParse(value, out var ms)) PrebufferMs = ms;
+            else _ui.BeginInvoke(() => OnPropertyChanged(nameof(PrebufferKey)));   // "Custom" is only a label: the combo goes back to what is in use
+        }
     }
 
     /// <summary>Latest real statistics from the running session (null when stopped).</summary>

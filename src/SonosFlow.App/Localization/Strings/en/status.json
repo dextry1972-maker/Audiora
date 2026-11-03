@@ -54,6 +54,8 @@
   "choices.prebuffer.none": "No buffer (lowest latency)",
   "choices.prebuffer.recommended": "1 s (recommended)",
   "choices.prebuffer.seconds": "{0} s",
+  "choices.prebuffer.ms": "{0} ms",
+  "choices.prebuffer.custom": "Custom",
   "choices.sleep.off": "No sleep timer",
   "choices.sleep.after": "Stop after {0} min",
 

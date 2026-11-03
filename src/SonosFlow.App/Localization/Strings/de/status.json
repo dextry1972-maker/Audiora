@@ -51,6 +51,8 @@
   "choices.prebuffer.none": "Kein Puffer (geringste Latenz)",
   "choices.prebuffer.recommended": "1 s (empfohlen)",
   "choices.prebuffer.seconds": "{0} s",
+  "choices.prebuffer.ms": "{0} ms",
+  "choices.prebuffer.custom": "Benutzerdefiniert",
   "choices.sleep.off": "Kein Sleep-Timer",
   "choices.sleep.after": "Nach {0} min stoppen",
   "hud.sonosOffline": "Sonos offline",

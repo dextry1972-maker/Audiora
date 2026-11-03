@@ -59,6 +59,8 @@
   "choices.prebuffer.none": "بلا مخزن مؤقت (أقل زمن انتقال)",
   "choices.prebuffer.recommended": "1 s (مستحسن)",
   "choices.prebuffer.seconds": "{0} s",
+  "choices.prebuffer.ms": "{0} ms",
+  "choices.prebuffer.custom": "مخصّص",
   "choices.sleep.off": "بلا مؤقت إيقاف",
   "choices.sleep.after": "الإيقاف بعد {0} min",
   "hud.sonosOffline": "Sonos غير متصل",

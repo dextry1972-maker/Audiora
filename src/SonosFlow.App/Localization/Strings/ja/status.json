@@ -49,6 +49,8 @@
   "choices.prebuffer.none": "バッファーなし（最小遅延）",
   "choices.prebuffer.recommended": "1 s（推奨）",
   "choices.prebuffer.seconds": "{0} s",
+  "choices.prebuffer.ms": "{0} ms",
+  "choices.prebuffer.custom": "カスタム",
   "choices.sleep.off": "スリープ タイマーなし",
   "choices.sleep.after": "{0} 分後に停止",
   "hud.sonosOffline": "Sonos オフライン",

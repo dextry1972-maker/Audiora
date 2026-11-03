@@ -51,6 +51,8 @@
   "choices.prebuffer.none": "कोई बफ़र नहीं (सबसे कम लेटेंसी)",
   "choices.prebuffer.recommended": "1 s (अनुशंसित)",
   "choices.prebuffer.seconds": "{0} s",
+  "choices.prebuffer.ms": "{0} ms",
+  "choices.prebuffer.custom": "कस्टम",
   "choices.sleep.off": "स्लीप टाइमर नहीं",
   "choices.sleep.after": "{0} मिनट बाद रोकें",
   "hud.sonosOffline": "Sonos ऑफ़लाइन",

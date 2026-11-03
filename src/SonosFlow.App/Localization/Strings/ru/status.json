@@ -53,6 +53,8 @@
   "choices.prebuffer.none": "Без буфера (минимальная задержка)",
   "choices.prebuffer.recommended": "1 с (рекомендуется)",
   "choices.prebuffer.seconds": "{0} с",
+  "choices.prebuffer.ms": "{0} ms",
+  "choices.prebuffer.custom": "Свой",
   "choices.sleep.off": "Без таймера сна",
   "choices.sleep.after": "Остановить через {0} мин",
   "hud.sonosOffline": "Sonos не в сети",

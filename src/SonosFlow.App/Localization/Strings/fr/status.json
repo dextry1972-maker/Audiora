@@ -51,6 +51,8 @@
   "choices.prebuffer.none": "Aucune marge (latence minimale)",
   "choices.prebuffer.recommended": "1 s (recommandé)",
   "choices.prebuffer.seconds": "{0} s",
+  "choices.prebuffer.ms": "{0} ms",
+  "choices.prebuffer.custom": "Personnalisé",
   "choices.sleep.off": "Pas de minuterie",
   "choices.sleep.after": "Arrêt après {0} min",
   "hud.sonosOffline": "Sonos hors ligne",

@@ -49,6 +49,8 @@
   "choices.prebuffer.none": "버퍼 없음(최소 지연)",
   "choices.prebuffer.recommended": "1 s(권장)",
   "choices.prebuffer.seconds": "{0} s",
+  "choices.prebuffer.ms": "{0} ms",
+  "choices.prebuffer.custom": "사용자 지정",
   "choices.sleep.off": "취침 타이머 없음",
   "choices.sleep.after": "{0}분 후 중지",
   "hud.sonosOffline": "Sonos 오프라인",
