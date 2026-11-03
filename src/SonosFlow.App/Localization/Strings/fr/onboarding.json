@@ -8,5 +8,11 @@
   "onboarding.suggested": "Suggérée",
   "onboarding.changeLater": "Vous pourrez la modifier à tout moment dans les Paramètres.",
   "onboarding.confirm": "Continuer",
-  "onboarding.close.tooltip": "Fermer et utiliser la langue suggérée"
+  "onboarding.close.tooltip": "Fermer et utiliser la langue suggérée",
+  "onboarding.name.question": "Comment souhaitez-vous qu’on vous appelle ?",
+  "onboarding.name.hint": "Il reste sur ce PC. Vous pouvez le modifier à tout moment dans Paramètres.",
+  "onboarding.name.placeholder": "Votre prénom",
+  "onboarding.name.skip": "Passer pour l’instant",
+  "onboarding.back.title": "Content de vous revoir, {0}.",
+  "onboarding.back.subtitle": "Votre son est prêt."
 }

@@ -8,5 +8,11 @@
   "onboarding.suggested": "Suggested",
   "onboarding.changeLater": "You can change it any time in Settings.",
   "onboarding.confirm": "Continue",
-  "onboarding.close.tooltip": "Close and use the suggested language"
+  "onboarding.close.tooltip": "Close and use the suggested language",
+  "onboarding.name.question": "What should we call you?",
+  "onboarding.name.hint": "It stays on this PC. You can change it anytime in Settings.",
+  "onboarding.name.placeholder": "Your name",
+  "onboarding.name.skip": "Skip for now",
+  "onboarding.back.title": "Welcome back, {0}.",
+  "onboarding.back.subtitle": "Your sound is ready."
 }

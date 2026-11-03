@@ -59,5 +59,6 @@
   "main.details.peak": "峰值",
   "main.details.dropsReconnects": "丢弃 / 重新连接",
   "main.details.lastError": "上次错误",
-  "main.details.note": "仅限本地网络：音频绝不会发送到 Internet。不测量实际延迟；在 1 s 缓冲下，Sonos 大约滞后 1–1.5 s。"
+  "main.details.note": "仅限本地网络：音频绝不会发送到 Internet。不测量实际延迟；在 1 s 缓冲下，Sonos 大约滞后 1–1.5 s。",
+  "main.greeting": "你好，{0}"
 }

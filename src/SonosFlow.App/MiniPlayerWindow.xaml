@@ -19,14 +19,14 @@
     <Window.Resources>
         <!-- Deep emerald glass: solid enough to read over any game or desktop, no blur needed -->
         <LinearGradientBrush x:Key="Glass" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#F2193026" Offset="0" />
-            <GradientStop Color="#F50B1814" Offset="0.55" />
-            <GradientStop Color="#F70A1511" Offset="1" />
+            <GradientStop Color="#F2141E48" Offset="0" />
+            <GradientStop Color="#F50C1332" Offset="0.55" />
+            <GradientStop Color="#F70A1030" Offset="1" />
         </LinearGradientBrush>
         <LinearGradientBrush x:Key="Edge" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#66FFFFFF" Offset="0" />
             <GradientStop Color="#1AFFFFFF" Offset="0.45" />
-            <GradientStop Color="#552FD27A" Offset="1" />
+            <GradientStop Color="#55B6A5FF" Offset="1" />
         </LinearGradientBrush>
 
         <!-- Speaker status dot: emerald while live, grey otherwise -->
@@ -173,7 +173,7 @@
                                             <Setter Property="Fill" Value="{StaticResource B.AccentGradient}" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                    <Setter Property="Fill" Value="#FFF2F4F5" />
+                                                    <Setter Property="Fill" Value="#FFF5F7FF" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>

@@ -16,6 +16,9 @@ public sealed partial class MainViewModel
     internal bool NoSpeakersForCapture { get; private set; }
 
     /// <summary>Capture-only: every search comes back empty and the hotspot is a fake.</summary>
+    /// <summary>Capture-only: a synthetic spectrum analyzer, to look at (and measure) the audio-reactive visuals without any audio.</summary>
+    internal void SimulateAnalyzer(SonosFlow.Core.Audio.SpectrumAnalyzer analyzer) => Analyzer = analyzer;
+
     internal void SimulateNoSpeakers(IHotspotController controller) { UseHotspot(controller); NoSpeakersForCapture = true; }
 
     public HotspotPrompt HotspotPrompt

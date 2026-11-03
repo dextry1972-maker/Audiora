@@ -8,5 +8,11 @@
   "onboarding.suggested": "Sugerido",
   "onboarding.changeLater": "Você pode mudar isso a qualquer momento em Configurações.",
   "onboarding.confirm": "Continuar",
-  "onboarding.close.tooltip": "Fechar e usar o idioma sugerido"
+  "onboarding.close.tooltip": "Fechar e usar o idioma sugerido",
+  "onboarding.name.question": "Como devemos chamar você?",
+  "onboarding.name.hint": "Fica neste PC. Você pode mudar quando quiser em Configurações.",
+  "onboarding.name.placeholder": "Seu nome",
+  "onboarding.name.skip": "Pular por agora",
+  "onboarding.back.title": "Que bom ter você de volta, {0}.",
+  "onboarding.back.subtitle": "Seu som está pronto."
 }

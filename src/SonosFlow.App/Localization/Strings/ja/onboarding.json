@@ -8,5 +8,11 @@
   "onboarding.suggested": "おすすめ",
   "onboarding.changeLater": "[設定] からいつでも変更できます。",
   "onboarding.confirm": "続行",
-  "onboarding.close.tooltip": "閉じておすすめの言語を使用"
+  "onboarding.close.tooltip": "閉じておすすめの言語を使用",
+  "onboarding.name.question": "何とお呼びしましょうか？",
+  "onboarding.name.hint": "この PC にのみ保存されます。設定でいつでも変更できます。",
+  "onboarding.name.placeholder": "お名前",
+  "onboarding.name.skip": "今はスキップ",
+  "onboarding.back.title": "おかえりなさい、{0}さん。",
+  "onboarding.back.subtitle": "サウンドの準備ができました。"
 }

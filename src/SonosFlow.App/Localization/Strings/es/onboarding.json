@@ -9,5 +9,11 @@
   "onboarding.suggested": "Sugerido",
   "onboarding.changeLater": "Puedes cambiarlo cuando quieras en Ajustes.",
   "onboarding.confirm": "Continuar",
-  "onboarding.close.tooltip": "Cerrar y usar el idioma sugerido"
+  "onboarding.close.tooltip": "Cerrar y usar el idioma sugerido",
+  "onboarding.name.question": "¿Cómo quieres que te llamemos?",
+  "onboarding.name.hint": "Se queda en este PC. Puedes cambiarlo cuando quieras en Ajustes.",
+  "onboarding.name.placeholder": "Tu nombre",
+  "onboarding.name.skip": "Omitir por ahora",
+  "onboarding.back.title": "Te damos la bienvenida de nuevo, {0}.",
+  "onboarding.back.subtitle": "Tu sonido está listo."
 }

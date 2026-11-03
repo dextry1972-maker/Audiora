@@ -59,5 +59,6 @@
   "main.details.peak": "Crête",
   "main.details.dropsReconnects": "Coupures / reconnexions",
   "main.details.lastError": "Dernière erreur",
-  "main.details.note": "Réseau local uniquement : l’audio ne sort jamais vers Internet. La latence réelle n’est pas mesurée ; avec la marge de 1 s, le Sonos a environ 1–1,5 s de retard."
+  "main.details.note": "Réseau local uniquement : l’audio ne sort jamais vers Internet. La latence réelle n’est pas mesurée ; avec la marge de 1 s, le Sonos a environ 1–1,5 s de retard.",
+  "main.greeting": "Bonjour, {0}"
 }

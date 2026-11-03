@@ -54,9 +54,9 @@ public sealed class SpectrumVisualizer : FrameworkElement
     public SpectrumVisualizer()
     {
         var g = new LinearGradientBrush { StartPoint = new Point(0, 1), EndPoint = new Point(0, 0) };
-        g.GradientStops.Add(new GradientStop(Color.FromRgb(0x13, 0x9A, 0x52), 0));
-        g.GradientStops.Add(new GradientStop(Color.FromRgb(0x31, 0xD6, 0x7B), 0.55));
-        g.GradientStops.Add(new GradientStop(Color.FromRgb(0x9C, 0xF7, 0xC6), 1));
+        g.GradientStops.Add(new GradientStop(Color.FromRgb(0x6C, 0x4B, 0xDB), 0));
+        g.GradientStops.Add(new GradientStop(Color.FromRgb(0x89, 0x57, 0xF5), 0.55));
+        g.GradientStops.Add(new GradientStop(Color.FromRgb(0x37, 0xDD, 0xF3), 1));
         g.MappingMode = BrushMappingMode.RelativeToBoundingBox;
         g.Freeze();
         _barBrush = g;

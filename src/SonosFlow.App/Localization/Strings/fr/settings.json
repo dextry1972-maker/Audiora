@@ -86,5 +86,17 @@
   "sounds.device.default": "Par défaut du système",
   "sounds.device.unavailable": "Périphérique indisponible (le périphérique par défaut est utilisé)",
   "sounds.note.captured": "Son coupé : un son sur le périphérique diffusé atteindrait le Sonos.",
-  "sounds.note.muted": "Le volume des effets est à 0."
+  "sounds.note.muted": "Le volume des effets est à 0.",
+  "settings.tab.profile": "Personnalisation",
+  "settings.tab.general": "Général",
+  "settings.tab.audio": "Audio",
+  "settings.tab.sounds": "Sons",
+  "settings.tab.mini": "Mini-lecteur",
+  "settings.tab.advanced": "Avancé",
+  "settings.profile.section": "PERSONNALISATION",
+  "settings.profile.name.title": "Nom affiché",
+  "settings.profile.name.hint": "Utilisé dans l’accueil à l’ouverture d’Audiora. Enregistré uniquement sur ce PC.",
+  "settings.profile.name.placeholder": "Votre prénom",
+  "settings.profile.welcome.title": "Accueil personnalisé",
+  "settings.profile.welcome.hint": "Vous salue par votre prénom à l’ouverture de l’application."
 }

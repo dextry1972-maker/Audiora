@@ -116,7 +116,7 @@
         <Border Grid.RowSpan="2" Background="{StaticResource B.SideSheet}" BorderBrush="{StaticResource B.Hairline}" BorderThickness="0,0,1,0">
             <StackPanel Margin="16,0,16,0">
                 <StackPanel Orientation="Horizontal" Margin="10,16,0,22" Height="40">
-                    <Image Source="/Assets/SonosFlow.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality" />
+                    <Image Source="{StaticResource Img.Logo}" Width="34" Height="34" />
                     <TextBlock Text="{loc:T main.header.brand}" Style="{StaticResource T.Base}" FontFamily="{StaticResource F.Display}" FontSize="21" FontWeight="SemiBold" Margin="11,0,0,2" VerticalAlignment="Center" />
                 </StackPanel>
                 <Grid x:Name="NavTrack">
@@ -132,6 +132,14 @@
                     </StackPanel>
                 </Grid>
             </StackPanel>
+        </Border>
+
+        <!-- Greeting by name (Aurora 2.0): only when the user set a name and kept the personalised welcome on -->
+        <Border Grid.Row="1" VerticalAlignment="Bottom" Margin="16,0,16,14" Padding="12,10" CornerRadius="14"
+                Background="{StaticResource B.PanelDeep}" BorderBrush="{StaticResource B.Hairline}" BorderThickness="1"
+                Visibility="{Binding HasGreeting, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="{Binding GreetingText}" Style="{StaticResource T.Base}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                       Foreground="{StaticResource B.AccentHi}" />
         </Border>
 
         <!-- ═══════════ Header (drag area via WindowChrome) ═══════════ -->
@@ -331,8 +339,8 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- Particle waves flowing out of the stream button (decorative) -->
-                    <ctl:WaveField Grid.Row="2" Height="236" Margin="-330,0" VerticalAlignment="Center" />
+                    <!-- Particle waves around the stream button: still at rest; with sound they travel left to right through the aurora colours -->
+                    <ctl:WaveField Grid.Row="2" Height="236" Margin="-330,0" VerticalAlignment="Center" Analyzer="{Binding Analyzer}" />
 
                     <!-- Stage: real spectrum ring around the stream button -->
                     <Grid Grid.Row="2" Width="236" Height="236" Margin="0,2,0,0" HorizontalAlignment="Center" Background="Transparent"
@@ -341,9 +349,9 @@
                         <Ellipse Width="236" Height="236" IsHitTestVisible="False" Opacity="{Binding Level, ElementName=Viz}">
                             <Ellipse.Fill>
                                 <RadialGradientBrush>
-                                    <GradientStop Color="#382FD27A" Offset="0" />
-                                    <GradientStop Color="#102FD27A" Offset="0.55" />
-                                    <GradientStop Color="#002FD27A" Offset="1" />
+                                    <GradientStop Color="#388957F5" Offset="0" />
+                                    <GradientStop Color="#1037DDF3" Offset="0.55" />
+                                    <GradientStop Color="#0037DDF3" Offset="1" />
                                 </RadialGradientBrush>
                             </Ellipse.Fill>
                         </Ellipse>
@@ -359,13 +367,13 @@
                                                 <Style TargetType="Ellipse">
                                                     <Setter Property="Fill" Value="{StaticResource B.AccentGradient}" />
                                                     <Setter Property="Effect">
-                                                        <Setter.Value><DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.45" Color="#2FD27A" /></Setter.Value>
+                                                        <Setter.Value><DropShadowEffect BlurRadius="30" ShadowDepth="0" Opacity="0.45" Color="#8957F5" /></Setter.Value>
                                                     </Setter>
                                                     <Style.Triggers>
                                                         <!-- Live: quiet dark disc with a fine emerald edge; the ring carries the energy -->
                                                         <DataTrigger Binding="{Binding IsStreaming}" Value="True">
                                                             <Setter Property="Fill" Value="{StaticResource B.CardHi}" />
-                                                            <Setter Property="Stroke" Value="#802FD27A" />
+                                                            <Setter Property="Stroke" Value="#80B6A5FF" />
                                                             <Setter Property="StrokeThickness" Value="1.5" />
                                                             <Setter Property="Effect" Value="{x:Null}" />
                                                         </DataTrigger>
@@ -588,7 +596,7 @@
         </Grid>
 
         <!-- ═══════════ Footer: connection status, Sonos sound, details ═══════════ -->
-        <Border Grid.Row="2" Grid.ColumnSpan="2" Background="#38020A07" BorderBrush="{StaticResource B.Hairline}" BorderThickness="0,1,0,0" Padding="22,0,14,0" Height="46">
+        <Border Grid.Row="2" Grid.ColumnSpan="2" Background="#38070B1E" BorderBrush="{StaticResource B.Hairline}" BorderThickness="0,1,0,0" Padding="22,0,14,0" Height="46">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="7" Height="7" Margin="0,1,8,0" VerticalAlignment="Center">

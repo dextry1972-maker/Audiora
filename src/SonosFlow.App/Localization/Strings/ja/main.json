@@ -59,5 +59,6 @@
   "main.details.peak": "ピーク",
   "main.details.dropsReconnects": "ドロップ / 再接続",
   "main.details.lastError": "最後のエラー",
-  "main.details.note": "ローカル ネットワークのみ: オーディオがインターネットに送信されることはありません。実際の遅延は測定していません。1 s のバッファーでは Sonos は約 1–1.5 s 遅れて再生されます。"
+  "main.details.note": "ローカル ネットワークのみ: オーディオがインターネットに送信されることはありません。実際の遅延は測定していません。1 s のバッファーでは Sonos は約 1–1.5 s 遅れて再生されます。",
+  "main.greeting": "こんにちは、{0}さん"
 }

@@ -1,23 +1,25 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:ctl="clr-namespace:SonosFlow.App.Controls">
 
-    <!-- Palette: near-black, charcoal, restrained emerald. Green only means "live" or the primary action. -->
-    <Color x:Key="C.Bg0">#FF060708</Color>
-    <Color x:Key="C.Bg1">#FF0B0D0F</Color>
-    <Color x:Key="C.Card">#FF0F1214</Color>
-    <Color x:Key="C.CardHi">#FF15191C</Color>
-    <Color x:Key="C.CardPress">#FF1B2024</Color>
-    <Color x:Key="C.Stroke">#FF1A1F23</Color>
-    <Color x:Key="C.StrokeHi">#FF272E33</Color>
-    <Color x:Key="C.Text">#FFF2F4F5</Color>
-    <Color x:Key="C.TextDim">#FF8E979E</Color>
-    <!-- 4.7:1 on the surfaces (was #59636A, 3:1: below WCAG AA for small text) -->
-    <Color x:Key="C.TextFaint">#FF78838B</Color>
-    <Color x:Key="C.Accent">#FF2FD27A</Color>
-    <Color x:Key="C.AccentHi">#FF52E596</Color>
-    <Color x:Key="C.AccentDeep">#FF14985A</Color>
+    <!-- Palette «Aurora 2.0»: midnight blue, cobalt glass, violet + cyan light. Cyan means "live"; violet is the accent; the gradient cyan→blue→violet is the primary action. -->
+    <Color x:Key="C.Bg0">#FF070B1E</Color>
+    <Color x:Key="C.Bg1">#FF0B1026</Color>
+    <Color x:Key="C.Card">#FF101A3B</Color>
+    <Color x:Key="C.CardHi">#FF16224A</Color>
+    <Color x:Key="C.CardPress">#FF1C2A57</Color>
+    <Color x:Key="C.Stroke">#FF222F63</Color>
+    <Color x:Key="C.StrokeHi">#FF34457F</Color>
+    <Color x:Key="C.Text">#FFF5F7FF</Color>
+    <Color x:Key="C.TextDim">#FFAEB8DA</Color>
+    <!-- 6.6:1 on #0B1026 and 5.8:1 on the glass: above WCAG AA for small text -->
+    <Color x:Key="C.TextFaint">#FF8C97C2</Color>
+    <Color x:Key="C.Accent">#FF8957F5</Color>
+    <Color x:Key="C.AccentHi">#FFB6A5FF</Color>
+    <Color x:Key="C.AccentDeep">#FF6C4BDB</Color>
+    <!-- The second light of the palette: "live" cyan -->
+    <Color x:Key="C.Accent2">#FF37DDF3</Color>
     <Color x:Key="C.Warn">#FFF2B544</Color>
-    <Color x:Key="C.Danger">#FFFF6461</Color>
+    <Color x:Key="C.Danger">#FFFF6B7A</Color>
 
     <SolidColorBrush x:Key="B.Bg0" Color="{StaticResource C.Bg0}" />
     <SolidColorBrush x:Key="B.Bg1" Color="{StaticResource C.Bg1}" />
@@ -30,54 +32,91 @@
     <SolidColorBrush x:Key="B.TextFaint" Color="{StaticResource C.TextFaint}" />
     <SolidColorBrush x:Key="B.Accent" Color="{StaticResource C.Accent}" />
     <SolidColorBrush x:Key="B.AccentHi" Color="{StaticResource C.AccentHi}" />
+    <SolidColorBrush x:Key="B.Accent2" Color="{StaticResource C.Accent2}" />
+    <SolidColorBrush x:Key="B.AccentDeep" Color="{StaticResource C.AccentDeep}" />
     <SolidColorBrush x:Key="B.Warn" Color="{StaticResource C.Warn}" />
     <SolidColorBrush x:Key="B.Danger" Color="{StaticResource C.Danger}" />
-    <SolidColorBrush x:Key="B.AccentSoft" Color="#1F2FD27A" />
+    <SolidColorBrush x:Key="B.AccentSoft" Color="#268957F5" />
     <SolidColorBrush x:Key="B.Glass" Color="#0BFFFFFF" />
     <SolidColorBrush x:Key="B.GlassHi" Color="#14FFFFFF" />
     <SolidColorBrush x:Key="B.CardPress" Color="{StaticResource C.CardPress}" />
     <SolidColorBrush x:Key="B.Hairline" Color="#12FFFFFF" />
-    <SolidColorBrush x:Key="B.OnAccent" Color="#FF03130A" />
+    <SolidColorBrush x:Key="B.OnAccent" Color="#FF071033" />
     <SolidColorBrush x:Key="B.WarnSoft" Color="#1FF2B544" />
-    <SolidColorBrush x:Key="B.DangerSoft" Color="#1FFF6461" />
+    <SolidColorBrush x:Key="B.DangerSoft" Color="#1FFF6B7A" />
 
-    <LinearGradientBrush x:Key="B.AccentGradient" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#FF5BF0A0" Offset="0" />
-        <GradientStop Color="#FF22C06A" Offset="1" />
+    <LinearGradientBrush x:Key="B.AccentGradient" StartPoint="0,0.5" EndPoint="1,0.5">
+        <GradientStop Color="#FF37DDF3" Offset="0" />
+        <GradientStop Color="#FF6C8CFF" Offset="0.58" />
+        <GradientStop Color="#FF8957F5" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="B.CardGradient" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#FF141A1E" Offset="0" />
-        <GradientStop Color="#FF0F1316" Offset="1" />
+        <GradientStop Color="#FF141E45" Offset="0" />
+        <GradientStop Color="#FF0F1838" Offset="1" />
     </LinearGradientBrush>
 
-    <!-- ══════════ Liquid glass: translucent panels over the aurora, lit from the top-left ══════════ -->
+    <!-- ══════════ Frosted glass: cobalt panels over the aurora, lit from the top-left, lavender edge ══════════ -->
     <LinearGradientBrush x:Key="B.Panel" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#26FFFFFF" Offset="0" />
-        <GradientStop Color="#0FFFFFFF" Offset="0.45" />
-        <GradientStop Color="#0C34E58E" Offset="1" />
+        <GradientStop Color="#1FFFFFFF" Offset="0" />
+        <GradientStop Color="#5C142B59" Offset="0.55" />
+        <GradientStop Color="#47142B59" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="B.PanelEdge" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#5CFFFFFF" Offset="0" />
-        <GradientStop Color="#16FFFFFF" Offset="0.4" />
-        <GradientStop Color="#142FD27A" Offset="0.75" />
-        <GradientStop Color="#4034E58E" Offset="1" />
+        <GradientStop Color="#66C9BFFF" Offset="0" />
+        <GradientStop Color="#2AA0AFFF" Offset="0.4" />
+        <GradientStop Color="#2A8957F5" Offset="0.75" />
+        <GradientStop Color="#4037DDF3" Offset="1" />
     </LinearGradientBrush>
     <LinearGradientBrush x:Key="B.Sheet" StartPoint="0,0" EndPoint="1,1">
-        <GradientStop Color="#FF123628" Offset="0" />
-        <GradientStop Color="#FF08170F" Offset="0.5" />
-        <GradientStop Color="#FF040D09" Offset="1" />
+        <GradientStop Color="#FF152050" Offset="0" />
+        <GradientStop Color="#FF0B1230" Offset="0.5" />
+        <GradientStop Color="#FF070B1E" Offset="1" />
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="B.PanelDeep" Color="#47020A07" />
-    <SolidColorBrush x:Key="B.SideSheet" Color="#2E04140E" />
+    <SolidColorBrush x:Key="B.PanelDeep" Color="#47040818" />
+    <SolidColorBrush x:Key="B.SideSheet" Color="#38070D2A" />
     <DropShadowEffect x:Key="Fx.Glass" BlurRadius="34" ShadowDepth="10" Direction="270" Opacity="0.5" Color="#000000" />
+
+    <!-- Aurora logo: five audio bars. Absolute gradient so the whole mark shares one cyan → violet sweep. -->
+    <DrawingImage x:Key="Img.Logo">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent">
+                    <GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,40,40" /></GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing>
+                    <GeometryDrawing.Brush>
+                        <LinearGradientBrush MappingMode="Absolute" StartPoint="4,3" EndPoint="36,37">
+                            <GradientStop Color="#FF37DDF3" Offset="0" />
+                            <GradientStop Color="#FF8957F5" Offset="1" />
+                        </LinearGradientBrush>
+                    </GeometryDrawing.Brush>
+                    <GeometryDrawing.Geometry>
+                        <GeometryGroup>
+                            <RectangleGeometry Rect="4,15,4,10" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="11,9,4,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="18,3,4,34" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="25,9,4,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="32,15,4,10" RadiusX="2" RadiusY="2" />
+                        </GeometryGroup>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Switch "on": violet → blue, white knob (contrast stays above 3:1 for the control) -->
+    <LinearGradientBrush x:Key="B.ToggleOn" StartPoint="0,0.5" EndPoint="1,0.5">
+        <GradientStop Color="#FF6C4BDB" Offset="0" />
+        <GradientStop Color="#FF6C8CFF" Offset="1" />
+    </LinearGradientBrush>
 
     <FontFamily x:Key="F.Display">Segoe UI Variable Display, Segoe UI</FontFamily>
     <FontFamily x:Key="F.Text">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="F.Icons">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
     <DropShadowEffect x:Key="Fx.Card" BlurRadius="28" ShadowDepth="6" Direction="270" Opacity="0.45" Color="#000000" />
-    <DropShadowEffect x:Key="Fx.AccentGlow" BlurRadius="34" ShadowDepth="0" Opacity="0.55" Color="#31D67B" />
+    <DropShadowEffect x:Key="Fx.AccentGlow" BlurRadius="34" ShadowDepth="0" Opacity="0.55" Color="#8957F5" />
 
     <!-- Text -->
     <Style x:Key="T.Base" TargetType="TextBlock">
@@ -174,7 +213,7 @@
 
     <Style x:Key="Btn.Accent" TargetType="Button" BasedOn="{StaticResource Btn.Ghost}">
         <Setter Property="Background" Value="{StaticResource B.AccentGradient}" />
-        <Setter Property="Foreground" Value="#FF04140A" />
+        <Setter Property="Foreground" Value="#FF071033" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
@@ -260,7 +299,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <Grid Background="Transparent">
-                        <Border x:Name="Track" Width="40" Height="24" CornerRadius="12" Background="#FF2A3238" />
+                        <Border x:Name="Track" Width="40" Height="24" CornerRadius="12" Background="#FF2A3566" />
                         <Ellipse ctl:Motion.OffsetX="-8" x:Name="Knob" Width="18" Height="18" Fill="White" HorizontalAlignment="Center" Margin="0">
                             <Ellipse.RenderTransform>
                                 <TranslateTransform x:Name="KnobX" X="-8" />
@@ -272,7 +311,7 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Track" Property="Background" Value="{StaticResource B.Accent}" />
+                            <Setter TargetName="Track" Property="Background" Value="{StaticResource B.ToggleOn}" />
                             <Setter TargetName="Knob" Property="ctl:Motion.OffsetX" Value="8" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -323,7 +362,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Slider">
                     <Grid VerticalAlignment="Center">
-                        <Border Height="4" CornerRadius="2" Background="#FF2A3238" />
+                        <Border Height="4" CornerRadius="2" Background="#FF2A3566" />
                         <Track x:Name="PART_Track">
                             <Track.DecreaseRepeatButton>
                                 <RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource SliderRepeat}">
@@ -389,7 +428,7 @@
                                           Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                           TextBlock.Foreground="{StaticResource B.Text}" />
                         <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" PopupAnimation="None" Focusable="False">
-                            <Border ctl:Motion.Enter="True" Background="#FF151B1F" BorderBrush="{StaticResource B.StrokeHi}" BorderThickness="1" CornerRadius="10" Margin="0,4,0,0"
+                            <Border ctl:Motion.Enter="True" Background="#FF111B3F" BorderBrush="{StaticResource B.StrokeHi}" BorderThickness="1" CornerRadius="10" Margin="0,4,0,0"
                                     MinWidth="{TemplateBinding ActualWidth}" Padding="4">
                                 <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
                                     <ItemsPresenter />
@@ -467,8 +506,8 @@
                             <Setter Property="Foreground" Value="{StaticResource B.Text}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="#3D2FD27A" />
-                            <Setter TargetName="Bd" Property="BorderBrush" Value="#552FD27A" />
+                            <Setter TargetName="Bd" Property="Background" Value="#4D8957F5" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#66B6A5FF" />
                             <Setter Property="Foreground" Value="{StaticResource B.Text}" />
                             <Setter Property="FontWeight" Value="SemiBold" />
                         </Trigger>
@@ -503,12 +542,78 @@
         </ControlTemplate.Triggers>
     </ControlTemplate>
 
-    <!-- Green when the bound item IsActive -->
+    <!-- ══════════ Aurora 2.0: text input and pill tabs ══════════ -->
+    <Style x:Key="Input.Flow" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+        <Setter Property="CaretBrush" Value="{StaticResource B.Accent2}" />
+        <Setter Property="SelectionBrush" Value="{StaticResource B.AccentDeep}" />
+        <Setter Property="FontFamily" Value="{StaticResource F.Text}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Bd" MinHeight="46" CornerRadius="14" Padding="14,0" BorderThickness="1"
+                            Background="#8C070B1E" BorderBrush="{StaticResource B.StrokeHi}">
+                        <Grid>
+                            <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Foreground="{StaticResource B.TextFaint}" FontSize="15"
+                                       VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed" />
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Focusable="False" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Hint" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.AccentHi}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.AccentHi}" />
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="2" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Tab.Pill" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource B.TextDim}" />
+        <Setter Property="FontFamily" Value="{StaticResource F.Text}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" Height="36" CornerRadius="12" Padding="16,0" Margin="0,0,4,0" BorderThickness="1"
+                            Background="Transparent" BorderBrush="Transparent">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.GlassHi}" />
+                            <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.AccentDeep}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.AccentHi}" />
+                            <Setter Property="Foreground" Value="#FFFFFFFF" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Cyan (live) when the bound item IsActive -->
     <Style x:Key="ActiveDot" TargetType="Ellipse">
         <Setter Property="Fill" Value="{StaticResource B.TextFaint}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsActive}" Value="True">
-                <Setter Property="Fill" Value="{StaticResource B.Accent}" />
+                <Setter Property="Fill" Value="{StaticResource B.Accent2}" />
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -548,8 +653,8 @@
         <Setter Property="Background">
             <Setter.Value>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#F51B2A25" Offset="0" />
-                    <GradientStop Color="#F50A1411" Offset="1" />
+                    <GradientStop Color="#F5141E48" Offset="0" />
+                    <GradientStop Color="#F50A1030" Offset="1" />
                 </LinearGradientBrush>
             </Setter.Value>
         </Setter>
@@ -717,7 +822,7 @@
             </Trigger>
             <DataTrigger Binding="{Binding IsSelected}" Value="True">
                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.AccentSoft}" />
-                <Setter TargetName="Bd" Property="BorderBrush" Value="#662FD27A" />
+                <Setter TargetName="Bd" Property="BorderBrush" Value="#66B6A5FF" />
             </DataTrigger>
         </ControlTemplate.Triggers>
     </ControlTemplate>
@@ -735,7 +840,7 @@
                                 <RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource SliderRepeat}">
                                     <RepeatButton.Template>
                                         <ControlTemplate TargetType="RepeatButton">
-                                            <Border Height="6" CornerRadius="3" Background="{StaticResource B.Accent}" />
+                                            <Border Height="6" CornerRadius="3" Background="{StaticResource B.AccentGradient}" />
                                         </ControlTemplate>
                                     </RepeatButton.Template>
                                 </RepeatButton>
@@ -765,7 +870,7 @@
         <Setter Property="Fill" Value="{StaticResource B.TextFaint}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding State}" Value="Streaming">
-                <Setter Property="Fill" Value="{StaticResource B.Accent}" />
+                <Setter Property="Fill" Value="{StaticResource B.Accent2}" />
             </DataTrigger>
             <DataTrigger Binding="{Binding State}" Value="Recovering">
                 <Setter Property="Fill" Value="{StaticResource B.Warn}" />
@@ -787,7 +892,7 @@
     </Style>
 
     <Style TargetType="ToolTip">
-        <Setter Property="Background" Value="#FF1A2126" />
+        <Setter Property="Background" Value="#FF1B2556" />
         <Setter Property="Foreground" Value="{StaticResource B.Text}" />
         <Setter Property="BorderBrush" Value="{StaticResource B.StrokeHi}" />
         <Setter Property="FontFamily" Value="{StaticResource F.Text}" />

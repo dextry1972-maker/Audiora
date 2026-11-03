@@ -8,5 +8,11 @@
   "onboarding.suggested": "सुझाई गई",
   "onboarding.changeLater": "आप इसे सेटिंग्स में कभी भी बदल सकते हैं।",
   "onboarding.confirm": "जारी रखें",
-  "onboarding.close.tooltip": "बंद करें और सुझाई गई भाषा इस्तेमाल करें"
+  "onboarding.close.tooltip": "बंद करें और सुझाई गई भाषा इस्तेमाल करें",
+  "onboarding.name.question": "हम आपको क्या कहकर बुलाएँ?",
+  "onboarding.name.hint": "यह इसी पीसी पर रहता है। आप इसे कभी भी सेटिंग्स में बदल सकते हैं।",
+  "onboarding.name.placeholder": "आपका नाम",
+  "onboarding.name.skip": "अभी छोड़ें",
+  "onboarding.back.title": "फिर से स्वागत है, {0}।",
+  "onboarding.back.subtitle": "आपकी ध्वनि तैयार है।"
 }

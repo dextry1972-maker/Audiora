@@ -8,5 +8,11 @@
   "onboarding.suggested": "Рекомендуемый",
   "onboarding.changeLater": "Его можно изменить в любой момент в настройках.",
   "onboarding.confirm": "Продолжить",
-  "onboarding.close.tooltip": "Закрыть и использовать рекомендуемый язык"
+  "onboarding.close.tooltip": "Закрыть и использовать рекомендуемый язык",
+  "onboarding.name.question": "Как к вам обращаться?",
+  "onboarding.name.hint": "Остаётся на этом ПК. Изменить можно в любое время в Настройках.",
+  "onboarding.name.placeholder": "Ваше имя",
+  "onboarding.name.skip": "Пропустить пока",
+  "onboarding.back.title": "С возвращением, {0}.",
+  "onboarding.back.subtitle": "Ваш звук готов."
 }

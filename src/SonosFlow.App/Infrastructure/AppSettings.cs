@@ -52,6 +52,13 @@ public sealed class AppSettings
     /// <summary>The first-launch language choice was made (or skipped); the welcome screen never shows again.</summary>
     public bool LanguageOnboardingDone { get; set; }
 
+    /// <summary>Name for the welcome ("Welcome back, …"). Null/empty = none. Stays on this PC: never logged, never in diagnostics.</summary>
+    public string? UserName { get; set; }
+    /// <summary>Greet with the name when the app opens (the greeting itself is skipped for automatic starts).</summary>
+    public bool PersonalizedWelcome { get; set; } = true;
+    /// <summary>The first-launch "what should we call you?" step was answered or skipped.</summary>
+    public bool NameOnboardingDone { get; set; }
+
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
     /// <summary>

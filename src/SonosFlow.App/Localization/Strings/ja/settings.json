@@ -86,5 +86,17 @@
   "sounds.device.default": "システムの既定",
   "sounds.device.unavailable": "デバイスが利用できません（既定を使用）",
   "sounds.note.captured": "消音中: 配信中のデバイスで鳴らすと Sonos に届いてしまいます。",
-  "sounds.note.muted": "効果音の音量が 0 です。"
+  "sounds.note.muted": "効果音の音量が 0 です。",
+  "settings.tab.profile": "パーソナル設定",
+  "settings.tab.general": "一般",
+  "settings.tab.audio": "オーディオ",
+  "settings.tab.sounds": "サウンド",
+  "settings.tab.mini": "ミニ プレーヤー",
+  "settings.tab.advanced": "詳細設定",
+  "settings.profile.section": "パーソナル設定",
+  "settings.profile.name.title": "表示名",
+  "settings.profile.name.hint": "Audiora を開いたときの歓迎メッセージに使われます。この PC にのみ保存されます。",
+  "settings.profile.name.placeholder": "お名前",
+  "settings.profile.welcome.title": "パーソナライズされた歓迎",
+  "settings.profile.welcome.hint": "アプリを開いたときに名前で挨拶します。"
 }

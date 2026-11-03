@@ -8,5 +8,11 @@
   "onboarding.suggested": "推荐",
   "onboarding.changeLater": "你可以随时在“设置”中更改。",
   "onboarding.confirm": "继续",
-  "onboarding.close.tooltip": "关闭并使用推荐的语言"
+  "onboarding.close.tooltip": "关闭并使用推荐的语言",
+  "onboarding.name.question": "我们该怎么称呼你？",
+  "onboarding.name.hint": "仅保存在这台电脑上。你可以随时在“设置”中更改。",
+  "onboarding.name.placeholder": "你的名字",
+  "onboarding.name.skip": "暂时跳过",
+  "onboarding.back.title": "欢迎回来，{0}。",
+  "onboarding.back.subtitle": "你的音效已就绪。"
 }

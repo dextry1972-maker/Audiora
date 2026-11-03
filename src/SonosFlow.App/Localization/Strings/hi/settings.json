@@ -86,5 +86,17 @@
   "sounds.device.default": "सिस्टम डिफ़ॉल्ट",
   "sounds.device.unavailable": "डिवाइस उपलब्ध नहीं (डिफ़ॉल्ट उपयोग होगा)",
   "sounds.note.captured": "म्यूट: स्ट्रीम हो रहे डिवाइस पर ध्वनि Sonos तक पहुँच जाती।",
-  "sounds.note.muted": "इफ़ेक्ट वॉल्यूम 0 है।"
+  "sounds.note.muted": "इफ़ेक्ट वॉल्यूम 0 है।",
+  "settings.tab.profile": "वैयक्तिकरण",
+  "settings.tab.general": "सामान्य",
+  "settings.tab.audio": "ऑडियो",
+  "settings.tab.sounds": "ध्वनियाँ",
+  "settings.tab.mini": "मिनी प्लेयर",
+  "settings.tab.advanced": "उन्नत",
+  "settings.profile.section": "वैयक्तिकरण",
+  "settings.profile.name.title": "प्रदर्शित नाम",
+  "settings.profile.name.hint": "Audiora खुलने पर स्वागत संदेश में उपयोग होता है। केवल इसी पीसी पर सहेजा जाता है।",
+  "settings.profile.name.placeholder": "आपका नाम",
+  "settings.profile.welcome.title": "व्यक्तिगत स्वागत",
+  "settings.profile.welcome.hint": "ऐप खुलने पर आपके नाम से स्वागत करता है।"
 }

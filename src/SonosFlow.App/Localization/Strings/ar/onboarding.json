@@ -8,5 +8,11 @@
   "onboarding.suggested": "مقترحة",
   "onboarding.changeLater": "يمكنك تغييرها في أي وقت من الإعدادات.",
   "onboarding.confirm": "متابعة",
-  "onboarding.close.tooltip": "إغلاق واستخدام اللغة المقترحة"
+  "onboarding.close.tooltip": "إغلاق واستخدام اللغة المقترحة",
+  "onboarding.name.question": "بماذا تحب أن نناديك؟",
+  "onboarding.name.hint": "يبقى على هذا الكمبيوتر. يمكنك تغييره في أي وقت من الإعدادات.",
+  "onboarding.name.placeholder": "اسمك",
+  "onboarding.name.skip": "تخطَّ الآن",
+  "onboarding.back.title": "أهلًا بعودتك، {0}.",
+  "onboarding.back.subtitle": "صوتك جاهز."
 }

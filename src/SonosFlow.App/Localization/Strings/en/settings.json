@@ -93,5 +93,17 @@
   "sounds.device.default": "System default",
   "sounds.device.unavailable": "Unavailable device (the default is used)",
   "sounds.note.captured": "Silenced: a sound on the device being streamed would reach the Sonos.",
-  "sounds.note.muted": "The effects volume is 0."
+  "sounds.note.muted": "The effects volume is 0.",
+  "settings.tab.profile": "Personalization",
+  "settings.tab.general": "General",
+  "settings.tab.audio": "Audio",
+  "settings.tab.sounds": "Sounds",
+  "settings.tab.mini": "Mini player",
+  "settings.tab.advanced": "Advanced",
+  "settings.profile.section": "PERSONALIZATION",
+  "settings.profile.name.title": "Display name",
+  "settings.profile.name.hint": "Used in the welcome when Audiora opens. Stored only on this PC.",
+  "settings.profile.name.placeholder": "Your name",
+  "settings.profile.welcome.title": "Personalized welcome",
+  "settings.profile.welcome.hint": "Greets you by name when the app opens."
 }

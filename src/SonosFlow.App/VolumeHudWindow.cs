@@ -35,9 +35,9 @@ public sealed class VolumeHudWindow : Window
 
         var text = Res("B.Text", Colors.White);
         _icon.FontFamily = TryFindResource("F.Icons") as FontFamily ?? new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
-        _icon.Foreground = Res("B.Accent", Color.FromRgb(0x30, 0xD1, 0x58));
+        _icon.Foreground = Res("B.Accent", Color.FromRgb(0x89, 0x57, 0xF5));
         _text.Foreground = text;
-        _bar.Foreground = Res("B.Accent", Color.FromRgb(0x30, 0xD1, 0x58));
+        _bar.Foreground = Res("B.Accent", Color.FromRgb(0x89, 0x57, 0xF5));
         _bar.Background = new SolidColorBrush(Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF));
 
         var row = new StackPanel { Orientation = Orientation.Horizontal };
@@ -51,8 +51,8 @@ public sealed class VolumeHudWindow : Window
             Margin = new Thickness(16), // room for the shadow
             Padding = new Thickness(18, 14, 18, 14),
             CornerRadius = new CornerRadius(18),
-            Background = new LinearGradientBrush(Color.FromArgb(0xF2, 0x19, 0x30, 0x26), Color.FromArgb(0xF7, 0x0A, 0x15, 0x11), new Point(0, 0), new Point(1, 1)), // emerald glass, as the mini player
-            BorderBrush = new LinearGradientBrush(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF), Color.FromArgb(0x55, 0x2F, 0xD2, 0x7A), new Point(0, 0), new Point(1, 1)),
+            Background = new LinearGradientBrush(Color.FromArgb(0xF2, 0x14, 0x1E, 0x48), Color.FromArgb(0xF7, 0x0A, 0x10, 0x30), new Point(0, 0), new Point(1, 1)), // emerald glass, as the mini player
+            BorderBrush = new LinearGradientBrush(Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF), Color.FromArgb(0x55, 0xB6, 0xA5, 0xFF), new Point(0, 0), new Point(1, 1)),
             BorderThickness = new Thickness(1),
             Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 18, ShadowDepth = 3, Opacity = 0.45 },
             Child = panel,

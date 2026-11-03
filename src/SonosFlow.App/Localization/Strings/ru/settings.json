@@ -86,5 +86,17 @@
   "sounds.device.default": "По умолчанию в системе",
   "sounds.device.unavailable": "Устройство недоступно (используется устройство по умолчанию)",
   "sounds.note.captured": "Отключено: звук на транслируемом устройстве попал бы на Sonos.",
-  "sounds.note.muted": "Громкость эффектов равна 0."
+  "sounds.note.muted": "Громкость эффектов равна 0.",
+  "settings.tab.profile": "Персонализация",
+  "settings.tab.general": "Общие",
+  "settings.tab.audio": "Звук",
+  "settings.tab.sounds": "Звуки",
+  "settings.tab.mini": "Мини-плеер",
+  "settings.tab.advanced": "Дополнительно",
+  "settings.profile.section": "ПЕРСОНАЛИЗАЦИЯ",
+  "settings.profile.name.title": "Отображаемое имя",
+  "settings.profile.name.hint": "Используется в приветствии при открытии Audiora. Хранится только на этом ПК.",
+  "settings.profile.name.placeholder": "Ваше имя",
+  "settings.profile.welcome.title": "Персональное приветствие",
+  "settings.profile.welcome.hint": "Приветствует вас по имени при открытии приложения."
 }

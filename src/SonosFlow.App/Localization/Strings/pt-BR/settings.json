@@ -86,5 +86,17 @@
   "sounds.device.default": "Padrão do sistema",
   "sounds.device.unavailable": "Dispositivo indisponível (o padrão é usado)",
   "sounds.note.captured": "Silenciado: um som no dispositivo transmitido chegaria ao Sonos.",
-  "sounds.note.muted": "O volume dos efeitos é 0."
+  "sounds.note.muted": "O volume dos efeitos é 0.",
+  "settings.tab.profile": "Personalização",
+  "settings.tab.general": "Geral",
+  "settings.tab.audio": "Áudio",
+  "settings.tab.sounds": "Sons",
+  "settings.tab.mini": "Miniplayer",
+  "settings.tab.advanced": "Avançado",
+  "settings.profile.section": "PERSONALIZAÇÃO",
+  "settings.profile.name.title": "Nome de exibição",
+  "settings.profile.name.hint": "Usado na saudação ao abrir o Audiora. Fica salvo apenas neste PC.",
+  "settings.profile.name.placeholder": "Seu nome",
+  "settings.profile.welcome.title": "Boas-vindas personalizadas",
+  "settings.profile.welcome.hint": "Cumprimenta você pelo nome ao abrir o aplicativo."
 }
