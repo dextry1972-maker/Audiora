@@ -37,6 +37,50 @@
         <TextBlock Text="{loc:T settings.subtitle}"
                    Style="{StaticResource T.Dim}" FontSize="12.5" TextWrapping="Wrap" Margin="2,6,0,0" />
 
+        <!-- Category tabs (Aurora 2.0): one pane at a time instead of one long column -->
+        <Border Margin="0,16,0,2" Padding="5" CornerRadius="16" HorizontalAlignment="Left" Background="{StaticResource B.PanelDeep}"
+                BorderBrush="{StaticResource B.Hairline}" BorderThickness="1">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="TabProfile" Style="{StaticResource Tab.Pill}" GroupName="settingsTab" IsChecked="True" Tag="profile" Checked="Tab_Checked" Content="{loc:T settings.tab.profile}" />
+                <RadioButton Style="{StaticResource Tab.Pill}" GroupName="settingsTab" Tag="general" Checked="Tab_Checked" Content="{loc:T settings.tab.general}" />
+                <RadioButton Style="{StaticResource Tab.Pill}" GroupName="settingsTab" Tag="audio" Checked="Tab_Checked" Content="{loc:T settings.tab.audio}" />
+                <RadioButton Style="{StaticResource Tab.Pill}" GroupName="settingsTab" Tag="sounds" Checked="Tab_Checked" Content="{loc:T settings.tab.sounds}" />
+                <RadioButton Style="{StaticResource Tab.Pill}" GroupName="settingsTab" Tag="mini" Checked="Tab_Checked" Content="{loc:T settings.tab.mini}" />
+                <RadioButton Style="{StaticResource Tab.Pill}" GroupName="settingsTab" Tag="advanced" Checked="Tab_Checked" Content="{loc:T settings.tab.advanced}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Personalización -->
+        <StackPanel x:Name="PaneProfile" Tag="profile">
+        <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE77B;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.profile.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
+        <Border Style="{StaticResource Surface.Group}">
+            <StackPanel>
+                <Grid Style="{StaticResource Row}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="270" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                        <TextBlock Text="{loc:T settings.profile.name.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.profile.name.hint}" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <TextBox Grid.Column="1" Style="{StaticResource Input.Flow}" Tag="{loc:T settings.profile.name.placeholder}" MaxLength="40" VerticalAlignment="Center"
+                             Text="{Binding UserName, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="{loc:T settings.profile.name.title}" />
+                </Grid>
+                <Rectangle Style="{StaticResource Hairline}" />
+                <Grid Style="{StaticResource Row}">
+                    <StackPanel Margin="0,0,80,0">
+                        <TextBlock Text="{loc:T settings.profile.welcome.title}" Style="{StaticResource RowTitle}" />
+                        <TextBlock Text="{loc:T settings.profile.welcome.hint}" Style="{StaticResource RowHint}" />
+                    </StackPanel>
+                    <CheckBox Style="{StaticResource Switch}" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="{Binding PersonalizedWelcome}" AutomationProperties.Name="{loc:T settings.profile.welcome.title}" />
+                </Grid>
+            </StackPanel>
+        </Border>
+        </StackPanel>
+
+        <StackPanel x:Name="PaneGeneral" Tag="general" Visibility="Collapsed">
+
         <!-- Language -->
         <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE774;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.language.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
@@ -89,6 +133,8 @@
             </StackPanel>
         </Border>
 
+        </StackPanel>
+        <StackPanel x:Name="PaneAudio" Tag="audio" Visibility="Collapsed">
         <!-- Audio -->
         <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE767;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.audio.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
@@ -128,6 +174,8 @@
             </StackPanel>
         </Border>
 
+        </StackPanel>
+        <StackPanel x:Name="PaneSounds" Tag="sounds" Visibility="Collapsed">
         <!-- Sounds: "Audiora Enchanted" -->
         <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE8D6;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.sounds.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
@@ -227,6 +275,8 @@
             </StackPanel>
         </Border>
 
+        </StackPanel>
+        <StackPanel x:Name="PaneMini" Tag="mini" Visibility="Collapsed">
         <!-- Mini player and shortcuts -->
         <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE8A7;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.mini.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
@@ -283,6 +333,8 @@
             </StackPanel>
         </Border>
 
+        </StackPanel>
+        <StackPanel x:Name="PaneAdvanced" Tag="advanced" Visibility="Collapsed">
         <!-- Diagnostics -->
         <StackPanel Orientation="Horizontal" Margin="18,26,0,10"><TextBlock Text="&#xE9D9;" Style="{StaticResource T.Icon}" FontSize="15" Foreground="{StaticResource B.AccentHi}" Margin="0,0,10,0" FlowDirection="LeftToRight" /><TextBlock Text="{loc:T settings.diagnostics.section}" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" /></StackPanel>
         <Border Style="{StaticResource Surface.Group}">
@@ -391,9 +443,11 @@
             </StackPanel>
         </Border>
 
+        </StackPanel>
+
         <!-- About -->
         <StackPanel Orientation="Horizontal" Margin="18,30,0,0">
-            <Image Source="/Assets/SonosFlow.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality" />
+            <Image Source="{StaticResource Img.Logo}" Width="32" Height="32" />
             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="Audiora" Style="{StaticResource T.Base}" FontWeight="SemiBold" />
                 <TextBlock Text="{Binding Version}" Style="{StaticResource T.Dim}" FontSize="12" />

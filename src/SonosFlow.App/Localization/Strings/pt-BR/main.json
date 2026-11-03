@@ -59,5 +59,6 @@
   "main.details.peak": "Pico",
   "main.details.dropsReconnects": "Descartes / reconexões",
   "main.details.lastError": "Último erro",
-  "main.details.note": "Só rede local: o áudio nunca sai para a internet. A latência real não é medida; o Sonos fica ~1–1,5 s atrás com a margem de 1 s."
+  "main.details.note": "Só rede local: o áudio nunca sai para a internet. A latência real não é medida; o Sonos fica ~1–1,5 s atrás com a margem de 1 s.",
+  "main.greeting": "Olá, {0}"
 }

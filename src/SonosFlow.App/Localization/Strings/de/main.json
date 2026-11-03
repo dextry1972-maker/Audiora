@@ -59,5 +59,6 @@
   "main.details.peak": "Spitze",
   "main.details.dropsReconnects": "Abbrüche / Neuverbindungen",
   "main.details.lastError": "Letzter Fehler",
-  "main.details.note": "Nur lokales Netzwerk: Das Audio geht nie ins Internet. Die tatsächliche Latenz wird nicht gemessen; mit 1 s Puffer läuft der Sonos etwa 1–1,5 s hinterher."
+  "main.details.note": "Nur lokales Netzwerk: Das Audio geht nie ins Internet. Die tatsächliche Latenz wird nicht gemessen; mit 1 s Puffer läuft der Sonos etwa 1–1,5 s hinterher.",
+  "main.greeting": "Hallo, {0}"
 }

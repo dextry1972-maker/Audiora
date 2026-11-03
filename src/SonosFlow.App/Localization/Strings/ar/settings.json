@@ -86,5 +86,17 @@
   "sounds.device.default": "الافتراضي للنظام",
   "sounds.device.unavailable": "الجهاز غير متاح (يُستخدم الافتراضي)",
   "sounds.note.captured": "مكتوم: أي صوت على الجهاز الذي يُبث سيصل إلى Sonos.",
-  "sounds.note.muted": "مستوى صوت المؤثرات 0."
+  "sounds.note.muted": "مستوى صوت المؤثرات 0.",
+  "settings.tab.profile": "التخصيص",
+  "settings.tab.general": "عام",
+  "settings.tab.audio": "الصوت",
+  "settings.tab.sounds": "الأصوات",
+  "settings.tab.mini": "المشغل المصغر",
+  "settings.tab.advanced": "متقدم",
+  "settings.profile.section": "التخصيص",
+  "settings.profile.name.title": "الاسم المعروض",
+  "settings.profile.name.hint": "يُستخدم في رسالة الترحيب عند فتح Audiora. يُحفظ على هذا الكمبيوتر فقط.",
+  "settings.profile.name.placeholder": "اسمك",
+  "settings.profile.welcome.title": "ترحيب مخصص",
+  "settings.profile.welcome.hint": "يرحّب بك باسمك عند فتح التطبيق."
 }

@@ -86,5 +86,17 @@
   "sounds.device.default": "시스템 기본값",
   "sounds.device.unavailable": "사용할 수 없는 장치(기본 장치를 사용합니다)",
   "sounds.note.captured": "소리 꺼짐: 스트리밍 중인 장치에서 소리가 나면 Sonos로 전달됩니다.",
-  "sounds.note.muted": "효과음 볼륨이 0입니다."
+  "sounds.note.muted": "효과음 볼륨이 0입니다.",
+  "settings.tab.profile": "개인 설정",
+  "settings.tab.general": "일반",
+  "settings.tab.audio": "오디오",
+  "settings.tab.sounds": "소리",
+  "settings.tab.mini": "미니 플레이어",
+  "settings.tab.advanced": "고급",
+  "settings.profile.section": "개인 설정",
+  "settings.profile.name.title": "표시 이름",
+  "settings.profile.name.hint": "Audiora를 열 때 환영 인사에 사용됩니다. 이 PC에만 저장됩니다.",
+  "settings.profile.name.placeholder": "이름",
+  "settings.profile.welcome.title": "맞춤 환영 인사",
+  "settings.profile.welcome.hint": "앱을 열 때 이름으로 인사합니다."
 }

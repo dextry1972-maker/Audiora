@@ -59,5 +59,6 @@
   "main.details.peak": "피크",
   "main.details.dropsReconnects": "누락 / 재연결",
   "main.details.lastError": "마지막 오류",
-  "main.details.note": "로컬 네트워크 전용: 오디오는 인터넷으로 나가지 않습니다. 실제 지연 시간은 측정하지 않으며, 1 s 버퍼에서 Sonos는 약 1–1.5 s 늦게 재생합니다."
+  "main.details.note": "로컬 네트워크 전용: 오디오는 인터넷으로 나가지 않습니다. 실제 지연 시간은 측정하지 않으며, 1 s 버퍼에서 Sonos는 약 1–1.5 s 늦게 재생합니다.",
+  "main.greeting": "안녕하세요, {0}님"
 }

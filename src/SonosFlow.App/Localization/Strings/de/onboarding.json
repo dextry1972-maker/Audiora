@@ -8,5 +8,11 @@
   "onboarding.suggested": "Empfohlen",
   "onboarding.changeLater": "Du kannst sie jederzeit in den Einstellungen ändern.",
   "onboarding.confirm": "Weiter",
-  "onboarding.close.tooltip": "Schließen und die empfohlene Sprache verwenden"
+  "onboarding.close.tooltip": "Schließen und die empfohlene Sprache verwenden",
+  "onboarding.name.question": "Wie sollen wir dich nennen?",
+  "onboarding.name.hint": "Bleibt auf diesem PC. Du kannst es jederzeit in den Einstellungen ändern.",
+  "onboarding.name.placeholder": "Dein Name",
+  "onboarding.name.skip": "Vorerst überspringen",
+  "onboarding.back.title": "Willkommen zurück, {0}.",
+  "onboarding.back.subtitle": "Dein Sound ist bereit."
 }

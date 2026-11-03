@@ -33,6 +33,7 @@
     <SolidColorBrush x:Key="B.Accent" Color="{StaticResource C.Accent}" />
     <SolidColorBrush x:Key="B.AccentHi" Color="{StaticResource C.AccentHi}" />
     <SolidColorBrush x:Key="B.Accent2" Color="{StaticResource C.Accent2}" />
+    <SolidColorBrush x:Key="B.AccentDeep" Color="{StaticResource C.AccentDeep}" />
     <SolidColorBrush x:Key="B.Warn" Color="{StaticResource C.Warn}" />
     <SolidColorBrush x:Key="B.Danger" Color="{StaticResource C.Danger}" />
     <SolidColorBrush x:Key="B.AccentSoft" Color="#268957F5" />
@@ -75,6 +76,40 @@
     <SolidColorBrush x:Key="B.PanelDeep" Color="#47040818" />
     <SolidColorBrush x:Key="B.SideSheet" Color="#38070D2A" />
     <DropShadowEffect x:Key="Fx.Glass" BlurRadius="34" ShadowDepth="10" Direction="270" Opacity="0.5" Color="#000000" />
+
+    <!-- Aurora logo: five audio bars. Absolute gradient so the whole mark shares one cyan → violet sweep. -->
+    <DrawingImage x:Key="Img.Logo">
+        <DrawingImage.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="Transparent">
+                    <GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,40,40" /></GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <GeometryDrawing>
+                    <GeometryDrawing.Brush>
+                        <LinearGradientBrush MappingMode="Absolute" StartPoint="4,3" EndPoint="36,37">
+                            <GradientStop Color="#FF37DDF3" Offset="0" />
+                            <GradientStop Color="#FF8957F5" Offset="1" />
+                        </LinearGradientBrush>
+                    </GeometryDrawing.Brush>
+                    <GeometryDrawing.Geometry>
+                        <GeometryGroup>
+                            <RectangleGeometry Rect="4,15,4,10" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="11,9,4,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="18,3,4,34" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="25,9,4,22" RadiusX="2" RadiusY="2" />
+                            <RectangleGeometry Rect="32,15,4,10" RadiusX="2" RadiusY="2" />
+                        </GeometryGroup>
+                    </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage.Drawing>
+    </DrawingImage>
+
+    <!-- Switch "on": violet → blue, white knob (contrast stays above 3:1 for the control) -->
+    <LinearGradientBrush x:Key="B.ToggleOn" StartPoint="0,0.5" EndPoint="1,0.5">
+        <GradientStop Color="#FF6C4BDB" Offset="0" />
+        <GradientStop Color="#FF6C8CFF" Offset="1" />
+    </LinearGradientBrush>
 
     <FontFamily x:Key="F.Display">Segoe UI Variable Display, Segoe UI</FontFamily>
     <FontFamily x:Key="F.Text">Segoe UI Variable Text, Segoe UI</FontFamily>
@@ -276,7 +311,7 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Track" Property="Background" Value="{StaticResource B.Accent}" />
+                            <Setter TargetName="Track" Property="Background" Value="{StaticResource B.ToggleOn}" />
                             <Setter TargetName="Knob" Property="ctl:Motion.OffsetX" Value="8" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
@@ -507,12 +542,78 @@
         </ControlTemplate.Triggers>
     </ControlTemplate>
 
-    <!-- Green when the bound item IsActive -->
+    <!-- ══════════ Aurora 2.0: text input and pill tabs ══════════ -->
+    <Style x:Key="Input.Flow" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+        <Setter Property="CaretBrush" Value="{StaticResource B.Accent2}" />
+        <Setter Property="SelectionBrush" Value="{StaticResource B.AccentDeep}" />
+        <Setter Property="FontFamily" Value="{StaticResource F.Text}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Bd" MinHeight="46" CornerRadius="14" Padding="14,0" BorderThickness="1"
+                            Background="#8C070B1E" BorderBrush="{StaticResource B.StrokeHi}">
+                        <Grid>
+                            <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}" Foreground="{StaticResource B.TextFaint}" FontSize="15"
+                                       VerticalAlignment="Center" IsHitTestVisible="False" Visibility="Collapsed" />
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Focusable="False" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Hint" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.AccentHi}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.AccentHi}" />
+                            <Setter TargetName="Bd" Property="BorderThickness" Value="2" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Tab.Pill" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource B.TextDim}" />
+        <Setter Property="FontFamily" Value="{StaticResource F.Text}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Bd" Height="36" CornerRadius="12" Padding="16,0" Margin="0,0,4,0" BorderThickness="1"
+                            Background="Transparent" BorderBrush="Transparent">
+                        <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.GlassHi}" />
+                            <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.AccentDeep}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.AccentHi}" />
+                            <Setter Property="Foreground" Value="#FFFFFFFF" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Cyan (live) when the bound item IsActive -->
     <Style x:Key="ActiveDot" TargetType="Ellipse">
         <Setter Property="Fill" Value="{StaticResource B.TextFaint}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsActive}" Value="True">
-                <Setter Property="Fill" Value="{StaticResource B.Accent}" />
+                <Setter Property="Fill" Value="{StaticResource B.Accent2}" />
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -739,7 +840,7 @@
                                 <RepeatButton Command="Slider.DecreaseLarge" Style="{StaticResource SliderRepeat}">
                                     <RepeatButton.Template>
                                         <ControlTemplate TargetType="RepeatButton">
-                                            <Border Height="6" CornerRadius="3" Background="{StaticResource B.Accent}" />
+                                            <Border Height="6" CornerRadius="3" Background="{StaticResource B.AccentGradient}" />
                                         </ControlTemplate>
                                     </RepeatButton.Template>
                                 </RepeatButton>
@@ -769,7 +870,7 @@
         <Setter Property="Fill" Value="{StaticResource B.TextFaint}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding State}" Value="Streaming">
-                <Setter Property="Fill" Value="{StaticResource B.Accent}" />
+                <Setter Property="Fill" Value="{StaticResource B.Accent2}" />
             </DataTrigger>
             <DataTrigger Binding="{Binding State}" Value="Recovering">
                 <Setter Property="Fill" Value="{StaticResource B.Warn}" />

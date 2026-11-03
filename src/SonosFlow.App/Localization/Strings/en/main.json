@@ -59,5 +59,6 @@
   "main.details.peak": "Peak",
   "main.details.dropsReconnects": "Drops / reconnects",
   "main.details.lastError": "Last error",
-  "main.details.note": "Local network only: the audio never goes out to the Internet. Real latency isn't measured; the Sonos runs ~1–1.5 s behind with the 1 s margin."
+  "main.details.note": "Local network only: the audio never goes out to the Internet. Real latency isn't measured; the Sonos runs ~1–1.5 s behind with the 1 s margin.",
+  "main.greeting": "Hello, {0}"
 }

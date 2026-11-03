@@ -86,5 +86,17 @@
   "sounds.device.default": "Systemstandard",
   "sounds.device.unavailable": "Gerät nicht verfügbar (der Standard wird verwendet)",
   "sounds.note.captured": "Stummgeschaltet: Ein Ton auf dem übertragenen Gerät würde den Sonos erreichen.",
-  "sounds.note.muted": "Die Effektlautstärke ist 0."
+  "sounds.note.muted": "Die Effektlautstärke ist 0.",
+  "settings.tab.profile": "Personalisierung",
+  "settings.tab.general": "Allgemein",
+  "settings.tab.audio": "Audio",
+  "settings.tab.sounds": "Sounds",
+  "settings.tab.mini": "Miniplayer",
+  "settings.tab.advanced": "Erweitert",
+  "settings.profile.section": "PERSONALISIERUNG",
+  "settings.profile.name.title": "Anzeigename",
+  "settings.profile.name.hint": "Wird beim Start von Audiora in der Begrüßung verwendet. Wird nur auf diesem PC gespeichert.",
+  "settings.profile.name.placeholder": "Dein Name",
+  "settings.profile.welcome.title": "Persönliche Begrüßung",
+  "settings.profile.welcome.hint": "Begrüßt dich beim Öffnen der App mit deinem Namen."
 }

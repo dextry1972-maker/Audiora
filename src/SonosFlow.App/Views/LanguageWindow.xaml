@@ -26,7 +26,7 @@
 
             <!-- Branding and welcome -->
             <StackPanel>
-                <Image Source="/Assets/SonosFlow.png" Width="52" Height="52" HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality" />
+                <Image Source="{StaticResource Img.Logo}" Width="52" Height="52" HorizontalAlignment="Left" />
                 <TextBlock Text="{loc:T onboarding.title}" Style="{StaticResource T.Title}" FontSize="28" Margin="0,18,0,0" TextWrapping="Wrap" />
                 <TextBlock Text="{loc:T onboarding.subtitle}" Style="{StaticResource T.Dim}" FontSize="13.5" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="20" />
             </StackPanel>
