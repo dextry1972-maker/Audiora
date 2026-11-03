@@ -15,9 +15,9 @@ public sealed class LevelRing : FrameworkElement
     public double Level { get => (double)GetValue(LevelProperty); set => SetValue(LevelProperty, value); }
     public bool IsLive { get => (bool)GetValue(IsLiveProperty); set => SetValue(IsLiveProperty, value); }
 
-    private static readonly Pen TrackPen = Frozen(new Pen(new SolidColorBrush(Color.FromArgb(0x55, 0x31, 0xD6, 0x7B)), 3));
+    private static readonly Pen TrackPen = Frozen(new Pen(new SolidColorBrush(Color.FromArgb(0x55, 0x89, 0x57, 0xF5)), 3));
     private static readonly Pen IdlePen = Frozen(new Pen(new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0xFF, 0xFF)), 3));
-    private static readonly Pen ArcPen = Frozen(new Pen(new LinearGradientBrush(Color.FromRgb(0x9C, 0xF7, 0xC6), Color.FromRgb(0x22, 0xC0, 0x6A), 90), 3.5)
+    private static readonly Pen ArcPen = Frozen(new Pen(new LinearGradientBrush(Color.FromRgb(0x37, 0xDD, 0xF3), Color.FromRgb(0x89, 0x57, 0xF5), 90), 3.5)
     {
         StartLineCap = PenLineCap.Round,
         EndLineCap = PenLineCap.Round,

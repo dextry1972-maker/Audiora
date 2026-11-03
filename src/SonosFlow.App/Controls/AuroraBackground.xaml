@@ -3,16 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              IsHitTestVisible="False" Focusable="False" SnapsToDevicePixels="False">
     <!--
-        The "liquid glass" panels show this through their translucent fill. Drawn once on a 1280×840 canvas scaled to the
+        The frosted-glass panels show this through their translucent fill. Drawn once on a 1280×840 canvas scaled to the
         window and cached as bitmaps; the composition stays still while the controls provide purposeful feedback.
     -->
     <Grid>
         <Rectangle>
             <Rectangle.Fill>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#FF041510" Offset="0" />
-                    <GradientStop Color="#FF03100C" Offset="0.45" />
-                    <GradientStop Color="#FF020907" Offset="1" />
+                    <GradientStop Color="#FF0B1026" Offset="0" />
+                    <GradientStop Color="#FF0A1030" Offset="0.45" />
+                    <GradientStop Color="#FF070B1E" Offset="1" />
                 </LinearGradientBrush>
             </Rectangle.Fill>
         </Rectangle>
@@ -20,22 +20,22 @@
         <Viewbox Stretch="UniformToFill">
             <Canvas Width="1280" Height="840" ClipToBounds="True">
                 <!-- Soft light pools -->
-                <Ellipse x:Name="GlowA" Width="980" Height="760" Canvas.Left="-330" Canvas.Top="-300" CacheMode="BitmapCache">
+                <Ellipse x:Name="GlowA" Width="980" Height="760" Canvas.Left="640" Canvas.Top="-330" CacheMode="BitmapCache">
                     <Ellipse.Fill>
                         <RadialGradientBrush>
-                            <GradientStop Color="#6624C77A" Offset="0" />
-                            <GradientStop Color="#2214985A" Offset="0.5" />
-                            <GradientStop Color="#0014985A" Offset="1" />
+                            <GradientStop Color="#668957F5" Offset="0" />
+                            <GradientStop Color="#226C4BDB" Offset="0.5" />
+                            <GradientStop Color="#006C4BDB" Offset="1" />
                         </RadialGradientBrush>
                     </Ellipse.Fill>
                     <Ellipse.RenderTransform><TranslateTransform x:Name="GlowAShift" /></Ellipse.RenderTransform>
                 </Ellipse>
-                <Ellipse x:Name="GlowB" Width="900" Height="700" Canvas.Left="640" Canvas.Top="380" CacheMode="BitmapCache">
+                <Ellipse x:Name="GlowB" Width="900" Height="700" Canvas.Left="-340" Canvas.Top="400" CacheMode="BitmapCache">
                     <Ellipse.Fill>
                         <RadialGradientBrush>
-                            <GradientStop Color="#4A1FAE68" Offset="0" />
-                            <GradientStop Color="#1A0F7A48" Offset="0.55" />
-                            <GradientStop Color="#000F7A48" Offset="1" />
+                            <GradientStop Color="#4437DDF3" Offset="0" />
+                            <GradientStop Color="#1A1E9DB8" Offset="0.55" />
+                            <GradientStop Color="#001E9DB8" Offset="1" />
                         </RadialGradientBrush>
                     </Ellipse.Fill>
                     <Ellipse.RenderTransform><TranslateTransform x:Name="GlowBShift" /></Ellipse.RenderTransform>
@@ -46,9 +46,9 @@
                     <Path Data="M -40,170 C 160,40 330,10 520,-60 L 640,-60 C 430,30 260,90 80,260 Z">
                         <Path.Fill>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="#0034E58E" Offset="0" />
-                                <GradientStop Color="#5534E58E" Offset="0.55" />
-                                <GradientStop Color="#0034E58E" Offset="1" />
+                                <GradientStop Color="#00B6A5FF" Offset="0" />
+                                <GradientStop Color="#44B6A5FF" Offset="0.55" />
+                                <GradientStop Color="#00B6A5FF" Offset="1" />
                             </LinearGradientBrush>
                         </Path.Fill>
                         <Path.Effect><BlurEffect Radius="26" /></Path.Effect>
@@ -56,9 +56,9 @@
                     <Path Data="M 120,-40 C 260,40 420,60 560,-20 L 640,-20 C 480,110 280,130 90,40 Z">
                         <Path.Fill>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#0052E596" Offset="0" />
-                                <GradientStop Color="#3852E596" Offset="0.5" />
-                                <GradientStop Color="#0052E596" Offset="1" />
+                                <GradientStop Color="#008957F5" Offset="0" />
+                                <GradientStop Color="#388957F5" Offset="0.5" />
+                                <GradientStop Color="#008957F5" Offset="1" />
                             </LinearGradientBrush>
                         </Path.Fill>
                         <Path.Effect><BlurEffect Radius="30" /></Path.Effect>
@@ -66,9 +66,9 @@
                     <Path Data="M 560,700 C 760,560 960,640 1160,500 C 1260,440 1330,420 1380,430 L 1380,560 C 1240,560 1120,660 940,760 C 800,840 640,860 560,860 Z">
                         <Path.Fill>
                             <LinearGradientBrush StartPoint="0,1" EndPoint="1,0">
-                                <GradientStop Color="#0034E58E" Offset="0" />
-                                <GradientStop Color="#4034E58E" Offset="0.5" />
-                                <GradientStop Color="#0034E58E" Offset="1" />
+                                <GradientStop Color="#0037DDF3" Offset="0" />
+                                <GradientStop Color="#4037DDF3" Offset="0.5" />
+                                <GradientStop Color="#0037DDF3" Offset="1" />
                             </LinearGradientBrush>
                         </Path.Fill>
                         <Path.Effect><BlurEffect Radius="34" /></Path.Effect>
@@ -76,9 +76,9 @@
                     <Path Data="M -60,640 C 100,560 260,700 420,640 C 520,600 600,560 700,600 L 700,860 L -60,860 Z">
                         <Path.Fill>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#0014985A" Offset="0" />
-                                <GradientStop Color="#3014985A" Offset="0.6" />
-                                <GradientStop Color="#0014985A" Offset="1" />
+                                <GradientStop Color="#002A5BD0" Offset="0" />
+                                <GradientStop Color="#302A5BD0" Offset="0.6" />
+                                <GradientStop Color="#002A5BD0" Offset="1" />
                             </LinearGradientBrush>
                         </Path.Fill>
                         <Path.Effect><BlurEffect Radius="40" /></Path.Effect>
@@ -92,7 +92,7 @@
             <Rectangle.Fill>
                 <RadialGradientBrush RadiusX="0.85" RadiusY="0.85">
                     <GradientStop Color="#00000000" Offset="0.55" />
-                    <GradientStop Color="#99000000" Offset="1" />
+                    <GradientStop Color="#99070B1E" Offset="1" />
                 </RadialGradientBrush>
             </Rectangle.Fill>
         </Rectangle>

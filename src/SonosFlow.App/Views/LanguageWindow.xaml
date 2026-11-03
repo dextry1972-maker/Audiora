@@ -69,7 +69,7 @@
                                         </Trigger>
                                         <Trigger Property="IsSelected" Value="True">
                                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.AccentSoft}" />
-                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#662FD27A" />
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#66B6A5FF" />
                                         </Trigger>
                                         <Trigger Property="IsKeyboardFocused" Value="True">
                                             <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.Accent}" />

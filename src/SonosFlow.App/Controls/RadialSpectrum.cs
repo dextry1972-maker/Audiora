@@ -56,11 +56,11 @@ public sealed class RadialSpectrum : FrameworkElement
 
     public RadialSpectrum()
     {
-        // Pens by intensity: quiet bands are deep green and translucent, loud ones bright mint.
+        // Pens by intensity: quiet bands are deep violet and translucent, loud ones bright cyan.
         for (int i = 0; i < _barPens.Length; i++)
         {
             double t = i / (double)(_barPens.Length - 1);
-            var c = Color.FromArgb((byte)(110 + 145 * t), (byte)(0x14 + (0x9C - 0x14) * t), (byte)(0x98 + (0xF7 - 0x98) * t), (byte)(0x5A + (0xC6 - 0x5A) * t));
+            var c = Color.FromArgb((byte)(110 + 145 * t), (byte)(0x6C + (0x37 - 0x6C) * t), (byte)(0x4B + (0xDD - 0x4B) * t), (byte)(0xDB + (0xF3 - 0xDB) * t));
             var pen = new Pen(new SolidColorBrush(c), 2.2) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
             pen.Freeze();
             _barPens[i] = pen;
