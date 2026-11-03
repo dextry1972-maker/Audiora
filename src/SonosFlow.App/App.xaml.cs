@@ -122,6 +122,29 @@ public partial class App : Application
             SoundUiHooks.Register(() => _sounds);
         }
         _window = new MainWindow(_vm);
+        if (testCapture && args.Contains("--simulate-audio"))
+        {
+            // Visual checks only: a made-up signal (slow swells of three tones) feeds the analyzer; no device is touched.
+            var synthetic = new SonosFlow.Core.Audio.SpectrumAnalyzer(48000);
+            _vm.SimulateAnalyzer(synthetic);
+            var feed = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
+            long n = 0;
+            var pcm = new byte[960 * 4];
+            feed.Tick += (_, _) =>
+            {
+                for (int i = 0; i < 960; i++, n++)
+                {
+                    double t = n / 48000.0;
+                    double env = 0.45 + 0.4 * Math.Sin(t * 0.9) + 0.15 * Math.Sin(t * 5.3);
+                    double v = env * (0.5 * Math.Sin(2 * Math.PI * 110 * t) + 0.3 * Math.Sin(2 * Math.PI * 440 * t) + 0.2 * Math.Sin(2 * Math.PI * 1760 * t));
+                    short s = (short)(Math.Clamp(v, -1, 1) * 30000);
+                    BitConverter.TryWriteBytes(pcm.AsSpan(i * 4), s);
+                    BitConverter.TryWriteBytes(pcm.AsSpan(i * 4 + 2), s);
+                }
+                synthetic.Process(pcm);
+            };
+            feed.Start();
+        }
         if (motionPreview) { _window.Title += " · Vista previa · movimiento (sin sonidos)"; _vm.MiniVisible = false; }
         _window.Closing += OnWindowClosing;
         _window.StateChanged += OnMainStateChanged;

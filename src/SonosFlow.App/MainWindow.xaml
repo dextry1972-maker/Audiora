@@ -339,8 +339,8 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- Particle waves flowing out of the stream button (decorative) -->
-                    <ctl:WaveField Grid.Row="2" Height="236" Margin="-330,0" VerticalAlignment="Center" />
+                    <!-- Particle waves around the stream button: still at rest; with sound they travel left to right through the aurora colours -->
+                    <ctl:WaveField Grid.Row="2" Height="236" Margin="-330,0" VerticalAlignment="Center" Analyzer="{Binding Analyzer}" />
 
                     <!-- Stage: real spectrum ring around the stream button -->
                     <Grid Grid.Row="2" Width="236" Height="236" Margin="0,2,0,0" HorizontalAlignment="Center" Background="Transparent"
