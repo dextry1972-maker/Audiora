@@ -116,6 +116,7 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(MiniStatusText));
             OnPropertyChanged(nameof(HasHotspotPrompt));
             OnPropertyChanged(nameof(ShowSearchRetry));
+            NotifyFlow();
             CommandManager.InvalidateRequerySuggested();
             foreach (var s in Speakers) s.IsStreaming = s.IsSelected && IsStreaming;
             StreamingChanged?.Invoke();
@@ -127,13 +128,13 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Audio is flowing (drives the "live" look).</summary>
     public bool IsActive => State is UiState.Streaming;
     public bool CanToggle => SelectedSpeaker is not null && State is UiState.Ready or UiState.Streaming or UiState.Recovering or UiState.Error
-                             && (IsStreaming || !IsAppMode || SelectedApp is not null);
+                             && (IsStreaming || SourceReady); // a valid source first: "Todo el PC", or an application that is there
 
     public string StatusTitle => State switch
     {
         UiState.Discovering => L.T("status.title.discovering"),
         UiState.NoSpeaker => L.T("status.title.noSpeaker"),
-        UiState.Ready => L.T("status.title.ready"),
+        UiState.Ready => L.T(SourceReady ? "status.title.ready" : "main.flow.connected"),
         UiState.Starting => L.T("status.title.starting"),
         UiState.Streaming => L.T("status.title.streaming"),
         UiState.Recovering => L.T("status.title.recovering"),
@@ -161,6 +162,7 @@ public sealed partial class MainViewModel : ObservableObject
             if (!Set(ref _selectedSpeaker, value)) return;
             OnPropertyChanged(nameof(HasSpeaker));
             OnPropertyChanged(nameof(CanToggle));
+            NotifyFlow(); // the texts name the speaker
         }
     }
     public bool HasSpeaker => SelectedSpeaker is not null;
@@ -385,6 +387,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
         CancelSearch(SearchStop.Superseded); // connecting: a search still looking for more speakers has done its job
+        MarkSourceChosen(); // a stream with a source is a chosen source (automatic starts included)
         State = UiState.Starting;
         AppLog.Write($"inicio solicitado → {speaker.Name} ({speaker.Address})");
         Detail(() => L.F("status.detail.preparing", speaker.Name));

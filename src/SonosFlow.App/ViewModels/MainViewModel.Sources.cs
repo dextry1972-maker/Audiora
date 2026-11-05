@@ -53,9 +53,10 @@ public sealed partial class MainViewModel
         _miniDimWhenIdle = _settings.MiniDimWhenIdle;
         _minimizeToMini = _settings.MinimizeToMini;
         _closeAction = _settings.CloseAction ?? (_settings.MinimizeToTray ? "tray" : "exit");
+        InitSourceChoice();
 
-        UseSystemCommand = new RelayCommand(() => IsAppMode = false);
-        UseAppModeCommand = new RelayCommand(() => IsAppMode = true);
+        UseSystemCommand = new RelayCommand(() => { MarkSourceChosen(); IsAppMode = false; });
+        UseAppModeCommand = new RelayCommand(() => { MarkSourceChosen(); IsAppMode = true; });
         SelectAppCommand = new RelayCommand(p => { if (p is AppSourceItem a) _ = SelectAppAsync(a); });
         LaunchYouTubeMusicCommand = new RelayCommand(LaunchYouTubeMusic);
         PauseResumeCommand = new RelayCommand(async () => await PauseResumeAsync(), () => CanToggle);
@@ -79,6 +80,7 @@ public sealed partial class MainViewModel
         set
         {
             if (!Set(ref _isAppMode, value)) return;
+            MarkSourceChosen(); // picking a mode (here or in the mini player) is choosing a source
             _settings.SourceMode = value ? "app" : "system";
             _settings.Save();
             SourceChangedNotify();
@@ -124,11 +126,13 @@ public sealed partial class MainViewModel
         OnPropertyChanged(nameof(LocalOptionsEnabled));
         OnPropertyChanged(nameof(FullLevelEnabled));
         OnPropertyChanged(nameof(CanToggle));
+        NotifyFlow();
         CommandManager.InvalidateRequerySuggested();
     }
 
     private async Task SelectAppAsync(AppSourceItem app)
     {
+        MarkSourceChosen();
         SelectedApp = app;
         _settings.SourceAppExe = app.Info.ExePath ?? app.Info.ExeName;
         _settings.SourceAppIsolated = app.Info.IsIsolatedYouTubeMusic;
@@ -169,7 +173,7 @@ public sealed partial class MainViewModel
 
     private async Task RefreshAppsAsync()
     {
-        if (_refreshingApps) return;
+        if (_refreshingApps || _simulateApps) return;
         _refreshingApps = true;
         try
         {
@@ -186,6 +190,7 @@ public sealed partial class MainViewModel
             }
             try { found = await Task.Run(AudioApps.List); }
             catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException) { return; }
+            if (_simulateApps) return; // capture modes: the apps on screen are the simulated ones
 
             // Two root processes of the same app (e.g. Brave with two profiles) share a key: keep the first.
             var byKey = found.GroupBy(a => AppSourceItem.Key_(a.ExePath ?? a.ExeName, a.IsIsolatedYouTubeMusic))
@@ -224,6 +229,7 @@ public sealed partial class MainViewModel
             _settings.SourceAppExe = AudioApps.IsolationBrowserPath();
             _settings.SourceAppIsolated = true;
             _settings.Save();
+            MarkSourceChosen();
             if (!IsAppMode) IsAppMode = true;
             SourceChangedNotify();
             AppLog.Write("YouTube Music aislado abierto");

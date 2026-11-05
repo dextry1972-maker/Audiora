@@ -294,15 +294,28 @@
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock" BasedOn="{StaticResource T.Dim}">
                                     <Style.Triggers>
-                                        <!-- In error the banner above already shows it -->
+                                        <!-- In error the banner above already shows it; when ready the guide below says what to do -->
                                         <DataTrigger Binding="{Binding State}" Value="Error">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ShowStatusDetail}" Value="False">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <!-- Searching: it can be stopped; ended with nothing: try again (found devices can be used while it still searches) -->
+                        <!-- Connected and ready: a friendly guide (or the confirmation of the chosen source) -->
+                        <StackPanel x:Name="GuideBlock" HorizontalAlignment="Center" Margin="0,8,0,0" MaxWidth="520"
+                                    Visibility="{Binding ShowGuide, Converter={StaticResource BoolToVis}}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="&#xE73E;" Style="{StaticResource T.Icon}" FontSize="13" Foreground="{StaticResource B.Accent2}" Margin="0,2,7,0" VerticalAlignment="Top"
+                                           Visibility="{Binding SourceReady, Converter={StaticResource BoolToVis}}" />
+                                <TextBlock Text="{Binding GuideTitle}" Style="{StaticResource T.Base}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" />
+                            </StackPanel>
+                            <TextBlock Text="{Binding GuideText}" Style="{StaticResource T.Dim}" FontSize="13" TextAlignment="Center" TextWrapping="Wrap" Margin="0,4,0,0"
+                                       Visibility="{Binding HasGuideText, Converter={StaticResource BoolToVis}}" />
+                        </StackPanel>                        <!-- Searching: it can be stopped; ended with nothing: try again (found devices can be used while it still searches) -->
                         <Button Content="{loc:T status.search.cancel}" Command="{Binding CancelSearchCommand}" Style="{StaticResource Btn.Quiet}" HorizontalAlignment="Center" Margin="0,8,0,0"
                                 Visibility="{Binding ShowSearchCancel, Converter={StaticResource BoolToVis}}" />
                         <Button Content="{loc:T status.search.retry}" Command="{Binding RescanCommand}" Style="{StaticResource Btn.Pill}" HorizontalAlignment="Center" Margin="0,10,0,0"
@@ -344,11 +357,89 @@
                         </StackPanel>
                     </StackPanel>
 
+                    <!-- ═══ Step 1: what to listen to. The cards explain themselves; the stream button below waits for a valid choice ═══ -->
+                    <Border Grid.Row="2" Style="{StaticResource Card}" Width="600" Margin="0,10,0,4" Padding="22,16,22,18">
+                        <StackPanel>
+                            <!-- Progress: PASO 1 DE 2 / PASO 2 DE 2 (only while a speaker is ready) -->
+                            <StackPanel x:Name="StepHeader" Margin="0,0,0,12" Visibility="{Binding ShowGuide, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding StepLabel}" Style="{StaticResource T.Kicker}" Foreground="{StaticResource B.Accent2}" />
+                                <TextBlock Text="{Binding StepTitle}" Style="{StaticResource T.Section}" Margin="0,3,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <TextBlock Text="{loc:T main.flow.source.title}" Style="{StaticResource T.Kicker}" Margin="0,0,0,12"
+                                       Visibility="{Binding ShowGuide, Converter={StaticResource BoolToVisInv}}" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <RadioButton Style="{StaticResource SourceCard}" Tag="&#xE7F4;" GroupName="flowsource" IsChecked="{Binding WholePcSelected, Mode=TwoWay}"
+                                             AutomationProperties.Name="{loc:T main.source.mode.system.name}">
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:T main.source.mode.system.label}" Style="{StaticResource T.Base}" FontSize="15" FontWeight="SemiBold" />
+                                        <TextBlock Text="{loc:T main.source.mode.system.desc}" Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Grid.Column="2" Style="{StaticResource SourceCard}" Tag="&#xE71D;" GroupName="flowsource" IsChecked="{Binding AppModeSelected, Mode=TwoWay}"
+                                             AutomationProperties.Name="{loc:T main.source.mode.app.name}">
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:T main.source.mode.app.label}" Style="{StaticResource T.Base}" FontSize="15" FontWeight="SemiBold" />
+                                        <TextBlock Text="{loc:T main.source.mode.app.desc}" Style="{StaticResource T.Dim}" FontSize="12" TextWrapping="Wrap" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                </RadioButton>
+                            </Grid>
+
+                            <!-- Whole PC: which output -->
+                            <StackPanel Margin="0,14,0,0" Visibility="{Binding WholePcSelected, Converter={StaticResource BoolToVis}}">
+                                <ComboBox x:Name="SourceCombo" Style="{StaticResource Combo.Flow}" ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}"
+                                          IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="{loc:T main.source.output.name}" />
+                                <TextBlock Style="{StaticResource T.Dim}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0"
+                                           Text="{loc:T main.source.output.hint}" />
+                            </StackPanel>
+
+                            <!-- One application: chips (one has to be picked before streaming) -->
+                            <StackPanel Margin="0,14,0,0" Visibility="{Binding AppModeSelected, Converter={StaticResource BoolToVis}}">
+                                <ItemsControl ItemsSource="{Binding Apps}" HorizontalAlignment="Center">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><WrapPanel HorizontalAlignment="Center" /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:AppSourceItem}">
+                                            <Button Command="{Binding DataContext.SelectAppCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                    Template="{StaticResource ChipButton}" Cursor="Hand" Margin="4" FocusVisualStyle="{StaticResource FocusRing}"
+                                                    AutomationProperties.Name="{Binding Name}" ToolTip="{Binding StateText}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Image Source="{Binding Icon}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality" />
+                                                    <TextBlock Text="{Binding Name}" Style="{StaticResource T.Base}" FontSize="12.5" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                               MaxWidth="200" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{loc:T main.source.recommended}" Style="{StaticResource T.Dim}" FontSize="10.5" Foreground="{StaticResource B.Accent2}"
+                                                               Margin="8,0,0,0" VerticalAlignment="Center"
+                                                               Visibility="{Binding IsRecommended, Converter={StaticResource BoolToVis}}" />
+                                                    <Ellipse Width="6" Height="6" Margin="9,0,0,0" VerticalAlignment="Center" Style="{StaticResource ActiveDot}" />
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="{loc:T main.source.apps.empty}" Style="{StaticResource T.Dim}" FontSize="12" HorizontalAlignment="Center" Margin="0,4"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           Visibility="{Binding Apps.Count, Converter={StaticResource ZeroToVis}}" />
+                                <Button Command="{Binding LaunchYouTubeMusicCommand}" Style="{StaticResource Btn.Quiet}" HorizontalAlignment="Center" Margin="0,6,0,0"
+                                        ToolTip="{loc:T main.source.ytMusic.tooltip}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE8A7;" Style="{StaticResource T.Icon}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                        <TextBlock Text="{loc:T main.source.ytMusic.label}" Margin="8,0,0,0" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                     <!-- Particle waves around the stream button: still at rest; with sound they travel left to right through the aurora colours -->
-                    <ctl:WaveField Grid.Row="2" Height="236" Margin="-330,0" VerticalAlignment="Center" Analyzer="{Binding Analyzer}" />
+                    <ctl:WaveField x:Name="Waves" Grid.Row="3" Height="236" Margin="-330,0" VerticalAlignment="Center" Analyzer="{Binding Analyzer}" />
 
                     <!-- Stage: real spectrum ring around the stream button -->
-                    <Grid Grid.Row="2" Width="236" Height="236" Margin="0,2,0,0" HorizontalAlignment="Center" Background="Transparent"
+                    <Grid Grid.Row="3" Width="236" Height="236" Margin="0,2,0,0" HorizontalAlignment="Center" Background="Transparent"
                           ToolTip="{loc:T main.stage.tooltip}">
 
                         <Ellipse Width="236" Height="236" IsHitTestVisible="False" Opacity="{Binding Level, ElementName=Viz}">
@@ -362,11 +453,20 @@
                         </Ellipse>
                         <ctl:RadialSpectrum x:Name="Viz" Analyzer="{Binding Analyzer}" IsHitTestVisible="False" />
                         <Button x:Name="StreamButton" Width="104" Height="104" Command="{Binding ToggleStreamCommand}" Cursor="Hand" FlowDirection="LeftToRight"
-                                FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding StreamButtonText}"
-                                ToolTip="{Binding StreamButtonText}">
+                                FocusVisualStyle="{StaticResource FocusRing}" AutomationProperties.Name="{Binding StreamLabelText}"
+                                ToolTip="{Binding StreamTooltip}" ToolTipService.ShowOnDisabled="True">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Grid ctl:Motion.Press="True" x:Name="Root" RenderTransformOrigin="0.5,0.5">
+                                        <!-- A short glow when the button becomes available (played from code, once, not looped) -->
+                                        <Ellipse x:Name="ReadyGlow" Opacity="0" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                                            <Ellipse.Fill>
+                                                <RadialGradientBrush>
+                                                    <GradientStop Color="#9937DDF3" Offset="0.55" />
+                                                    <GradientStop Color="#008957F5" Offset="1" />
+                                                </RadialGradientBrush>
+                                            </Ellipse.Fill>
+                                        </Ellipse>
                                         <Ellipse x:Name="Disc">
                                             <Ellipse.Style>
                                                 <Style TargetType="Ellipse">
@@ -394,6 +494,7 @@
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsEnabled" Value="False">
                                             <Setter TargetName="Root" Property="Opacity" Value="0.35" />
+                                            <Setter TargetName="Disc" Property="Effect" Value="{x:Null}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -422,14 +523,14 @@
                     </Grid>
 
                     <!-- Action label and time -->
-                    <StackPanel Grid.Row="3" HorizontalAlignment="Center" Margin="0,-4,0,12">
-                        <TextBlock Text="{Binding StreamButtonText}" Style="{StaticResource T.Base}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                    <StackPanel Grid.Row="4" HorizontalAlignment="Center" Margin="0,-4,0,12">
+                        <TextBlock Text="{Binding StreamLabelText}" Style="{StaticResource T.Base}" FontWeight="SemiBold" HorizontalAlignment="Center" />
                         <TextBlock Text="{Binding ElapsedText}" Style="{StaticResource T.Dim}" FontSize="12" FontFamily="Cascadia Mono, Consolas" HorizontalAlignment="Center"
                                    Margin="0,3,0,0" Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
 
                     <!-- ═══ Glass card: what plays, the Sonos volume, local options and the source ═══ -->
-                    <Border Grid.Row="4" Style="{StaticResource Card}" Width="600" Margin="0,0,0,18" Padding="24,16">
+                    <Border Grid.Row="5" Style="{StaticResource Card}" Width="600" Margin="0,0,0,18" Padding="24,16">
                     <StackPanel>
                     <!-- Now playing (or the source when Windows publishes no title) + sleep timer -->
                     <Grid Margin="0,0,0,2">
@@ -536,60 +637,6 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <Rectangle Style="{StaticResource Hairline}" Margin="0,14,0,14" />
-
-                    <!-- Source -->
-                    <StackPanel HorizontalAlignment="Stretch">
-                        <Border Style="{StaticResource SegTrack}" HorizontalAlignment="Center">
-                            <StackPanel Orientation="Horizontal">
-                                <RadioButton Style="{StaticResource Seg}" Content="{loc:T main.source.mode.system.label}" GroupName="srcmode" IsChecked="{Binding IsAppMode, Converter={StaticResource InvertBool}, Mode=TwoWay}"
-                                             AutomationProperties.Name="{loc:T main.source.mode.system.name}" />
-                                <RadioButton Style="{StaticResource Seg}" Content="{loc:T main.source.mode.app.label}" GroupName="srcmode" IsChecked="{Binding IsAppMode, Mode=TwoWay}"
-                                             AutomationProperties.Name="{loc:T main.source.mode.app.name}" />
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Whole PC: which output -->
-                        <StackPanel Margin="0,14,0,0" Visibility="{Binding IsAppMode, Converter={StaticResource BoolToVisInv}}">
-                            <ComboBox x:Name="SourceCombo" Style="{StaticResource Combo.Flow}" ItemsSource="{Binding Outputs}" SelectedItem="{Binding SelectedOutput}"
-                                      IsEnabled="{Binding CanEditOptions}" AutomationProperties.Name="{loc:T main.source.output.name}" />
-                            <TextBlock Style="{StaticResource T.Dim}" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Margin="0,8,0,0"
-                                       Text="{loc:T main.source.output.hint}" />
-                        </StackPanel>
-
-                        <!-- One application: chips -->
-                        <StackPanel Margin="0,14,0,0" Visibility="{Binding IsAppMode, Converter={StaticResource BoolToVis}}">
-                            <ItemsControl ItemsSource="{Binding Apps}" HorizontalAlignment="Center">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><WrapPanel HorizontalAlignment="Center" /></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type vm:AppSourceItem}">
-                                        <Button Command="{Binding DataContext.SelectAppCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
-                                                Template="{StaticResource ChipButton}" Cursor="Hand" Margin="4" FocusVisualStyle="{StaticResource FocusRing}"
-                                                AutomationProperties.Name="{Binding Name}" ToolTip="{Binding StateText}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <Image Source="{Binding Icon}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality" />
-                                                <TextBlock Text="{Binding Name}" Style="{StaticResource T.Base}" FontSize="12.5" Margin="8,0,0,0" VerticalAlignment="Center"
-                                                           MaxWidth="200" TextTrimming="CharacterEllipsis" />
-                                                <Ellipse Width="6" Height="6" Margin="9,0,0,0" VerticalAlignment="Center" Style="{StaticResource ActiveDot}" />
-                                            </StackPanel>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <TextBlock Text="{loc:T main.source.apps.empty}" Style="{StaticResource T.Dim}" FontSize="12" HorizontalAlignment="Center" Margin="0,4"
-                                       TextAlignment="Center" TextWrapping="Wrap"
-                                       Visibility="{Binding Apps.Count, Converter={StaticResource ZeroToVis}}" />
-                            <Button Command="{Binding LaunchYouTubeMusicCommand}" Style="{StaticResource Btn.Quiet}" HorizontalAlignment="Center" Margin="0,6,0,0"
-                                    ToolTip="{loc:T main.source.ytMusic.tooltip}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE8A7;" Style="{StaticResource T.Icon}" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-                                    <TextBlock Text="{loc:T main.source.ytMusic.label}" Margin="8,0,0,0" />
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-                    </StackPanel>
                     </StackPanel>
                     </Border>
                 </Grid>

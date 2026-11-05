@@ -21,6 +21,8 @@ public partial class MainWindow : Window
         _vm = vm;
         DataContext = vm;
         vm.PropertyChanged += OnVmChanged;
+        _wasSourceReady = vm.SourceReady;
+        Loaded += (_, _) => UpdateFlowMotion();
         Loaded += (_, _) => { if (!_watchingMotion) { SystemParameters.StaticPropertyChanged += OnMotionPreference; _watchingMotion = true; } };
         Unloaded += (_, _) => { SystemParameters.StaticPropertyChanged -= OnMotionPreference; _watchingMotion = false; };
         Closed += (_, _) => { SystemParameters.StaticPropertyChanged -= OnMotionPreference; vm.PropertyChanged -= OnVmChanged; };
@@ -57,9 +59,50 @@ public partial class MainWindow : Window
         });
     }
 
+    private bool _wasSourceReady, _wavesDimmed;
+
     private void OnVmChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainViewModel.Page)) ShowPage(_vm.Page);
+        else if (e.PropertyName is nameof(MainViewModel.SourceReady) or nameof(MainViewModel.WavesDim)) UpdateFlowMotion();
+    }
+
+    /// <summary>
+    /// Presentation of the guided flow, all finite and skipped when Windows animations are off: the waves step back while no source is
+    /// chosen, and when a source becomes valid the confirmation fades in and the stream button gives one short glow.
+    /// </summary>
+    private void UpdateFlowMotion()
+    {
+        bool dim = _vm.WavesDim;
+        if (dim != _wavesDimmed)
+        {
+            _wavesDimmed = dim;
+            Controls.Motion.To(Waves, OpacityProperty, dim ? 0.3 : 1, Controls.Motion.Navigation, IsLoaded);
+        }
+
+        bool ready = _vm.SourceReady;
+        if (ready == _wasSourceReady) return;
+        _wasSourceReady = ready;
+        if (!ready || !IsLoaded || _vm.State != UiState.Ready) return;
+        Controls.Motion.To(GuideBlock, OpacityProperty, 1, Controls.Motion.Transition, false);
+        if (Controls.Motion.Enabled) { GuideBlock.Opacity = 0; Controls.Motion.To(GuideBlock, OpacityProperty, 1, Controls.Motion.Navigation, true); }
+        PlayReadyGlow();
+    }
+
+    /// <summary>One soft pulse behind the stream button when it becomes available. Not looped.</summary>
+    private void PlayReadyGlow()
+    {
+        if (!Controls.Motion.Enabled || StreamButton.Template.FindName("ReadyGlow", StreamButton) is not System.Windows.Shapes.Ellipse glow) return;
+        var scale = new ScaleTransform(0.92, 0.92);
+        glow.RenderTransform = scale;
+        var grow = new DoubleAnimation(0.92, 1.45, TimeSpan.FromMilliseconds(900)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+        var fade = new DoubleAnimationUsingKeyFrames();
+        fade.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+        fade.KeyFrames.Add(new LinearDoubleKeyFrame(0.85, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(180))));
+        fade.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(900))));
+        glow.BeginAnimation(OpacityProperty, fade);
     }
 
     /// <summary>Picking a speaker closes the device menu.</summary>

@@ -57,6 +57,7 @@ public sealed partial class MainViewModel
             if (!Set(ref _isSearching, value)) return;
             OnPropertyChanged(nameof(ShowSearchCancel));
             OnPropertyChanged(nameof(ShowSearchRetry));
+            OnPropertyChanged(nameof(ShowStatusDetail));
             CommandManager.InvalidateRequerySuggested();
         }
     }
@@ -74,7 +75,7 @@ public sealed partial class MainViewModel
     /// </summary>
     public Task DiscoverAsync()
     {
-        if (IsStreaming) return Task.CompletedTask;           // a stream is running: it is never disturbed
+        if (IsStreaming || _simulatedSpeaker) return Task.CompletedTask; // a stream is running: it is never disturbed (capture modes: a fake speaker)
         if (_isSearching) return _firstResult.Task;           // pressing "search" again does not start a second search
 
         if (NoSpeakersForCapture)

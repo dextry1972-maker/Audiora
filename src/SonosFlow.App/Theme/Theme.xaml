@@ -527,6 +527,60 @@
         <Setter Property="Padding" Value="3" />
     </Style>
 
+    <!-- Source card (guided flow): a large radio option. Icon on the left, title + one-line explanation, and a check when chosen.
+         The icon comes from Tag; the chosen card gets the accent border, a soft glow and the check. -->
+    <Style x:Key="SourceCard" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border ctl:Motion.Press="True" x:Name="Bd" CornerRadius="16" Padding="14,13" Background="{StaticResource B.Panel}"
+                            BorderBrush="{StaticResource B.PanelEdge}" BorderThickness="1" RenderTransformOrigin="0.5,0.5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="IconBd" Width="40" Height="40" CornerRadius="12" Background="#1AFFFFFF" VerticalAlignment="Top" FlowDirection="LeftToRight">
+                                <TextBlock x:Name="Icon" FontFamily="{StaticResource F.Icons}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{StaticResource B.TextDim}" Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
+                            </Border>
+                            <ContentPresenter Grid.Column="1" Margin="13,0,8,0" VerticalAlignment="Center" />
+                            <Border x:Name="Check" Grid.Column="2" Width="22" Height="22" CornerRadius="11" Background="{StaticResource B.AccentGradient}" Opacity="0"
+                                    VerticalAlignment="Top" FlowDirection="LeftToRight">
+                                <TextBlock Text="&#xE73E;" FontFamily="{StaticResource F.Icons}" FontSize="11" Foreground="{StaticResource B.OnAccent}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.GlassHi}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource B.StrokeHi}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource B.AccentSoft}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="#99B6A5FF" />
+                            <Setter TargetName="Bd" Property="Effect">
+                                <Setter.Value><DropShadowEffect BlurRadius="22" ShadowDepth="0" Opacity="0.32" Color="#8957F5" /></Setter.Value>
+                            </Setter>
+                            <Setter TargetName="IconBd" Property="Background" Value="{StaticResource B.AccentGradient}" />
+                            <Setter TargetName="Icon" Property="Foreground" Value="{StaticResource B.OnAccent}" />
+                            <Setter TargetName="Check" Property="Opacity" Value="1" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Row button for lists of applications -->
     <ControlTemplate x:Key="AppRowButton" TargetType="Button">
         <Border x:Name="Bd" CornerRadius="8" Padding="8,6" Background="Transparent">

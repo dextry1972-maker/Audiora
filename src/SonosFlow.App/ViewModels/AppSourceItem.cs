@@ -14,6 +14,8 @@ public sealed class AppSourceItem(AudioAppInfo info) : ObservableObject
     public string Name => Info.IsIsolatedYouTubeMusic ? Localization.Loc.Instance.T("source.ytIsolated") : Info.Name;
     public string Key => Key_(Info.ExePath ?? Info.ExeName, Info.IsIsolatedYouTubeMusic);
     public bool IsActive => Info.IsActive;
+    /// <summary>The isolated YouTube Music window sends only its own audio (a normal browser mixes all its tabs): worth pointing out.</summary>
+    public bool IsRecommended => Info.IsIsolatedYouTubeMusic;
     public string StateText => Localization.Loc.Instance.T(Info.IsActive ? "source.app.playing" : "source.app.silent");
 
     /// <summary>After a language change.</summary>

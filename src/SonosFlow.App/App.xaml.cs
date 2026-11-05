@@ -158,6 +158,8 @@ public partial class App : Application
         if (testCapture && Arg("--fake-hotspot") is { } fake) _vm.SimulateNoSpeakers(new FakeHotspot(fake));
         // Captures of the "searching" state: a search that finds nothing, with a fake hotspot; the real network is never touched
         if (testCapture && args.Contains("--fake-searching")) { _vm.UseHotspot(new FakeHotspot("unknown")); _vm.SimulateSearching(); }
+        // Captures of the guided flow: a connected "Bedroom" with the source none|pc|app|app-ready|stream (nothing real is touched or saved)
+        if (testCapture && Arg("--fake-flow") is { } flow) _vm.SimulateFlow(flow);
         if (testCapture && Arg("--size")?.Split('x') is [var w, var h] && double.TryParse(w, out var width) && double.TryParse(h, out var height))
         {
             _window.Width = width;

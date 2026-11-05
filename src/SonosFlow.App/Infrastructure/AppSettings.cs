@@ -35,6 +35,11 @@ public sealed class AppSettings
     public string SourceMode { get; set; } = "system";
     public string? SourceAppExe { get; set; }
     public bool SourceAppIsolated { get; set; }
+    /// <summary>
+    /// The user has picked a source ("Todo el PC" or "Una aplicación") on the main screen. Null in settings written before the guided
+    /// flow existed: those belong to someone who already uses the app, so their source counts as chosen (see SourceFlow.InitialChoice).
+    /// </summary>
+    public bool? SourceChosen { get; set; }
 
     // Mini player.
     public bool MiniVisible { get; set; }
