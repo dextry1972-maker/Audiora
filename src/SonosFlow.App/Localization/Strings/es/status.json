@@ -1,6 +1,6 @@
 {
   // Estado de la transmisión (ventana principal, mini reproductor, bandeja)
-  "status.title.discovering": "Buscando altavoces…",
+  "status.title.discovering": "Buscando dispositivos…",
   "status.title.noSpeaker": "No se encontró ningún Sonos",
   "status.title.ready": "Listo para transmitir",
   "status.title.starting": "Conectando…",
@@ -13,6 +13,11 @@
   "status.connection.offline": "Sin conexión",
   "status.noError": "Ninguno",
   "status.detail.searching": "Buscando dispositivos Sonos en tu red local",
+  "status.detail.searchingMore": "Buscando más dispositivos…",
+  "status.detail.waitingDevices": "Esperando dispositivos. Si acabas de activar el hotspot, pueden tardar unos segundos en aparecer.",
+  "status.detail.searchTimedOut": "No se encontró ningún Sonos. Comprueba que está encendido y conectado a la red del PC, y vuelve a intentarlo.",
+  "status.search.cancel": "Cancelar búsqueda",
+  "status.search.retry": "Reintentar",
   "status.detail.restoredAfterCrash": "Se restauró el sonido del PC tras un cierre inesperado",
   "status.detail.noSpeakerHint": "Comprueba que el PC y el Sonos están en la misma red y que la red es privada",
   "status.detail.speakersFound.one": "{0} altavoz en la red",

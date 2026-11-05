@@ -156,6 +156,8 @@ public partial class App : Application
         if (testCapture && Arg("--mode") == "system") _vm.IsAppMode = false; // captures of the live look (settings are not saved in test modes)
         // Captures of the "no speakers" notice: empty search + a fake hotspot (off|on|unknown|fail); the real network is never touched
         if (testCapture && Arg("--fake-hotspot") is { } fake) _vm.SimulateNoSpeakers(new FakeHotspot(fake));
+        // Captures of the "searching" state: a search that finds nothing, with a fake hotspot; the real network is never touched
+        if (testCapture && args.Contains("--fake-searching")) { _vm.UseHotspot(new FakeHotspot("unknown")); _vm.SimulateSearching(); }
         if (testCapture && Arg("--size")?.Split('x') is [var w, var h] && double.TryParse(w, out var width) && double.TryParse(h, out var height))
         {
             _window.Width = width;

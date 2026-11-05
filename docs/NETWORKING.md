@@ -18,11 +18,30 @@ Consecuencias: si el PC se apaga, el Sonos pierde la red. Hipótesis **no confir
 
 1. Interfaces IPv4 activas, no loopback y con multidifusión (incluye VPN y adaptadores virtuales).
 2. Por cada una, un `UdpClient` ligado a esa IP (si la dirección ya no existe, p. ej. mientras se levanta la zona Wi-Fi, esa interfaz se omite y siguen las demás) envía **dos** `M-SEARCH` a `239.255.255.250:1900` separados 100 ms: `MAN: "ssdp:discover"`, `MX: 1`, `ST: urn:schemas-upnp-org:device:ZonePlayer:1`.
-3. Escucha respuestas durante el `timeout` (la App usa **3 s**). Acepta las que tienen `LOCATION` y mencionan el `ST`.
+3. Escucha respuestas durante el `timeout` de **un intento** (la App usa **2,5 s**, ver `PersistentDiscovery` más abajo). Acepta las que tienen `LOCATION` y mencionan el `ST`.
 4. Descarga cada `LOCATION` (XML de descripción; `HttpClient` de 3 s) y lee `roomName`, `modelName`, `modelNumber`, `UDN`. La IP del altavoz sale del host de `LOCATION`, no del remitente UDP.
 5. Quita duplicados por `UDN` y ordena por sala.
 
 La App elige: el último altavoz usado (`LastSpeakerUdn`), si no el primero cuyo modelo contiene «Five», si no el primero. Volver a buscar solo es posible sin transmisión activa.
+
+### 2.1 Búsqueda persistente — `Core/Sonos/PersistentDiscovery.cs`
+
+Tras activar el hotspot el Sonos tarda decenas de segundos en unirse, así que una sola escucha de 3 s no bastaba (había que pulsar «Buscar» varias veces). Ahora una búsqueda repite intentos hasta agotar una ventana. **Todos los plazos están en `DiscoveryTimings.Default`** (un único sitio para afinarlos):
+
+| Valor | Por defecto | Para qué |
+|---|---|---|
+| `Window` | 45 s | Duración máxima de la búsqueda |
+| `Interval` | 4 s | Entre el comienzo de dos intentos |
+| `AttemptTimeout` | 2,5 s | Escucha de cada intento |
+| `SettleAfterFirst` | 8 s | Tras la primera respuesta se sigue buscando este tiempo por si hay más altavoces; luego termina (no espera los 45 s) |
+| `AfterNetworkChange` | 1,5 s | Si la red cambia (un adaptador que se levanta), el siguiente intento se adelanta, tras esta espera para que obtenga su dirección |
+
+- **Cada intento vuelve a leer las interfaces** (`LocalIPv4Addresses`), así que una zona Wi-Fi que aparece a mitad de búsqueda se usa en el siguiente intento. Los errores de red de un intento (`SocketException`, `NetworkInformationException`…) no terminan la búsqueda.
+- **Resultados al momento:** cada cambio de la lista se notifica (`onChange`); la interfaz actualiza la lista en sitio (`SpeakerListSync`: sin vaciarla, sin duplicados por UDN, conservando la selección y la fila) y deja conectar de inmediato (`Ready`) aunque la búsqueda siga.
+- **Una sola búsqueda:** pulsar «Buscar» con una en curso se une a ella. Se cancela al conectar, al cerrar la app o con «Cancelar búsqueda»; no queda ningún intento pendiente. Una búsqueda no actúa nunca sobre una transmisión en curso (no se lanza con transmisión activa y, si se conecta mientras busca, se cancela sin tocar el estado).
+- **Fin:** con resultados, conserva los altavoces (los de una búsqueda anterior que no respondieron se quitan al terminar una búsqueda completa, no al cancelarla). Sin resultados: «No se encontró ningún Sonos» y botón «Reintentar».
+- **Estados de interfaz:** «Buscando dispositivos…»; pasados 5 s sin resultados, «Esperando dispositivos. Si acabas de activar el hotspot, pueden tardar unos segundos en aparecer.». No se afirma nada sobre el hotspot que la consulta (§11) no devuelva.
+- Coste: un intento cada 4 s durante como máximo 45 s (unos pocos `UdpClient` de corta vida por intento); después, nada queda en marcha.
 
 ## 3. IP local e interfaz
 
@@ -143,7 +162,7 @@ El sondeo de la App (`MainViewModel.PollSpeakerAsync`, 3 s, otro `SonosClient` c
 
 | Constante | Valor | Dónde |
 |---|---|---|
-| Escucha SSDP | 3 s (`MX: 1`, 2 envíos a 100 ms) | `MainViewModel.DiscoverAsync`, `SonosDiscovery.ListenAsync` |
+| Escucha SSDP (un intento) | 2,5 s (`MX: 1`, 2 envíos a 100 ms), repetido cada 4 s hasta 45 s | `DiscoveryTimings.Default`, `SonosDiscovery.ListenAsync` |
 | Descarga de la descripción | 3 s | `SonosDiscovery.DiscoverAsync` |
 | Petición SOAP (App, arranque, `Stop`) | 5 s | `SonosClient` (`HttpClient.Timeout`) |
 | Consultas de vigilancia (`GetTransportInfo`, `GetPositionInfo`, `GetMediaInfo`) | 2 s | `StreamingSession.ProbeTimeout` |
@@ -182,7 +201,7 @@ Ninguno actúa durante una reproducción sana; los de `RecoveryPolicy` solo corr
 
 ## 11. Hotspot de Windows cuando no hay altavoces — `App/Infrastructure/HotspotService.cs`
 
-- **Cuándo:** al terminar una búsqueda sin altavoces (`MainViewModel.DiscoverAsync` → `CheckHotspotAsync`, fuera del hilo de la interfaz). No encontrar altavoces **no** demuestra que el hotspot esté apagado, y los clientes del hotspot no son dispositivos Sonos.
+- **Cuándo:** a los 5 s de una búsqueda sin resultados (`CheckHotspotAsync(early: true)`: solo se interrumpe para ofrecer activarlo si está **apagado**; cualquier otra respuesta se retiene) o, si termina sin altavoces, al final (`MainViewModel.Search.cs`; la consulta va fuera del hilo de la interfaz). No encontrar altavoces **no** demuestra que el hotspot esté apagado, y los clientes del hotspot no son dispositivos Sonos.
 - **Consulta (solo lectura):** `NetworkOperatorTetheringManager` creado desde el perfil de conexión a Internet, si `GetTetheringCapabilityFromConnectionProfile` es `Enabled`. Resultado: `On`, `Off`, `Changing` (en transición: no se avisa y se vuelve a mirar) o `Unknown` (sin perfil, sin capacidad o error: se comunica como desconocido, nunca como apagado).
 - **Activación:** solo al pulsar «Activar hotspot» (`StartTetheringAsync`, plazo de 20 s). No necesita administrador ni toca el registro. Si falla o no es viable, se ofrece abrir `ms-settings:network-mobilehotspot`.
 - **Avisos:** `HotspotAdvisor` da un aviso por episodio sin altavoces; se reinicia cuando una búsqueda encuentra altavoces. «Ahora no» lo cierra sin volver a preguntar en ese episodio. Nunca se actúa mientras se transmite (`DiscoverAsync` sale antes) y no se tocan conexiones activas.

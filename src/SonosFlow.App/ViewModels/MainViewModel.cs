@@ -56,8 +56,8 @@ public sealed partial class MainViewModel : ObservableObject
         };
 
         ToggleStreamCommand = new RelayCommand(async () => { CancelStartupWait(); await ToggleStreamAsync(); }, () => CanToggle);
-        RescanCommand = new RelayCommand(async () => { CancelStartupWait(); await DiscoverAsync(); }, () => State is not (UiState.Discovering or UiState.Starting));
-        SelectSpeakerCommand = new RelayCommand(p => { if (p is SpeakerItem s) { CancelStartupWait(); Select(s); } }, _ => !IsStreaming);
+        RescanCommand = new RelayCommand(async () => { CancelStartupWait(); await DiscoverAsync(); }, () => !IsSearching && State is not (UiState.Discovering or UiState.Starting));
+        SelectSpeakerCommand = new RelayCommand(p => { if (p is SpeakerItem s) { CancelStartupWait(); _speakerPickedByUser = true; Select(s); } }, _ => !IsStreaming);
         NavigateCommand = new RelayCommand(p =>
         {
             var before = Page;
@@ -115,6 +115,7 @@ public sealed partial class MainViewModel : ObservableObject
             OnPropertyChanged(nameof(FullLevelEnabled));
             OnPropertyChanged(nameof(MiniStatusText));
             OnPropertyChanged(nameof(HasHotspotPrompt));
+            OnPropertyChanged(nameof(ShowSearchRetry));
             CommandManager.InvalidateRequerySuggested();
             foreach (var s in Speakers) s.IsStreaming = s.IsSelected && IsStreaming;
             StreamingChanged?.Invoke();
@@ -348,36 +349,6 @@ public sealed partial class MainViewModel : ObservableObject
             await WaitForSpeakerAndStartAsync();
     }
 
-    public async Task DiscoverAsync()
-    {
-        if (IsStreaming) return;
-        State = UiState.Discovering;
-        Detail(() => L.T("status.detail.searching"));
-        IReadOnlyList<SonosDevice> found;
-        try { found = NoSpeakersForCapture ? [] : await SonosDiscovery.DiscoverAsync(TimeSpan.FromSeconds(3)); }
-        catch (Exception ex) when (ex is SocketException or InvalidOperationException) { found = []; }
-
-        Speakers.Clear();
-        foreach (var d in found) Speakers.Add(new SpeakerItem(d));
-
-        var pick = Speakers.FirstOrDefault(s => s.Device.Udn == _settings.LastSpeakerUdn)
-                   ?? Speakers.FirstOrDefault(s => s.Model.Contains("Five", StringComparison.OrdinalIgnoreCase))
-                   ?? Speakers.FirstOrDefault();
-        if (pick is null)
-        {
-            SelectedSpeaker = null;
-            State = UiState.NoSpeaker;
-            Detail(() => L.T("status.detail.noSpeakerHint"));
-            _ = CheckHotspotAsync();
-            return;
-        }
-        ResetHotspotPrompt();
-        Select(pick);
-        State = UiState.Ready;
-        int speakerCount = Speakers.Count;
-        Detail(() => L.Plural("status.detail.speakersFound", speakerCount));
-    }
-
     private void Select(SpeakerItem item)
     {
         foreach (var s in Speakers) s.IsSelected = s == item;
@@ -413,6 +384,7 @@ public sealed partial class MainViewModel : ObservableObject
             Detail(() => L.T("status.detail.chooseApp"));
             return;
         }
+        CancelSearch(SearchStop.Superseded); // connecting: a search still looking for more speakers has done its job
         State = UiState.Starting;
         AppLog.Write($"inicio solicitado → {speaker.Name} ({speaker.Address})");
         Detail(() => L.F("status.detail.preparing", speaker.Name));
@@ -666,6 +638,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         _poll.Stop();
         CancelStartupWait();
+        CancelSearch(SearchStop.Superseded);
+        _discovery.Dispose();
         // Keep WasStreaming so "resume on launch" picks up where the user left off.
         await StopAsync(rememberStopped: false, reason: "cierre de la aplicación");
         _control?.Dispose();

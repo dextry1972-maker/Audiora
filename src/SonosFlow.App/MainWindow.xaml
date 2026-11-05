@@ -302,6 +302,11 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
+                        <!-- Searching: it can be stopped; ended with nothing: try again (found devices can be used while it still searches) -->
+                        <Button Content="{loc:T status.search.cancel}" Command="{Binding CancelSearchCommand}" Style="{StaticResource Btn.Quiet}" HorizontalAlignment="Center" Margin="0,8,0,0"
+                                Visibility="{Binding ShowSearchCancel, Converter={StaticResource BoolToVis}}" />
+                        <Button Content="{loc:T status.search.retry}" Command="{Binding RescanCommand}" Style="{StaticResource Btn.Pill}" HorizontalAlignment="Center" Margin="0,10,0,0"
+                                Visibility="{Binding ShowSearchRetry, Converter={StaticResource BoolToVis}}" />
                         <!-- No speakers found: offer to switch on the Windows Mobile Hotspot (only ever on the user's click) -->
                         <Border Style="{StaticResource Surface.Group}" Margin="0,12,0,0" Padding="16,12" MaxWidth="560" HorizontalAlignment="Center"
                                 Visibility="{Binding HasHotspotPrompt, Converter={StaticResource BoolToVis}}">

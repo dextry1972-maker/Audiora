@@ -1,5 +1,5 @@
 {
-  "status.title.discovering": "Looking for speakers…",
+  "status.title.discovering": "Searching for devices…",
   "status.title.noSpeaker": "No Sonos found",
   "status.title.ready": "Ready to stream",
   "status.title.starting": "Connecting…",
@@ -12,6 +12,11 @@
   "status.connection.offline": "Offline",
   "status.noError": "None",
   "status.detail.searching": "Looking for Sonos speakers on your local network",
+  "status.detail.searchingMore": "Looking for more devices…",
+  "status.detail.waitingDevices": "Waiting for devices. If you have just turned on the hotspot, they can take a few seconds to appear.",
+  "status.detail.searchTimedOut": "No Sonos was found. Check that it is on and connected to the PC's network, then try again.",
+  "status.search.cancel": "Cancel search",
+  "status.search.retry": "Try again",
   "status.detail.restoredAfterCrash": "PC sound was restored after an unexpected shutdown",
   "status.detail.noSpeakerHint": "Check that the PC and the Sonos are on the same network and that the network is private",
   "status.detail.speakersFound.one": "{0} speaker on the network",

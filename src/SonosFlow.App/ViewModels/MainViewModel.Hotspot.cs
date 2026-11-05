@@ -33,12 +33,13 @@ public sealed partial class MainViewModel
             OnPropertyChanged(nameof(ShowHotspotRescan));
             OnPropertyChanged(nameof(ShowHotspotSettings));
             OnPropertyChanged(nameof(ShowHotspotDismiss));
+            OnPropertyChanged(nameof(ShowSearchRetry));
             CommandManager.InvalidateRequerySuggested();
         }
     }
 
-    // Only while the search state is "no speaker": hidden during a new search or once something is found
-    public bool HasHotspotPrompt => _hotspotPrompt != HotspotPrompt.None && State == UiState.NoSpeaker;
+    // Only while no speaker is known (searching or not found): hidden once something is found
+    public bool HasHotspotPrompt => _hotspotPrompt != HotspotPrompt.None && State is UiState.NoSpeaker or UiState.Discovering;
     public bool ShowHotspotEnable => _hotspotPrompt == HotspotPrompt.Offer;
     public bool ShowHotspotRescan => _hotspotPrompt is HotspotPrompt.AlreadyOn or HotspotPrompt.Enabled;
     public bool ShowHotspotSettings => _hotspotPrompt is HotspotPrompt.Unknown or HotspotPrompt.Failed;
@@ -60,11 +61,17 @@ public sealed partial class MainViewModel
     public ICommand OpenHotspotSettingsCommand => _openHotspotSettingsCommand ??= new RelayCommand(() => _hotspotAdvisor.Controller.OpenSettings());
 
     // Read-only query, off the UI thread; nothing is switched on without the user's click.
-    private async Task CheckHotspotAsync()
+    // early: asked a few seconds into a search that has found nothing yet. Only "switched off" is worth interrupting the search for;
+    // any other answer is held and shown only if the search ends with no speaker (nothing is claimed about a hotspot that cannot be checked).
+    private async Task CheckHotspotAsync(bool early = false)
     {
         if (_hotspotPrompt == HotspotPrompt.Enabling) return; // never replace an activation in progress
         var prompt = await _hotspotAdvisor.CheckAfterEmptySearchAsync();
-        if (prompt is { } p && State == UiState.NoSpeaker && _hotspotPrompt != HotspotPrompt.Enabling) HotspotPrompt = p; // drop it if a speaker showed up meanwhile
+        if (prompt is not { } p) return;
+        if (early && p != HotspotPrompt.Offer) { _heldHotspotPrompt = p; return; }
+        // drop it if a speaker showed up meanwhile
+        bool stillNothing = !early || (IsSearching && Speakers.Count == 0);
+        if (State is UiState.NoSpeaker or UiState.Discovering && stillNothing && _hotspotPrompt != HotspotPrompt.Enabling) HotspotPrompt = p;
     }
 
     private async Task EnableHotspotAsync()
@@ -72,11 +79,13 @@ public sealed partial class MainViewModel
         if (_hotspotPrompt != HotspotPrompt.Offer) return;
         HotspotPrompt = HotspotPrompt.Enabling;
         var result = await _hotspotAdvisor.EnableAsync();
-        HotspotPrompt = State == UiState.NoSpeaker ? result : HotspotPrompt.None; // a speaker appeared meanwhile: no stale "search again"
+        HotspotPrompt = State is UiState.NoSpeaker or UiState.Discovering ? result : HotspotPrompt.None; // a speaker appeared meanwhile: no stale "search again"
+        if (result == HotspotPrompt.Enabled) _discovery.NetworkChanged(); // a search still running looks again as soon as the adapter is up
     }
 
     private void ResetHotspotPrompt()
     {
+        _heldHotspotPrompt = null;
         _hotspotAdvisor.Reset();
         if (_hotspotPrompt != HotspotPrompt.Enabling) HotspotPrompt = HotspotPrompt.None;
     }
