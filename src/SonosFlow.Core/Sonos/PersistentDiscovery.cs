@@ -46,6 +46,9 @@ public delegate Task<IReadOnlyList<SonosDevice>> DiscoveryProbe(TimeSpan listenF
 /// </summary>
 public sealed class PersistentDiscovery : IDisposable
 {
+    /// <summary>The least time left in the window for which another attempt is worth starting.</summary>
+    private static readonly TimeSpan MinAttemptTime = TimeSpan.FromMilliseconds(50);
+
     private readonly DiscoveryProbe _probe;
     private readonly DiscoveryTimings _timings;
     private readonly object _gate = new();
@@ -105,8 +108,10 @@ public sealed class PersistentDiscovery : IDisposable
             while (true)
             {
                 ct.ThrowIfCancellationRequested();
+                // No new attempt for the last few milliseconds: a wait shorter than a millisecond is rounded down to none, and the loop
+                // would fire attempts back to back until the window closed.
                 var left = Deadline(firstAt) - clock.Elapsed;
-                if (left <= TimeSpan.Zero) break;
+                if (left < MinAttemptTime) break;
 
                 var started = clock.Elapsed;
                 attempts++;

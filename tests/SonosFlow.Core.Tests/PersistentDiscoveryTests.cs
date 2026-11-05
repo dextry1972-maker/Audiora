@@ -97,7 +97,7 @@ public sealed class PersistentDiscoveryTests
         Assert.Equal(DiscoveryEnd.TimedOut, result.End);
         Assert.Empty(result.Devices);
         Assert.True(result.Elapsed >= timings.Window - TimeSpan.FromMilliseconds(50), $"ended after {result.Elapsed}");
-        Assert.InRange(result.Attempts, 4, 11);                        // ≈ window / interval, never a busy loop
+        Assert.True(result.Attempts is >= 4 and <= 11, $"attempts={result.Attempts} elapsed={result.Elapsed}");   // ≈ window / interval, never a busy loop (it once fired thousands in the last millisecond)
         Assert.False(search.IsRunning);
     }
 
