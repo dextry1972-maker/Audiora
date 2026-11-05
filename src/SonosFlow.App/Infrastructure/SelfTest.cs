@@ -197,7 +197,7 @@ public static class SelfTest
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Google", "Chrome", "Application", "chrome.exe"),
             AudioApps.EdgePath() ?? "",
         }.FirstOrDefault(p => p.Length > 0 && File.Exists(p) && System.Diagnostics.Process.GetProcessesByName(Path.GetFileNameWithoutExtension(p)).Length == 0);
-        if (toolPath is not null && browserExe is not null && AppOutputRouting.IsSupported && AudioDevices.FindSilentOutput(null) is { } silent)
+        if (toolPath is not null && browserExe is not null && AppOutputRouting.IsSupported && AudioDevices.FindSilentOutput() is { } silent)
         {
             // Other audio (music, video) on the default output would blur the measurements below: no test tone is
             // started, and the part fails instead of passing or failing for the wrong reason.

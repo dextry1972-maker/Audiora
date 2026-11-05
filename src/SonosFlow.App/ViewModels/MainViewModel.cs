@@ -395,7 +395,7 @@ public sealed partial class MainViewModel : ObservableObject
         _lastErrorCode = null; // a new session may report the same problem again
 
         var session = new StreamingSession(speaker.Device, Speakers.Select(s => s.Device.Address), spec,
-            new StreamOptions(_settings.Port, MuteLocal, FullLevel, AppPaths.Logs, PrebufferMs), AppPaths.GuardStateFile);
+            new StreamOptions(_settings.Port, MuteLocal, FullLevel, AppPaths.Logs, PrebufferOverrideMs ?? PrebufferMs), AppPaths.GuardStateFile);
         session.Diagnostic += msg => AppLog.Write($"red: {msg}");
         session.StatsUpdated += s => _ui.BeginInvoke(() => OnStats(s));
         session.StateChanged += s => _ui.BeginInvoke(() => OnSessionState(s));

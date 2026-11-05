@@ -233,7 +233,7 @@ public sealed class WavStreamServer : IDisposable
 
         // Per-player queue bounded in TIME (see MaxPendingMs); Write never blocks the audio thread.
         int id = Interlocked.Increment(ref _clientSeq);
-        using var client = new Client(new PendingQueue(), CancellationTokenSource.CreateLinkedTokenSource(ct));
+        using var client = new Client(new PendingQueue(), CancellationTokenSource.CreateLinkedTokenSource(ct)) { Socket = tcp.Client };
         Diagnostics?.Event("http_abierta", $"cliente#{id} {method} margen={PrebufferMs}ms cola_max={MaxPendingMs}ms{(headers.ContainsKey("range") ? " con_Range" : "")}");
         lock (_clients)
         {
@@ -358,6 +358,22 @@ public sealed class WavStreamServer : IDisposable
         }
     }
 
+    /// <summary>
+    /// The kernel's statistics for the player's connection since the previous call (retransmitted bytes, timeouts) plus the current
+    /// round-trip time and receive window. Null with no player or where Windows doesn't offer them. Once a second at most.
+    /// </summary>
+    public TcpSample? SampleTcp()
+    {
+        Client? client;
+        lock (_clients) client = _clients.FirstOrDefault();
+        if (client?.Socket is not { } socket || TcpInfo.Read(socket) is not { } now) return null;
+        var before = client.PreviousTcp;
+        client.PreviousTcp = now;
+        return new TcpSample(now.RttUs / 1000.0, now.RcvWnd, now.BytesInFlight,
+            before is { } p ? unchecked(now.BytesRetrans - p.BytesRetrans) : 0,
+            before is { } q ? unchecked(now.TimeoutEpisodes - q.TimeoutEpisodes) : 0);
+    }
+
     /// <summary>Closes every player connection (including one stuck in a socket write) so the stream can be re-issued.</summary>
     public void AbortClients()
     {
@@ -373,6 +389,8 @@ public sealed class WavStreamServer : IDisposable
     private sealed class Client(PendingQueue queue, CancellationTokenSource abort) : IDisposable
     {
         public PendingQueue Queue { get; } = queue;
+        public Socket? Socket { get; set; }
+        public TcpSnapshot? PreviousTcp;
         public CancellationTokenSource Abort { get; } = abort;
         public long PendingBytes; // queued for this player but not yet written to its socket
         public long LastProgressTicks = Environment.TickCount64;

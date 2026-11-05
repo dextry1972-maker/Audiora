@@ -153,6 +153,11 @@ public partial class App : Application
         _vm.HudRequested += (glyph, text, fraction) => { if (!_quitting) (_hud ??= new VolumeHudWindow()).Flash(glyph, text, fraction); };
         _vm.PropertyChanged += (_, pe) => { if (pe.PropertyName == nameof(MainViewModel.MiniVisible)) ApplyMiniVisibility(); };
         if (Arg("--page") is { } page) _vm.Page = page;
+        if (int.TryParse(Arg("--prebuffer-ms"), out var prebufferMs) && prebufferMs >= 0)
+        {
+            _vm.PrebufferOverrideMs = prebufferMs;
+            AppLog.Write($"margen forzado por --prebuffer-ms: {prebufferMs} ms (no se guarda en los ajustes)");
+        }
         if (testCapture && Arg("--mode") == "system") _vm.IsAppMode = false; // captures of the live look (settings are not saved in test modes)
         // Captures of the "no speakers" notice: empty search + a fake hotspot (off|on|unknown|fail); the real network is never touched
         if (testCapture && Arg("--fake-hotspot") is { } fake) _vm.SimulateNoSpeakers(new FakeHotspot(fake));

@@ -334,6 +334,9 @@ public sealed partial class MainViewModel
         new(PrebufferScale.CustomKey, () => L.T("choices.prebuffer.custom")),
     ];
 
+    /// <summary>Diagnostics only (<c>--prebuffer-ms</c>): a margin outside the list above for this run; never saved to the settings.</summary>
+    internal int? PrebufferOverrideMs { get; set; }
+
     /// <summary>"Margen anti-cortes", applied when a stream starts.</summary>
     public int PrebufferMs
     {
