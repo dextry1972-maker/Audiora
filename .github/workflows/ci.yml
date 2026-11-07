@@ -1,0 +1,114 @@
+# Builds Audiora, runs every automated test and builds the Windows installer with build.ps1.
+# How to use it and how to read the results: docs/CI.md
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Read-only: this workflow never pushes, tags or publishes anything.
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET 8
+        id: dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Use the .NET 8 SDK for this run
+        # The runner also has newer SDKs and `dotnet` would pick the newest. This global.json exists only in the runner.
+        run: |
+          dotnet new globaljson --sdk-version "${{ steps.dotnet.outputs.dotnet-version }}" --force
+          dotnet --version
+
+      - name: Restore
+        run: dotnet restore SonosFlow.sln
+
+      - name: Build (Release)
+        run: dotnet build SonosFlow.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test SonosFlow.sln -c Release --no-build --logger trx --results-directory TestResults --blame-hang-timeout 10m
+
+      - name: Summarize the test results
+        if: ${{ !cancelled() }}
+        run: ./.github/scripts/Write-TestSummary.ps1 -ResultsDirectory TestResults
+
+      - name: Upload the test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults
+          retention-days: 14
+          if-no-files-found: warn
+
+  installer:
+    name: Windows installer
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET 8
+        id: dotnet
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Use the .NET 8 SDK for this run
+        run: |
+          dotnet new globaljson --sdk-version "${{ steps.dotnet.outputs.dotnet-version }}" --force
+          dotnet --version
+
+      - name: Build the installer (build.ps1)
+        run: ./build.ps1
+
+      - name: Check and describe the build
+        # Windows PowerShell (.NET Framework) can open the .NET Framework 4.8 installer to compare its embedded payload.
+        shell: powershell
+        run: ./.github/scripts/Write-BuildSummary.ps1 -Artifacts artifacts
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: Audiora-Setup-win-x64
+          path: artifacts/SonosFlow-Setup.exe
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload the portable app
+        uses: actions/upload-artifact@v7
+        with:
+          name: Audiora-portable-win-x64
+          path: artifacts/app
+          retention-days: 14
+          if-no-files-found: error

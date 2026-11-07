@@ -1,5 +1,7 @@
 # Audiora
 
+[![CI](https://github.com/dextry1972-maker/Audiora/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dextry1972-maker/Audiora/actions/workflows/ci.yml)
+
 Audiora streams audio from your PC or a selected app to a compatible Sonos device. Download the installer, or extract the ZIP and open `Audiora\SonosFlow.exe`. No separate .NET installation is needed. This unsigned beta may trigger a Windows security warning. Please report bugs in the repository’s Issues tab.
 
 *(Formerly “Sonos Flow”. The technical names — the `SonosFlow.*` projects, `SonosFlow.exe`, and the data and backup folders — are unchanged.)*
@@ -35,6 +37,10 @@ Requires the .NET 8 SDK.
 dotnet build SonosFlow.sln -c Release      # build
 .\build.ps1                                 # self-contained app + installer in artifacts\
 ```
+
+**Continuous integration:** GitHub Actions builds and tests every push to `main` and every pull request on Windows,
+then builds the installer with `build.ps1`. The installer and the portable app can be downloaded from each run for 14
+days. How to read the results and what it does not cover: [docs/CI.md](docs/CI.md).
 
 ## Project layout
 
