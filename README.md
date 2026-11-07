@@ -1,122 +1,120 @@
 # Audiora
 
-Audiora streams audio from your PC or a selected app to a compatible Sonos device.  Download and extract the ZIP, then open Audiora.exe. No separate .NET installation is needed.  This unsigned beta may trigger a Windows security warning. Please report bugs in the repository’s Issues tab.
+Audiora streams audio from your PC or a selected app to a compatible Sonos device. Download the installer, or extract the ZIP and open `Audiora\SonosFlow.exe`. No separate .NET installation is needed. This unsigned beta may trigger a Windows security warning. Please report bugs in the repository’s Issues tab.
 
----
+*(Formerly “Sonos Flow”. The technical names — the `SonosFlow.*` projects, `SonosFlow.exe`, and the data and backup folders — are unchanged.)*
 
-*(Antes «Sonos Flow». Los nombres técnicos — proyecto `SonosFlow.*`, `SonosFlow.exe`, carpetas de datos y de copias — se conservan.)*
+A Windows desktop app that **streams your PC’s audio to a Sonos speaker over Wi-Fi**, without the official Sonos app, Bluetooth or cables.
 
-Aplicación de escritorio para Windows que **transmite todo el audio del PC a un altavoz Sonos por Wi-Fi**, sin la app oficial de Sonos, sin Bluetooth y sin cables.
+How it works: Audiora captures the system audio with WASAPI loopback, serves it as a WAV stream on the local network and tells the Sonos (UPnP, port 1400) to play it. The Sonos then downloads the stream. Details and measurements (in Spanish): [docs/INFORME-TECNICO.md](docs/INFORME-TECNICO.md).
 
-Cómo funciona: captura el audio del sistema con WASAPI loopback, lo sirve como un stream WAV en la red local y le indica al Sonos (UPnP, puerto 1400) que lo reproduzca. El Sonos descarga el stream. Detalles y mediciones en [docs/INFORME-TECNICO.md](docs/INFORME-TECNICO.md).
+## Install
 
-## Instalar
+1. Download `Audiora-Beta-Setup-win-x64.exe` from the [Releases](https://github.com/dextry1972-maker/Audiora/releases) page. If you build it yourself, it is `artifacts\SonosFlow-Setup.exe`.
+2. Click **Install**. Audiora installs for your user only in `%LOCALAPPDATA%\Programs\SonosFlow` (no administrator rights needed) and creates shortcuts on the Desktop and in the Start menu.
+3. The first time you stream, Windows Firewall may ask for permission. Allow access **on private networks only**: the Sonos needs it to download the audio from the PC.
 
-1. Ejecuta `artifacts\SonosFlow-Setup.exe`.
-2. Pulsa **Instalar**. Se instala para tu usuario en `%LOCALAPPDATA%\Programs\SonosFlow` (sin permisos de administrador) y crea accesos directos en el escritorio y en el menú Inicio.
-3. La primera vez que transmitas, Windows puede preguntar por el firewall: permite el acceso **solo en redes privadas**. Es necesario para que el Sonos pueda descargar el audio desde el PC.
+Because the app is not digitally signed, SmartScreen may show “Windows protected your PC”. Choose *More info → Run anyway*.
 
-Al no estar firmado digitalmente, SmartScreen puede mostrar "Windows protegió su PC": *Más información → Ejecutar de todas formas*.
+**Uninstall:** Settings → Apps → Installed apps → Audiora → Uninstall. Your settings (`%APPDATA%\SonosFlow`) and logs (`%LOCALAPPDATA%\SonosFlow`) are kept.
 
-**Desinstalar:** Configuración → Aplicaciones → Aplicaciones instaladas → Audiora → Desinstalar. Se conservan tus ajustes (`%APPDATA%\SonosFlow`) y registros (`%LOCALAPPDATA%\SonosFlow`).
+## Use
 
-## Usar
+- The Sonos is detected automatically. If you have several, choose one under **Speakers on the network**.
+- Press **Stream to …** to start streaming, and press it again to stop.
+- **Mute PC** (on by default): only the Sonos plays. The PC’s speakers are restored when you stop, when you quit, and even after an unexpected shutdown.
+- **Full level:** Windows applies its volume to the captured audio. In **Whole PC** mode, this option raises the Windows volume to 100% while the PC is muted, so you control the volume from the Sonos.
+- The Sonos **volume, bass, treble and loudness** are controlled from the app (the speaker applies them).
+- When you close the window, the app keeps running in the system tray (you can change this in Settings).
 
-- El Sonos se detecta solo. Si tienes varios, elígelo en la barra lateral ("Mis altavoces").
-- Pulsa el botón verde para **transmitir** o **detener**.
-- **Silenciar el PC** (activado por defecto): solo suena el Sonos; los altavoces del PC se restauran al detener, al salir o incluso tras un cierre inesperado.
-- **Nivel completo**: Windows aplica su volumen al audio capturado; esta opción lo sube al 100 % solo mientras el PC está silenciado, para controlar el volumen desde el Sonos.
-- **Volumen, graves, agudos y loudness** del Sonos se controlan desde la app (los aplica el altavoz).
-- Al cerrar la ventana la app sigue en la bandeja del sistema (configurable en Ajustes).
+## Build
 
-## Compilar
-
-Requiere el .NET 8 SDK.
+Requires the .NET 8 SDK.
 
 ```powershell
-dotnet build SonosFlow.sln -c Release      # compilar
-.\build.ps1                                 # app autocontenida + instalador en artifacts\
+dotnet build SonosFlow.sln -c Release      # build
+.\build.ps1                                 # self-contained app + installer in artifacts\
 ```
 
-## Estructura
+## Project layout
 
-| Carpeta | Contenido |
+| Folder | Contents |
 |---|---|
-| `src/SonosFlow.Core` | Captura (`Audio/`), servidor HTTP (`Net/`), control y descubrimiento Sonos (`Sonos/`), sesión de streaming con reconexión (`Streaming/`) |
-| `src/SonosFlow.App` | Interfaz WPF: tema, visualizador de espectro, bandeja, ajustes, desinstalación |
-| `src/SonosFlow.Setup` | Instalador por usuario (.NET Framework 4.8, incluido en Windows) |
-| `src/SonosFlow.Backup` | Motor de copias y restauración (sin dependencias) |
-| `src/SonosFlow.BackupCli` + `sfbackup.cmd` | Herramienta de línea de comandos para copias |
-| `tests/SonosFlow.Backup.Tests` | Pruebas automáticas del sistema de copias (xUnit) |
-| `tools/SonosFlow.CaptureCheck` | Comprobación automática del aislamiento de la captura por aplicación (tonos en una salida no audible) |
-| `poc/` | Prueba mínima por consola usada para validar el streaming y medir |
-| `tools/make_icon.py` | Genera el icono (sin dependencias) |
+| `src/SonosFlow.Core` | Capture (`Audio/`), HTTP server (`Net/`), Sonos control and discovery (`Sonos/`), streaming session with reconnection (`Streaming/`) |
+| `src/SonosFlow.App` | WPF interface: theme, spectrum visualizer, tray, settings, uninstall |
+| `src/SonosFlow.Setup` | Per-user installer (.NET Framework 4.8, included in Windows) |
+| `src/SonosFlow.Backup` | Backup and restore engine (no dependencies) |
+| `src/SonosFlow.BackupCli` + `sfbackup.cmd` | Command-line backup tool |
+| `tests/` | Automated tests (xUnit) |
+| `tools/SonosFlow.CaptureCheck` | Automated check that per-app capture is isolated (test tones on an output nobody hears) |
+| `poc/` | Minimal console prototype used to validate streaming and take measurements |
+| `tools/make_icon.py` | Generates the icon (no dependencies) |
 
-## Transmitir una sola aplicación
+## Streaming a single app
 
-En **Fuente de audio → Una aplicación** aparecen las aplicaciones que tienen audio (icono, nombre y si están sonando; la lista se actualiza sola). Al elegir una, **solo su audio** va al Sonos; los juegos, Discord y el resto siguen sonando por sus salidas habituales. Se puede cambiar de fuente durante la transmisión sin reconectar el Sonos, y volver a **Todo el PC** en cualquier momento.
+In **One app** mode you see the apps that have audio (icon, name and whether they are playing; the list updates by itself). When you choose one, **only its audio** goes to the Sonos; games, Discord and everything else keep playing on their usual outputs. You can change the source while streaming without reconnecting the Sonos, and go back to **Whole PC** at any time.
 
-- Usa la captura por proceso de Windows (Windows 10 2004 o posterior). No instala controladores ni cambia la salida predeterminada.
-- **Silenciar el PC funciona en este modo:** la captura por aplicación no depende del silencio ni del volumen de Windows (medido: con la salida silenciada o al 10 % el nivel capturado no cambia). Con «Silenciar el PC» activado, Audiora silencia la salida por la que suena esa aplicación y la restaura al terminar; también puedes silenciar Windows a mano: el Sonos sigue sonando. El volumen de Audiora es el del Sonos y nunca cambia el volumen maestro de Windows en este modo.
-- Silenciar la salida afecta a todo lo que suene por ella: si quieres oír el juego o Discord, que usen otra salida (p. ej. los auriculares) que la aplicación que envías al Sonos.
-- Lo que **no** sirve es silenciar o bajar **la propia aplicación** en el mezclador de volumen de Windows: eso sí llega a la captura (silencio).
-- «Nivel completo» solo se aplica en modo **Todo el PC**, donde la captura sí depende del volumen de Windows.
-- **Navegadores:** Chrome, Edge o Brave reproducen el audio de **todas sus pestañas** desde un mismo proceso, así que no se puede enviar una sola pestaña. Para YouTube Music usa **Abrir YouTube Music aislado**: abre music.youtube.com en una ventana con perfil propio (Brave si está instalado; si no, Edge o Chrome), que es un proceso separado y aparece como «YouTube Music (instancia aislada)». La primera vez hay que iniciar sesión en esa ventana.
-- Si la aplicación se cierra, la transmisión sigue (en silencio) y se retoma sola cuando vuelve a abrirse.
-- Los sonidos del sistema de Windows no se pueden capturar por separado.
+- Uses Windows per-process capture (Windows 10 version 2004 or later). It installs no drivers and does not change the default output.
+- **Mute PC in this mode:** only that app goes quiet on the PC. Windows sends it to an output nobody hears, while other apps and games keep their sound and the Sonos still receives it. If the PC has no such output, the app’s output is muted instead. Everything is restored when you stop, when you quit, and even after an unexpected shutdown.
+- Per-app capture does not depend on the Windows volume or mute state. In this mode Audiora’s volume is the Sonos volume, and it never changes the Windows master volume.
+- What **does not** work is muting or lowering **the app itself** in the Windows volume mixer: that silence reaches the capture.
+- **Full level** applies only in **Whole PC** mode, where the capture depends on the Windows volume.
+- **Browsers:** Chrome, Edge and Brave play the audio of **all their tabs** from a single process, so you can’t send just one tab. For YouTube Music, use **Open isolated YouTube Music**: it opens music.youtube.com in a window with its own profile (Brave if installed; otherwise Edge or Chrome). That window is a separate process and appears as “YouTube Music (isolated instance)”. The first time, you need to sign in in that window.
+- If the app closes, streaming continues (in silence). When the app is opened again, Audiora picks it up automatically and gives the Sonos a fresh connection, without changing your volume or settings.
+- Windows system sounds can’t be captured separately.
 
-## Margen anti-cortes
+## Dropout buffer
 
-El Sonos reproduce en directo, así que una pausa corta de la Wi-Fi puede oírse como un corte. En **Ajustes → Audio → Margen anti-cortes** (por defecto 1 s) el Sonos recibe de golpe ese tiempo de audio al conectar y reproduce con ese retraso, aguantando pausas de red más cortas. «Sin margen» = mínima latencia (comportamiento anterior). Para diagnosticar cortes, `stream-*.csv` registra cada segundo el audio que espera a que el Sonos lo recoja (`backlog_ms`) y cada conexión del Sonos. Detalles: [docs/INVESTIGACION-CORTES-6MIN.md](docs/INVESTIGACION-CORTES-6MIN.md).
+The Sonos plays live, so a short Wi-Fi pause can be heard as a dropout. With **Settings → Audio → Dropout buffer** (1 s by default), the Sonos receives that much audio up front when it connects and plays with that delay, riding out shorter network pauses. You can choose a preset (no buffer, 100 ms, 300 ms or 1 s) or drag the slider from 0 to 1000 ms in 10 ms steps; the value shown follows the slider as you drag. “No buffer” gives the lowest latency. The buffer applies when streaming starts. To diagnose dropouts, `stream-*.csv` records every second the audio waiting for the Sonos to collect it (`backlog_ms`) and every Sonos connection. Details (in Spanish): [docs/INVESTIGACION-CORTES-6MIN.md](docs/INVESTIGACION-CORTES-6MIN.md).
 
-## Atajos de teclado
+## Keyboard shortcuts
 
-Funcionan en todo Windows, también dentro de un juego, y no toman el foco (Ajustes → Mini reproductor → «Atajos de teclado globales», activados por defecto):
+They work anywhere in Windows, including inside a game, and never take the focus (Settings → Mini player → **Global keyboard shortcuts**, on by default):
 
-| Atajo | Acción |
+| Shortcut | Action |
 |---|---|
-| Ctrl+Alt+↑ / Ctrl+Alt+↓ | Volumen del Sonos ±5 |
-| Ctrl+Alt+P | Pausa / reanuda (o empieza a transmitir) |
-| Ctrl+Alt+O | Mostrar / ocultar el mini reproductor |
+| Ctrl+Alt+↑ / Ctrl+Alt+↓ | Sonos volume ±5 |
+| Ctrl+Alt+P | Pause / resume (or start streaming) |
+| Ctrl+Alt+O | Show / hide the mini player |
 
-Las teclas multimedia del teclado no se tocan: siguen controlando el reproductor que suena. Si otro programa ya usa algún atajo, Ajustes lo indica.
+The keyboard’s media keys are left alone: they keep controlling whatever player is playing. If another program already uses a shortcut, Settings tells you.
 
-## Indicador de red
+## Network indicator
 
-En **Estadísticas → Red**: «Estable» o el número de atascos (segundos en que la Wi-Fi o el Sonos dejaron de recoger el audio a tiempo) y el peor. En naranja si alguno superó el margen anti-cortes (probable corte audible). Cada atasco queda anotado con su hora en `app-events.log` y en `stream-*.csv`. Los atascos muy cortos los absorbe Windows y no se ven.
+The network indicator in the statistics shows “Stable”, or the number of stalls (seconds in which the Wi-Fi or the Sonos did not collect the audio in time) and the worst one. It turns orange if any stall was longer than the dropout buffer (a likely audible dropout). Each stall is logged with its time in `app-events.log` and in `stream-*.csv`. Very short stalls are absorbed by Windows and are not shown.
 
-## Idioma
+## Language
 
-En el primer arranque de una instalación nueva, Audiora pide el idioma y sugiere el de Windows. Se puede cambiar cuando quieras en **Ajustes → Idioma**: el cambio es inmediato y no corta la transmisión. Incluye 12 idiomas, árabe (de derecha a izquierda) entre ellos. Las traducciones, salvo la española, son automáticas y pendientes de revisión nativa. Arquitectura y cómo añadir un idioma: [docs/LOCALIZATION.md](docs/LOCALIZATION.md).
+On the first start of a new installation, Audiora asks for your language and suggests the Windows one. You can change it at any time in Settings (**Display language**): the change is immediate and does not interrupt streaming. It includes 12 languages, including Arabic (right to left). All translations except Spanish were machine-made and still need review by native speakers. Architecture and how to add a language: [docs/LOCALIZATION.md](docs/LOCALIZATION.md).
 
-## Mini reproductor
+## Mini player
 
-Cápsula flotante con la fuente, el estado real, el Sonos, el volumen (el mismo que en la ventana principal), **pausa** (el Sonos sigue conectado y recibe silencio; reanudar es instantáneo), abrir la ventana principal, elegir la fuente y ocultar. Se abre con el botón de la barra de título, desde la bandeja o al minimizar/cerrar (según Ajustes). Se puede arrastrar, recuerda su posición, se mantiene dentro de la pantalla, puede quedarse siempre encima y **nunca toma el foco del teclado** (no interrumpe juegos). Ocultarlo o cambiar de ventana no detiene ni reinicia el audio.
+A floating capsule with the source, the real status, the Sonos, the volume (the same as in the main window), **pause** (the Sonos stays connected and receives silence, so resuming is instant), and buttons to open the main window, choose the source and hide it. It opens from the title-bar button, from the tray, or when you minimize or close the window (depending on Settings). You can drag it; it remembers its position, stays on screen, can stay always on top and **never takes the keyboard focus** (it does not interrupt games). Hiding it or switching windows never stops or restarts the audio.
 
-## Copias de seguridad
+## Backups
 
-Copias del código fuente con fecha y hora, verificadas con SHA-256, en `C:\Users\Admin\SonosFlow-Backups` (fuera del proyecto y de OneDrive). Desde la app (**Ajustes → Copias de seguridad**) o desde la terminal:
+Time-stamped backups of the source code, verified with SHA-256, in `%USERPROFILE%\SonosFlow-Backups` (outside the project and outside OneDrive). From the app’s Settings or from the terminal:
 
 ```bat
-sfbackup create "motivo"     & rem nueva copia
-sfbackup list                & rem enumerar
-sfbackup verify <id>         & rem integridad
-sfbackup plan <id>           & rem qué cambiaría (no modifica nada)
-sfbackup restore <id>        & rem restaurar con confirmación (antes copia el estado actual)
+sfbackup create "reason"     & rem new backup
+sfbackup list                & rem list backups
+sfbackup verify <id>         & rem check integrity
+sfbackup plan <id>           & rem what a restore would change (changes nothing)
+sfbackup restore <id>        & rem restore after confirmation (backs up the current state first)
 ```
 
-Guía completa: [docs/COPIAS-DE-SEGURIDAD.md](docs/COPIAS-DE-SEGURIDAD.md).
+Full guide (in Spanish): [docs/COPIAS-DE-SEGURIDAD.md](docs/COPIAS-DE-SEGURIDAD.md).
 
-## Privacidad y seguridad
+## Privacy and security
 
-- Todo es local: el audio nunca sale de tu red y no se recopila ningún dato.
-- El servidor escucha solo en la IP de la red local y **rechaza cualquier conexión que no venga de un Sonos detectado**.
-- Sin permisos de administrador. Solo escribe en tu perfil de usuario y en `HKCU` (inicio con Windows y entrada de desinstalación).
-- No modifica el firewall ni el antivirus.
+- Everything is local: the audio never leaves your network and no data is collected.
+- The server listens only on the local network IP and **rejects any connection that does not come from a detected Sonos**.
+- No administrator rights. It only writes to your user profile and to `HKCU` (start with Windows and the uninstall entry).
+- It does not change the firewall or the antivirus.
 
-## Limitaciones conocidas
+## Known limitations
 
-- **Latencia**: el Sonos reproduce ~1–1,5 s por detrás del PC con el margen anti-cortes de 1 s (≈ 0,2 s sin margen); no es apto para juegos ni para vídeo con sincronía labial. No se ha medido con micrófono: el «búfer del Sonos» es una estimación de ±1 s.
-- Una sola pestaña del navegador no se puede capturar por separado (ver «Transmitir una sola aplicación»).
-- Grupos de Sonos: hay que elegir el altavoz principal del grupo.
-- Licencias: NAudio (MIT). Proyecto personal, no afiliado a Sonos, Inc.
+- **Latency:** the Sonos plays about 1–1.5 s behind the PC with the default 1 s dropout buffer (≈ 0.2 s with no buffer), so it is not suitable for games or for video that needs lip sync. It has not been measured with a microphone: the “Sonos buffer” figure is an estimate (±1 s).
+- A single browser tab can’t be captured on its own (see “Streaming a single app”).
+- Sonos groups: choose the group’s main speaker.
+- Licenses: NAudio (MIT). Personal project, not affiliated with or endorsed by Sonos, Inc.
