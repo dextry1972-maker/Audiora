@@ -81,7 +81,7 @@ No se tocó: `SonosFlow.Core` (audio, red, Sonos, sesión), ajustes guardados, i
 5. Mini reproductor (Ctrl+Alt+O) encima de un juego en ventana sin bordes: no roba el foco.
 
 ## 8. Limitaciones conocidas
-- La luz y el anillo reflejan lo capturado, ~1–1,5 s antes de que suene en el Sonos.
+- La luz y el anillo reflejan lo capturado, antes de que suene en el Sonos: ≈ 1,1–1,4 s antes (estimación) con el margen anti-cortes por defecto de 1 s, menos con un margen menor (ajustable de 0 a 1000 ms).
 - A 1080×720 Inicio se desplaza (la fuente queda bajo el pliegue).
 - El mini reproductor sigue sin poder usarse con teclado (a propósito: nunca toma el foco); se controla con ratón y atajos.
 - Los paneles desplegables (`Popup` + `StaysOpen=False`) pueden necesitar dos clics para reabrirse justo después de cerrarse (comportamiento estándar de WPF).

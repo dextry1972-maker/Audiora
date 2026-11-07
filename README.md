@@ -114,7 +114,7 @@ Full guide (in Spanish): [docs/COPIAS-DE-SEGURIDAD.md](docs/COPIAS-DE-SEGURIDAD.
 
 ## Known limitations
 
-- **Latency:** the Sonos plays about 1–1.5 s behind the PC with the default 1 s dropout buffer (≈ 0.2 s with no buffer), so it is not suitable for games or for video that needs lip sync. It has not been measured with a microphone: the “Sonos buffer” figure is an estimate (±1 s).
+- **Latency:** the Sonos always plays somewhat behind the PC. With the default settings, most of that delay is the **dropout buffer** (Settings → Audio), which you can set anywhere from 0 to 1000 ms in 10 ms steps (1 s by default). A smaller buffer reduces the delay Audiora adds on purpose, but makes audible dropouts more likely when the Wi-Fi pauses. Even at 0 ms the delay is not zero: capture and processing, the network and the Sonos’s own playback buffer still add some. The only figures available are estimates from the playback position the Sonos reports, with about ±1 s uncertainty: roughly 1.1–1.4 s with the default 1 s buffer and roughly 0.5 s with no buffer. The end-to-end delay has not been measured with a microphone (the attempts so far picked up no sound). Games and lip-synced video have not been tested at a low buffer, so try the setting and judge for yourself.
 - A single browser tab can’t be captured on its own (see “Streaming a single app”).
 - Sonos groups: choose the group’s main speaker.
 - Licenses: NAudio (MIT). Personal project, not affiliated with or endorsed by Sonos, Inc.

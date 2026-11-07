@@ -156,7 +156,7 @@ Propuesta de interfaz (fase 5 del plan, requiere añadir propiedades al ViewMode
 - `ControlsReady` llega tras el primer sondeo del Sonos (≤ 3 s); hasta entonces volumen y ecualizador deben verse deshabilitados.
 - Cambiar de fuente durante la transmisión es instantáneo salvo cambio de frecuencia (reinicia la sesión).
 - `Released` (el usuario usó el Sonos desde su app) termina sin error: el diseño necesita un estado «Detenido por el Sonos», distinto de «Error».
-- El audio del Sonos va ~1–1,5 s por detrás (margen anti-cortes): el espectro y el anillo muestran lo **capturado**, no lo que suena en ese instante.
+- El audio del Sonos va por detrás (≈ 1,1–1,4 s estimados con el margen anti-cortes por defecto de 1 s, menos con un margen menor; ajustable de 0 a 1000 ms): el espectro y el anillo muestran lo **capturado**, no lo que suena en ese instante.
 
 ### 6.4 Separación propuesta (sin frameworks nuevos)
 La separación ya existe en lo esencial: Core no conoce la interfaz y la interfaz solo habla con `MainViewModel`. Para el rediseño basta con:
