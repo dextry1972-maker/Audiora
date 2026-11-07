@@ -1,5 +1,9 @@
 # Audiora
 
+Audiora streams audio from your PC or a selected app to a compatible Sonos device.  Download and extract the ZIP, then open Audiora.exe. No separate .NET installation is needed.  This unsigned beta may trigger a Windows security warning. Please report bugs in the repository’s Issues tab.
+
+---
+
 *(Antes «Sonos Flow». Los nombres técnicos — proyecto `SonosFlow.*`, `SonosFlow.exe`, carpetas de datos y de copias — se conservan.)*
 
 Aplicación de escritorio para Windows que **transmite todo el audio del PC a un altavoz Sonos por Wi-Fi**, sin la app oficial de Sonos, sin Bluetooth y sin cables.
