@@ -686,6 +686,9 @@ public sealed class StreamingSession : IAsyncDisposable
 
     private SourceAppFollower? _follower;
 
+    /// <summary>How the logs describe the old connection, closed on purpose to give the Sonos a fresh one.</summary>
+    internal const string RecoveryAbortReason = "cerrada como parte de la recuperación automática (la app fuente se reinició)";
+
     private static SourceAppFollower? NewFollower(CaptureSpec spec) => spec.Kind == CaptureKind.Application
         ? new SourceAppFollower(spec.ProcessId, spec.ExePath, spec.IsIsolatedYouTubeMusic, new WindowsSourceAppProbe())
         : null;
@@ -738,7 +741,7 @@ public sealed class StreamingSession : IAsyncDisposable
         // the old one was sent to, because Windows remembers it per executable.
         var spec = CaptureSpec.Application(app) with { DeviceId = _spec.DeviceId };
         if (!await SwitchSourceCoreAsync(spec, sameAppRestart: true).ConfigureAwait(false)) return false;
-        _server!.AbortClients(); // the old connection must not linger as a client
+        _server!.AbortClients(RecoveryAbortReason); // the old connection must not linger as a client
         await StartPlaybackAsync(ct).ConfigureAwait(false);
         // Not a failure: no state change (no "Reconectando…", no sounds), and the watchdog gives the new connection its warm-up.
         watchdog.Reset(clock.Elapsed);
