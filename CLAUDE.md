@@ -3,6 +3,7 @@
 Nombre visible de la app: **Audiora**. Los identificadores técnicos siguen siendo `SonosFlow` (namespaces, `SonosFlow.exe`, `%APPDATA%\SonosFlow`, claves HKCU, mutex, `SonosFlow-Backups`, prefijo `SonosFlow_`, `/sonosflow.wav`): no renombrarlos sin autorización, rompen ajustes, copias y el instalador.
 
 C# / .NET 8 (WPF + biblioteca Core), instalador en .NET Framework 4.8. Compilar: `dotnet build SonosFlow.sln -c Release`. Pruebas: `dotnet test SonosFlow.sln -c Release`. Instalador: pasos de `build.ps1` (no lanzar con `-ExecutionPolicy Bypass`).
+CI: `.github/workflows/ci.yml` compila, prueba y genera el instalador en cada push a `main` y en cada PR (sin audio ni Sonos en GitHub); uso, lectura de resultados y proceso de release: `docs/CI.md`.
 
 ## Protocolo antes de cualquier cambio importante
 
