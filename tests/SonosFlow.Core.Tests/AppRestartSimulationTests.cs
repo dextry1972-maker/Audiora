@@ -33,53 +33,79 @@ public sealed class AppRestartSimulationTests(Xunit.Abstractions.ITestOutputHelp
     private static Process StartTone(string tool, int seconds) =>
         Process.Start(new ProcessStartInfo(tool, $"tone 1000 {seconds} \"Steam Streaming\"") { UseShellExecute = false, CreateNoWindow = true })!;
 
-    /// <summary>Reads the live WAV like the player would; marks, for every received byte, the time it arrived.</summary>
+    /// <summary>
+    /// Reads the live WAV like the player would; marks, for every received byte, the time it arrived. Like the Sonos after a
+    /// new SetAVTransportURI, it connects again when its connection is closed, and keeps appending the audio (the new WAV
+    /// header is skipped), so the content of both connections can be checked as one.
+    /// </summary>
     private sealed class StreamReader : IDisposable
     {
-        private readonly TcpClient _tcp = new();
         private readonly CancellationTokenSource _cts = new();
         private readonly List<(long Offset, double Sec)> _marks = [];
         private readonly MemoryStream _pcm = new();
         private readonly Stopwatch _clock = Stopwatch.StartNew();
         private Task? _loop;
+        private int _connections;
+
+        public int Connections => Volatile.Read(ref _connections);
 
         public async Task StartAsync(int port)
         {
-            await _tcp.ConnectAsync(IPAddress.Loopback, port);
-            var s = _tcp.GetStream();
-            await s.WriteAsync(Encoding.ASCII.GetBytes("GET /sonosflow.wav HTTP/1.1\r\nHost: t\r\n\r\n"));
+            var first = await ConnectAsync(port);
             _loop = Task.Run(async () =>
             {
-                var buf = new byte[65536];
-                bool header = true;
-                var head = new List<byte>();
-                try
+                var tcp = first;
+                while (!_cts.IsCancellationRequested)
                 {
-                    while (!_cts.IsCancellationRequested)
-                    {
-                        int n = await s.ReadAsync(buf, _cts.Token);
-                        if (n == 0) break;
-                        int from = 0;
-                        if (header)
-                        {
-                            head.AddRange(buf.AsSpan(0, n).ToArray());
-                            int end = Encoding.ASCII.GetString(head.ToArray()).IndexOf("\r\n\r\n", StringComparison.Ordinal);
-                            if (end < 0 || head.Count < end + 4 + 44) continue;
-                            header = false;
-                            var rest = head.Skip(end + 4 + 44).ToArray();
-                            lock (_pcm) { _marks.Add((_pcm.Length, _clock.Elapsed.TotalSeconds)); _pcm.Write(rest); }
-                            continue;
-                        }
-                        lock (_pcm) { _marks.Add((_pcm.Length, _clock.Elapsed.TotalSeconds)); _pcm.Write(buf, from, n - from); }
-                    }
+                    await ReadUntilClosedAsync(tcp);
+                    tcp.Dispose();
+                    if (_cts.IsCancellationRequested) break;
+                    try { await Task.Delay(50, _cts.Token); tcp = await ConnectAsync(port); }
+                    catch (Exception ex) when (ex is IOException or OperationCanceledException or SocketException) { break; }
                 }
-                catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException or SocketException) { }
             });
+        }
+
+        private async Task<TcpClient> ConnectAsync(int port)
+        {
+            var tcp = new TcpClient();
+            await tcp.ConnectAsync(IPAddress.Loopback, port, _cts.Token);
+            await tcp.GetStream().WriteAsync(Encoding.ASCII.GetBytes("GET /sonosflow.wav HTTP/1.1\r\nHost: t\r\n\r\n"), _cts.Token);
+            Interlocked.Increment(ref _connections);
+            return tcp;
+        }
+
+        private async Task ReadUntilClosedAsync(TcpClient tcp)
+        {
+            var s = tcp.GetStream();
+            var buf = new byte[65536];
+            bool header = true;
+            var head = new List<byte>();
+            try
+            {
+                while (!_cts.IsCancellationRequested)
+                {
+                    int n = await s.ReadAsync(buf, _cts.Token);
+                    if (n == 0) break;
+                    if (header)
+                    {
+                        head.AddRange(buf.AsSpan(0, n).ToArray());
+                        int end = Encoding.ASCII.GetString(head.ToArray()).IndexOf("\r\n\r\n", StringComparison.Ordinal);
+                        if (end < 0 || head.Count < end + 4 + 44) continue;
+                        header = false;
+                        var rest = head.Skip(end + 4 + 44).ToArray();
+                        lock (_pcm) { _marks.Add((_pcm.Length, _clock.Elapsed.TotalSeconds)); _pcm.Write(rest); }
+                        continue;
+                    }
+                    lock (_pcm) { _marks.Add((_pcm.Length, _clock.Elapsed.TotalSeconds)); _pcm.Write(buf, 0, n); }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException or SocketException) { }
         }
 
         public double Elapsed => _clock.Elapsed.TotalSeconds;
         public byte[] Snapshot() { lock (_pcm) return _pcm.ToArray(); }
-        public void Dispose() { _cts.Cancel(); _tcp.Dispose(); }
+        public void Dispose() { _cts.Cancel(); }
     }
 
     /// <summary>1 ms windows of a 1 kHz tone: "tone" if the window carries the tone's energy, "hole" if a window inside tone is (nearly) empty.</summary>
@@ -169,9 +195,12 @@ public sealed class AppRestartSimulationTests(Xunit.Abstractions.ITestOutputHelp
             await using var session = new StreamingSession(target, [IPAddress.Loopback], CaptureSpec.Application(app!),
                 new StreamOptions(Port: 8796, MuteLocal: false, FullLevel: false, LogDirectory: _dir, PrebufferMs: 0), Path.Combine(_dir, "guard.json"));
             using var reader = new StreamReader();
+            var states = new List<SessionState>();
+            session.StateChanged += st => { lock (states) states.Add(st); };
             await session.StartAsync();
             await reader.StartAsync(8796);
             session.SourceChanged += spec => { lock (changes) changes.Add((reader.Elapsed, spec.ProcessId)); };
+            int sonosFetchesBefore = Volatile.Read(ref sonos.StreamRequests);
 
             await Task.Delay(8000);                              // before: the original instance
             double killedAt = reader.Elapsed;
@@ -205,6 +234,11 @@ public sealed class AppRestartSimulationTests(Xunit.Abstractions.ITestOutputHelp
             Assert.True(after.ToneMs > 5000, "after following, the tone must be captured");
             Assert.True(after.Holes <= before.Holes, $"holes before {before.Holes}, after {after.Holes}: following the new instance left the content worse");
             Assert.Single(changes);                              // one switch, no churn
+            // The recovery renews the player's connection once (as a manual stop/start would), discreetly and nothing else:
+            Assert.Equal(sonosFetchesBefore + 1, Volatile.Read(ref sonos.StreamRequests));
+            Assert.Equal(2, reader.Connections);
+            lock (states) Assert.DoesNotContain(SessionState.Recovering, states);   // no "Reconectando…", no recovery sounds
+            lock (sonos.Actions) Assert.DoesNotContain("SetVolume", sonos.Actions); // the Sonos volume is never touched
         }
         finally
         {

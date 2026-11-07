@@ -44,6 +44,7 @@ public sealed class AppOutputRedirect : IDisposable
     private readonly string _guardId = Guid.NewGuid().ToString("N");
     private readonly string _exePath;
     private readonly string _stateFile;
+    private readonly string _targetDeviceId;
     private bool _disposed;
 
     /// <summary>False when no process of the app accepted the restore yet: it stays pending (see <see cref="RecoverPending"/>).</summary>
@@ -57,6 +58,7 @@ public sealed class AppOutputRedirect : IDisposable
         _routing = routing;
         _exePath = exePath;
         _stateFile = stateFile;
+        _targetDeviceId = targetDeviceId;
         using (StateLock())
         {
             var entries = Load(stateFile);
@@ -84,6 +86,17 @@ public sealed class AppOutputRedirect : IDisposable
             }
             lock (Active) Active.Add(_guardId);
         }
+    }
+
+    /// <summary>
+    /// The same app restarted (a new process of the same executable): its new audio session goes to the target too. The undo
+    /// record — and with it the app's real previous output — is kept, and nothing is restored in between, so the restarted app
+    /// never plays on the PC speakers for a moment. Throws a routing failure (<see cref="IsRoutingFailure"/>) like the constructor.
+    /// </summary>
+    public void Retarget(int sessionProcessId)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _routing.Set(sessionProcessId, _targetDeviceId);
     }
 
     public void Dispose()
