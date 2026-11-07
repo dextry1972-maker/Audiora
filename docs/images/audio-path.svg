@@ -38,8 +38,8 @@
   <text class="body" x="362" y="186">(UPnP)</text>
 
   <line x1="604" y1="128" x2="676" y2="128" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-  <text class="label" x="640" y="104" text-anchor="middle">local</text>
-  <text class="label" x="640" y="118" text-anchor="middle">network</text>
+  <text class="label" x="649" y="104" text-anchor="middle">local</text>
+  <text class="label" x="649" y="118" text-anchor="middle">network</text>
 
   <rect x="680" y="52" width="224" height="152" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
   <text class="title" x="696" y="80">Sonos speaker</text>
