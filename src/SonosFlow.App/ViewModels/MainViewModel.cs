@@ -643,6 +643,7 @@ public sealed partial class MainViewModel : ObservableObject
         CancelStartupWait();
         CancelSearch(SearchStop.Superseded);
         _discovery.Dispose();
+        FlushPendingPrebufferSave(); // a margin set with the slider just before closing is not lost
         // Keep WasStreaming so "resume on launch" picks up where the user left off.
         await StopAsync(rememberStopped: false, reason: "cierre de la aplicación");
         _control?.Dispose();

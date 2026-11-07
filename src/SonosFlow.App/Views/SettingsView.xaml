@@ -155,11 +155,11 @@
                                    Text="{loc:T settings.audio.prebuffer.hint}" />
                     </StackPanel>
                     <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Width="280">
-                        <!-- Exact value: 0–1000 ms in steps of 10; saved a moment after the thumb stops -->
+                        <!-- Exact value: 0–1000 ms in steps of 10. The figure follows the thumb while dragging; the file is written once it settles -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" FlowDirection="LeftToRight">
                             <Slider Style="{StaticResource Slider.Flow}" Width="190" Minimum="0" Maximum="1000" SmallChange="10" LargeChange="100"
                                     TickFrequency="10" IsSnapToTickEnabled="True"
-                                    Value="{Binding PrebufferSliderMs, Mode=TwoWay, Delay=200}" IsEnabled="{Binding CanEditOptions}"
+                                    Value="{Binding PrebufferSliderMs, Mode=TwoWay}" IsEnabled="{Binding CanEditOptions}"
                                     AutomationProperties.Name="{loc:T settings.audio.prebuffer.title}" />
                             <TextBlock Text="{Binding PrebufferText}" Style="{StaticResource T.Dim}" Width="70" TextAlignment="Right" VerticalAlignment="Center" />
                         </StackPanel>

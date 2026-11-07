@@ -343,22 +343,51 @@ public sealed partial class MainViewModel
         get => _settings.PrebufferMs;
         set
         {
-            value = Math.Max(0, value);
-            if (_settings.PrebufferMs == value) return;
-            _settings.PrebufferMs = value;
+            if (!ApplyPrebuffer(value)) return;
+            _prebufferSaveDebounce?.Stop();
             _settings.Save();
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(PrebufferKey));
-            OnPropertyChanged(nameof(PrebufferSliderMs));
-            OnPropertyChanged(nameof(PrebufferText));
         }
     }
 
-    /// <summary>The slider's value: snapped to the step, and capped at the slider's end (older settings may hold up to 3 s).</summary>
+    /// <summary>
+    /// The slider's value: snapped to the step, and capped at the slider's end (older settings may hold up to 3 s). Every step
+    /// of a drag is applied and shown at once; the settings file is written once the drag settles (like the effects volume).
+    /// </summary>
     public double PrebufferSliderMs
     {
         get => PrebufferScale.ToSlider(PrebufferMs);
-        set => PrebufferMs = PrebufferScale.FromSlider(value);
+        set
+        {
+            if (!ApplyPrebuffer(PrebufferScale.FromSlider(value))) return;
+            _prebufferSaveDebounce ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+            _prebufferSaveDebounce.Tick -= SavePrebuffer;
+            _prebufferSaveDebounce.Tick += SavePrebuffer;
+            _prebufferSaveDebounce.Stop();
+            _prebufferSaveDebounce.Start();
+        }
+    }
+
+    private DispatcherTimer? _prebufferSaveDebounce;
+
+    private void SavePrebuffer(object? sender, EventArgs e) { _prebufferSaveDebounce?.Stop(); _settings.Save(); }
+
+    /// <summary>Writes a margin chosen with the slider just before closing (the debounce would otherwise lose it).</summary>
+    internal void FlushPendingPrebufferSave()
+    {
+        if (_prebufferSaveDebounce is { IsEnabled: true }) SavePrebuffer(null, EventArgs.Empty);
+    }
+
+    /// <summary>Sets the margin in memory (the next stream uses it) and refreshes everything that shows it. False if unchanged.</summary>
+    private bool ApplyPrebuffer(int value)
+    {
+        value = Math.Max(0, value);
+        if (_settings.PrebufferMs == value) return false;
+        _settings.PrebufferMs = value;
+        OnPropertyChanged(nameof(PrebufferMs));
+        OnPropertyChanged(nameof(PrebufferKey));
+        OnPropertyChanged(nameof(PrebufferSliderMs));
+        OnPropertyChanged(nameof(PrebufferText));
+        return true;
     }
 
     /// <summary>The exact value in use ("300 ms"), shown next to the slider.</summary>
