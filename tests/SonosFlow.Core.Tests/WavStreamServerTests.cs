@@ -182,6 +182,28 @@ public sealed class WavStreamServerTests
     }
 
     [Fact]
+    public async Task A_connection_closed_by_the_automatic_recovery_is_logged_as_such_not_as_a_watchdog_failure()
+    {
+        const string Recovery = "cerrada como parte de la recuperación automática (la app fuente se reinició)";
+        using var server = Server(0);
+        var events = new List<string>();
+        server.ConnectionEvent += e => { lock (events) events.Add(e); };
+        var (tcp, _, _) = await ConnectAsync(server);
+        using var _ = tcp;
+        await WaitForClientAsync(server);
+
+        server.AbortClients(Recovery);
+        for (int i = 0; i < 100 && server.ClientCount > 0; i++) await Task.Delay(20);
+        for (int i = 0; i < 50; i++) { lock (events) if (events.Count == 2) break; await Task.Delay(20); }
+
+        lock (events)
+        {
+            Assert.Contains(Recovery, events[^1]);
+            Assert.DoesNotContain("vigilante", events[^1]);
+        }
+    }
+
+    [Fact]
     public async Task Connections_and_disconnections_are_reported()
     {
         using var server = Server(0);

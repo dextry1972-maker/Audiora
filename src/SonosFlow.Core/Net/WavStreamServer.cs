@@ -261,7 +261,7 @@ public sealed class WavStreamServer : IDisposable
         {
             // Player closed the connection (stop, track change or network drop), or we aborted a stuck one.
             reason = ex is not OperationCanceledException ? ex.GetBaseException().Message
-                : ct.IsCancellationRequested ? "detenido" : "cerrada por el vigilante (no recogía audio)";
+                : ct.IsCancellationRequested ? "detenido" : client.AbortReason ?? WatchdogAbortReason;
         }
         finally
         {
@@ -374,13 +374,18 @@ public sealed class WavStreamServer : IDisposable
             before is { } q ? unchecked(now.TimeoutEpisodes - q.TimeoutEpisodes) : 0);
     }
 
+    /// <summary>Why a connection was closed by <see cref="AbortClients"/> when no other reason is given (the watchdog's case).</summary>
+    public const string WatchdogAbortReason = "cerrada por el vigilante (no recogía audio)";
+
     /// <summary>Closes every player connection (including one stuck in a socket write) so the stream can be re-issued.</summary>
-    public void AbortClients()
+    /// <param name="reason">What the logs say about the closed connections.</param>
+    public void AbortClients(string reason = WatchdogAbortReason)
     {
         List<Client> clients;
         lock (_clients) clients = [.. _clients];
         foreach (var c in clients)
         {
+            c.AbortReason = reason; // set before cancelling: the connection's handler reads it when it ends
             // Outside the lock: cancellation callbacks may run inline. A client that just ended is already disposed.
             try { c.Abort.Cancel(); } catch (ObjectDisposedException) { }
         }
@@ -392,6 +397,7 @@ public sealed class WavStreamServer : IDisposable
         public Socket? Socket { get; set; }
         public TcpSnapshot? PreviousTcp;
         public CancellationTokenSource Abort { get; } = abort;
+        public volatile string? AbortReason;
         public long PendingBytes; // queued for this player but not yet written to its socket
         public long LastProgressTicks = Environment.TickCount64;
         public long DroppedChunks, DroppedBytes, SlowWrites, BytesWritten;

@@ -150,6 +150,7 @@ public sealed class StreamingSession : IAsyncDisposable
         {
             var localIp = SonosDiscovery.LocalAddressFor(_target.Address);
             _source = CreateSource(_spec, out _captureDevice);
+            _follower = NewFollower(_spec);
             _streamRate = _source.OutputFormat.SampleRate;
             Spectrum = new SpectrumAnalyzer(_streamRate);
             _diag = new SonosFlow.Core.Diagnostics.StreamDiagnostics(_options.LogDirectory, _streamRate, _spec.Kind == CaptureKind.Application ? "app" : "system", prebufferMs: _options.PrebufferMs);
@@ -189,7 +190,16 @@ public sealed class StreamingSession : IAsyncDisposable
     /// new source can't feed the current stream format (a different device sample rate); the caller
     /// then restarts the stream.
     /// </summary>
-    public Task<bool> SwitchSourceAsync(CaptureSpec spec) => Task.Run(async () =>
+    public async Task<bool> SwitchSourceAsync(CaptureSpec spec)
+    {
+        bool switched = await SwitchSourceCoreAsync(spec, sameAppRestart: false).ConfigureAwait(false);
+        if (switched) _follower = NewFollower(spec); // a source the user chose: follow that one from now on
+        return switched;
+    }
+
+    /// <param name="sameAppRestart">The selected app restarted (a new process of the same executable): "Silenciar el PC"
+    /// is carried over to the new process instead of being restored and applied again.</param>
+    private Task<bool> SwitchSourceCoreAsync(CaptureSpec spec, bool sameAppRestart) => Task.Run(async () =>
     {
         await _switchLock.WaitAsync().ConfigureAwait(false);
         try
@@ -232,9 +242,16 @@ public sealed class StreamingSession : IAsyncDisposable
             }
             old?.Dispose();
 
-            ReleaseGuard(); // restore the previous output before guarding the new one
-            oldDevice?.Dispose();
-            ApplyGuard();
+            if (sameAppRestart && CarryGuardToRestartedApp())
+            {
+                oldDevice?.Dispose();
+            }
+            else
+            {
+                ReleaseGuard(); // restore the previous output before guarding the new one
+                oldDevice?.Dispose();
+                ApplyGuard();
+            }
 
             _log?.WriteLine($"# fuente cambiada a: {spec.DisplayName} ({CaptureDeviceName})");
             SourceChanged?.Invoke(spec);
@@ -541,7 +558,7 @@ public sealed class StreamingSession : IAsyncDisposable
             // The selected app closed: keep the stream alive (silence) and follow it if it comes back.
             if (_spec.Kind == CaptureKind.Application && ++tick % 3 == 0)
             {
-                await FollowApplicationAsync().ConfigureAwait(false);
+                await FollowApplicationAsync(clock, watchdog, ct).ConfigureAwait(false);
                 if ((_redirectPending || (_redirect is not null && !_redirectVerified)) && await _switchLock.WaitAsync(0).ConfigureAwait(false))
                 {
                     try
@@ -665,26 +682,95 @@ public sealed class StreamingSession : IAsyncDisposable
         Diagnostic?.Invoke(message);
     }
 
-    private async Task FollowApplicationAsync()
+    // ── «Una aplicación»: the selected app closed and came back ───────────────────────────────────
+
+    private SourceAppFollower? _follower;
+
+    /// <summary>How the logs describe the old connection, closed on purpose to give the Sonos a fresh one.</summary>
+    internal const string RecoveryAbortReason = "cerrada como parte de la recuperación automática (la app fuente se reinició)";
+
+    private static SourceAppFollower? NewFollower(CaptureSpec spec) => spec.Kind == CaptureKind.Application
+        ? new SourceAppFollower(spec.ProcessId, spec.ExePath, spec.IsIsolatedYouTubeMusic, new WindowsSourceAppProbe())
+        : null;
+
+    /// <summary>
+    /// The signal is the app's process, never its audio (see <see cref="SourceAppFollower"/>): silence, a pause or a short
+    /// interruption while it runs change nothing. When it ends the session waits; when a new instance has opened its audio,
+    /// <see cref="ReattachAsync"/> runs once (bounded retries on failure).
+    /// </summary>
+    private async Task FollowApplicationAsync(System.Diagnostics.Stopwatch clock, PlaybackWatchdog watchdog, CancellationToken ct)
     {
-        if (AudioApps.IsRunning(_spec.ProcessId))
+        if (_follower is not { } follower) return;
+        var step = await follower.CheckAsync(clock.Elapsed, (oldPid, newPid) => ReattachAsync(oldPid, newPid, clock, watchdog, ct), ct).ConfigureAwait(false);
+        if (!ReferenceEquals(_follower, follower)) return; // the user picked another source meanwhile
+        _sourceAvailable = follower.SourceAvailable;
+        string name = _spec.DisplayName;
+        switch (step.Event)
         {
-            _sourceAvailable = true;
-            return;
+            case FollowEvent.SourceClosed:
+                Note($"fuente cerrada: «{name}» (PID {step.OldPid}) terminó; la transmisión sigue en silencio y se espera a que vuelva, sin reintentos");
+                break;
+            case FollowEvent.Recovered:
+                _lastError = null;
+                Note($"recuperación: completada en {step.Elapsed!.Value.TotalMilliseconds:0} ms (intento {step.Attempt}): captura en el PID {step.NewPid}, " +
+                     "Sonos reconectado; volumen, ajustes y «Silenciar el PC» sin cambios");
+                break;
+            case FollowEvent.RecoveryFailed:
+                Note($"recuperación: falló el intento {step.Attempt}/{SourceAppFollower.MaxAttemptsPerInstance} con el PID {step.NewPid} " +
+                     $"({step.Error ?? "no se pudo reasociar"}); siguiente intento en {step.NextTryIn!.Value.TotalSeconds:0} s");
+                break;
+            case FollowEvent.GaveUpOnInstance:
+                Note($"recuperación: se deja el PID {step.NewPid} tras {step.Attempt} intentos ({step.Error ?? "no se pudo reasociar"}); " +
+                     "se esperará a otra instancia de la app");
+                break;
         }
-        _sourceAvailable = false;
-        if (_spec.ExePath is null) return;
-        var again = AudioApps.FindByExe(_spec.ExePath, _spec.IsIsolatedYouTubeMusic);
-        if (again is null) return;
+    }
+
+    /// <summary>
+    /// Re-creates what was tied to the old process: the capture (process loopback is bound to one process tree) and the
+    /// "Silenciar el PC" redirect (carried over, never restored in between). Then gives the Sonos a fresh connection, the one
+    /// thing a manual stop/start also renews: after the restart the old connection kept playing but with cuts until it was
+    /// replaced. The session, its settings, the Sonos volume and the user's choices are left as they are.
+    /// </summary>
+    private async Task<bool> ReattachAsync(int oldPid, int newPid, System.Diagnostics.Stopwatch clock, PlaybackWatchdog watchdog, CancellationToken ct)
+    {
+        var app = AudioApps.List().FirstOrDefault(a => a.ProcessId == newPid);
+        if (app is null) return false; // gone again before we got to it
+        Note($"recuperación: inicio — «{_spec.DisplayName}» terminó y volvió con otro proceso (PID {oldPid} → {newPid}); se reasocia la captura");
+        // Keep the app's own output (the one to mute if it can't be redirected): the new instance reports the silent output
+        // the old one was sent to, because Windows remembers it per executable.
+        var spec = CaptureSpec.Application(app) with { DeviceId = _spec.DeviceId };
+        if (!await SwitchSourceCoreAsync(spec, sameAppRestart: true).ConfigureAwait(false)) return false;
+        _server!.AbortClients(RecoveryAbortReason); // the old connection must not linger as a client
+        await StartPlaybackAsync(ct).ConfigureAwait(false);
+        // Not a failure: no state change (no "Reconectando…", no sounds), and the watchdog gives the new connection its warm-up.
+        watchdog.Reset(clock.Elapsed);
+        _stalls?.RestartWarmup(DateTime.Now - _startedAt);
+        return true;
+    }
+
+    /// <summary>
+    /// The same app restarted: keep "Silenciar el PC" exactly as it was. A redirect is pointed at the new process (Windows keeps
+    /// the per-app output per executable, so the new instance usually starts there already); a muted device (plan B) stays
+    /// muted; a redirect still waiting for the app's audio is completed by the monitor. False: apply it the usual way.
+    /// </summary>
+    private bool CarryGuardToRestartedApp()
+    {
+        if (!_muteLocal || _guard is not null || _redirectPending) return true; // nothing to move, or nothing that depends on the process
+        if (_redirect is null) return false;
         try
         {
-            if (await SwitchSourceAsync(CaptureSpec.Application(again)).ConfigureAwait(false)) _lastError = null;
+            int sessionPid = AudioApps.SessionProcessOf(_spec.ProcessId);
+            if (sessionPid == 0) return false;
+            _redirect.Retarget(sessionPid);
+            (_redirectAt, _redirectStrikes, _redirectVerified) = (DateTime.UtcNow, 0, false); // checked again for the new instance
+            Note($"silencio local: «{_spec.DisplayName}» volvió (PID {sessionPid}) y sigue en la salida silenciosa; no se restauró nada entre medias");
+            return true;
         }
-        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException or TimeoutException
-                                       or PlatformNotSupportedException or NotSupportedException or System.ComponentModel.Win32Exception
-                                       or ArgumentException or UnauthorizedAccessException)
+        catch (Exception ex) when (AppOutputRedirect.IsRoutingFailure(ex))
         {
-            Note($"no se pudo volver a capturar «{_spec.DisplayName}»: {ex.Message}"); // retried on the next check
+            Note($"silencio local: no se pudo mantener la redirección para el proceso nuevo ({ex.GetType().Name}); se aplica de nuevo");
+            return false;
         }
     }
 

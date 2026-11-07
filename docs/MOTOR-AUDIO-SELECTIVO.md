@@ -118,3 +118,22 @@ Autotest con el Sonos Five: **34/34** (17-pre silencio de fondo, 17e desactivar 
 Incidente real: una app (Brave) quedó fijada a «Steam Streaming» porque Audiora terminó al cerrar sesión de Windows sin restaurar su salida (`OnSessionEnding` lanzaba la salida sin esperarla). Corrección: `StreamingSession.RestoreLocalNow` (síncrona, marca la sesión como desmontada primero, espera el cerrojo como máximo 1 s) y `MainViewModel.RestoreLocalForShutdown`; `OnSessionEnding` la ejecuta en un hilo del pool y espera hasta 5 s antes de la salida normal (el mutex del registro de redirecciones espera como máximo 3 s). Si no llega a tiempo, el registro queda pendiente y se recupera en el siguiente arranque o refresco. `CaptureCheck recover-pending <archivo>` ejecuta esa recuperación a mano.
 
 Autotest con el Sonos Five: **35/35**, incluida la comprobación 17g (la salida de la app se restaura al instante con la transmisión en PLAYING y sin reconexiones). Ejecuciones anteriores con música o Chrome abiertos dieron fallos por interferencia ajena; 17-pre ya impide la parte B2 cuando hay audio de fondo, y la parte B2 se omite si Chrome y Edge están abiertos.
+
+## 8. La app seleccionada se cierra y vuelve a abrirse (07/11/2026, rama `fix/recuperar-app-reiniciada`)
+
+**Qué quedaba ligado al proceso anterior:** la captura por proceso (`ProcessLoopbackCapture`, un árbol de procesos fijo) y la redirección de «Silenciar el PC» (por ejecutable, pero aplicada a la sesión del proceso viejo). El seguimiento que ya existía las rehacía con `SwitchSourceAsync`, pero (a) restauraba la salida de la app y la volvía a apartar (la app nueva sonaba un instante en el PC y cambiaba de salida dos veces) y (b) dejaba la misma conexión con el Sonos. Prueba real del 06/11 (ronda A, margen 60 ms): tras reabrir Brave la captura volvió sin huecos (máx. 27 ms, 0 relleno, 0 ceros dentro del audio, 0 descartes) y aun así hubo cortes hasta detener e iniciar a mano; lo único que eso renueva además es la conexión con el Sonos.
+
+**Señal:** el **proceso**, nunca el audio. Mientras el proceso vive (suena, en pausa, en silencio, con una interrupción breve) no se toca nada. `SourceAppFollower` (lógica pura, probada con un probe falso) en cada comprobación del monitor (cada 3 s):
+
+| Situación | Qué hace |
+|---|---|
+| El proceso de la app vive | nada (ni siquiera mira otras apps) |
+| Terminó | lo anota una vez («fuente cerrada…»); la transmisión sigue con silencio |
+| Sigue cerrada | solo `Process.GetProcessesByName` (barato); sin capturas, sin reconexiones, sin reintentos |
+| Hay un proceso del ejecutable pero sin sesión de audio | espera |
+| Instancia nueva (otro PID) con sesión de audio | reasocia **una vez**: captura del PID nuevo, «Silenciar el PC» trasladado (`AppOutputRedirect.Retarget`, sin restaurar entre medias; el registro con la salida original se conserva) y conexión nueva con el Sonos (`AbortClients` + `SetAVTransportURI`/`Play`, como al detener e iniciar), sin cambiar de estado (ni «Reconectando…» ni sonidos) |
+| Falla | reintenta a los 3, 6, 12, 24 s; tras 5 intentos deja esa instancia hasta que aparezca otra |
+
+No cambia: el volumen del Sonos (no se envía ningún `SetVolume`), los ajustes, el margen, «Silenciar el PC» ni «Todo el PC» (el seguidor solo existe en «Una aplicación»; cerrar otra app no lo afecta). Registro (sin audio ni contenido): causa y PIDs, inicio del intento, resultado y milisegundos que tardó.
+
+**Pendiente:** prueba real con Brave y el Sonos (no se puede simular sin el altavoz).
