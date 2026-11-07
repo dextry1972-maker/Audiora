@@ -11,7 +11,8 @@
     <RootNamespace>SonosFlow.Setup</RootNamespace>
     <ApplicationIcon>..\SonosFlow.App\Assets\SonosFlow.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.0</Version>
+    <!-- Same SemVer as the app and the GitHub release tag; DisplayVersion uses the numeric part (1.0.0). -->
+    <Version>1.0.0-beta.2</Version>
     <Product>Audiora</Product>
     <AssemblyTitle>Instalar Audiora</AssemblyTitle>
     <PayloadZip Condition="'$(PayloadZip)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\payload.zip</PayloadZip>

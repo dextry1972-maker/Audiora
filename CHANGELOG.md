@@ -2,6 +2,15 @@
 
 Formato: lo que cambia para quien usa Audiora, con el commit. Más reciente arriba.
 
+## 1.0.0-beta.2 — 2026-11-07 (GitHub, etiqueta `v1.0.0-beta.2`)
+
+Notas en inglés de la release: `docs/releases/v1.0.0-beta.2.md`.
+
+### Corregido
+- `2b89b6a` **«Una aplicación» se recupera sola al cerrar y volver a abrir la app fuente** (p. ej. Brave). Audiora reasocia la captura al nuevo proceso, mantiene «Silenciar el PC» sin restaurar entre medias y le da al Sonos una conexión nueva, como un detener/iniciar, sin tocar el volumen ni los ajustes. Antes quedaban micro-cortes hasta detener e iniciar a mano. Probado de oído con tres reaperturas de Brave sin cortes; el registro real muestra recuperaciones en 60–116 ms. Detalles: `docs/MOTOR-AUDIO-SELECTIVO.md` §8.
+- `12d82f3` **Margen anti-cortes:** la cifra en ms sigue al deslizador mientras se arrastra y queda exacta al soltarlo. Mismos límites (0–1000 ms), pasos de 10 ms, preajustes y comportamiento del audio (el margen se aplica al iniciar la transmisión).
+- `1c9bc94` **Registro:** el cierre de la conexión anterior durante la recuperación automática se anota «como parte de la recuperación automática», no como un fallo del vigilante.
+
 ## Sin publicar (rama `feature/sonidos-enchanted`)
 
 ### Sonidos «Audiora Enchanted»
