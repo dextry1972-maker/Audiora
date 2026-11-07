@@ -510,6 +510,11 @@ public sealed class SoundLimiterTests
     }
 }
 
+/// <summary>The leak test counts the handles of the whole process, so no other test class may run alongside it.</summary>
+[CollectionDefinition("Process handle count", DisableParallelization = true)]
+public sealed class ProcessHandleCountCollection;
+
+[Collection("Process handle count")]
 public sealed class WasapiEffectOutputTests
 {
     [Fact]
@@ -554,8 +559,9 @@ public sealed class WasapiEffectOutputTests
             output.Play(Silent(0.05), 0f, i % 2 == 0 ? "{no-such-device}" : null);
             Thread.Sleep(30);
         }
-        // The handle count is process-wide: other test classes running in parallel open and close their own (observed:
-        // +8..+80 for this loop with the whole project running, +13..+17 alone). One-time costs (COM, pool threads) are paid
+        // The handle count is process-wide. Other test classes running in parallel opened and closed their own handles
+        // (observed: +8..+80 for this loop with the whole project running, +121 once on a GitHub runner, +13..+17 alone),
+        // so this class runs in a collection with parallelization disabled. One-time costs (COM, pool threads) are paid
         // by a warm-up, and transient handles get time to drain; a real leak (several handles per cycle, never released)
         // still exceeds the bound after the wait.
         for (int i = 0; i < 3; i++) Cycle(i);
