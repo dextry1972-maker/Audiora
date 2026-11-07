@@ -17,7 +17,10 @@ Standard GitHub-hosted runners are free for public repositories.
 
 ## What it does
 
-**Job 1: Build and test** (Windows, about 5 minutes)
+A run takes about 3 minutes. The first one (pull request #1, 7 Nov 2026) took 2 min 51 s on the `windows-2025-vs2026`
+runner image, with SDK 8.0.427, and all 405 tests passed.
+
+**Job 1: Build and test** (Windows, about 2 minutes)
 
 1. Installs the .NET 8 SDK and pins it with a temporary `global.json`. That file exists only on the runner and is not
    committed. The runner also has newer SDKs, and this keeps the build on the same 8.0 SDK as local builds.
@@ -28,7 +31,7 @@ Standard GitHub-hosted runners are free for public repositories.
 4. Writes a **summary** on the run page (see below) and uploads the raw results as the **test-results** artifact
    (`.trx` files, kept 14 days).
 
-**Job 2: Windows installer** (runs only if job 1 passed, about 3 minutes)
+**Job 2: Windows installer** (runs only if job 1 passed, about 1 minute)
 
 1. Runs `build.ps1` unchanged: it publishes the self-contained win-x64 app, packs it and builds `SonosFlow-Setup.exe`.
 2. `.github/scripts/Write-BuildSummary.ps1` **fails the job** if a file is missing or if the installer does not embed
@@ -37,7 +40,7 @@ Standard GitHub-hosted runners are free for public repositories.
    - **Audiora-Setup-win-x64**: `SonosFlow-Setup.exe`.
    - **Audiora-portable-win-x64**: the app folder; open `SonosFlow.exe`.
 
-   GitHub delivers each artifact as a `.zip`. These are unsigned test builds, not releases.
+   GitHub delivers each artifact as a `.zip` (about 76 MB each). These are unsigned test builds, not releases.
 
 ## How to tell whether it worked
 
@@ -45,7 +48,8 @@ Standard GitHub-hosted runners are free for public repositories.
   yellow dot means the run is still going. On a pull request, the **Checks** section lists **CI / Build and test** and
   **CI / Windows installer**.
 - **README badge:** the badge at the top of `README.md` shows the result of the latest run on `main`.
-- **Run page** (**Actions** tab → the run → **Summary**):
+- **Run page** (**Actions** tab → the run → **Summary**). Sign in to GitHub first: visitors see only the status and the
+  artifacts list, not the summary or the logs.
   - **Test results:** the passed, failed and skipped tests for each project. Failed tests are listed with the first
     line of their message.
   - **Returned early without checking anything:** tests that logged `OMITIDA` because something they need is missing
