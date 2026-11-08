@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="268" viewBox="0 0 920 268" role="img" aria-labelledby="title desc">
+  <title id="title">How audio travels from Windows to the Sonos</title>
+  <desc id="desc">Windows audio, from the whole PC or one app, is captured by Audiora on the same PC. Audiora serves it as an uncompressed WAV stream on the local network and tells the Sonos to play it. The Sonos pulls the stream and plays it.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#57606a"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif; fill: #1f2328; }
+    .title { font-size: 16px; font-weight: 600; }
+    .body { font-size: 13px; fill: #424a53; }
+    .label { font-size: 12px; fill: #57606a; }
+    .group { font-size: 12px; font-weight: 600; fill: #57606a; letter-spacing: 0.04em; }
+  </style>
+
+  <rect x="0.5" y="0.5" width="919" height="267" rx="12" fill="#ffffff" stroke="#d0d7de"/>
+
+  <!-- Everything inside the dashed frame runs on the Windows PC -->
+  <rect x="16" y="16" width="602" height="204" rx="10" fill="none" stroke="#8c959f" stroke-dasharray="6 5"/>
+  <text class="group" x="32" y="38">YOUR WINDOWS PC</text>
+
+  <rect x="32" y="52" width="256" height="152" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text class="title" x="48" y="80">Windows audio</text>
+  <text class="body" x="48" y="106">Whole PC: everything playing</text>
+  <text class="body" x="48" y="124">on an output device</text>
+  <text class="body" x="48" y="150">One app: only the app you pick,</text>
+  <text class="body" x="48" y="168">for example your browser</text>
+
+  <line x1="290" y1="128" x2="342" y2="128" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="346" y="52" width="256" height="152" rx="10" fill="#f5f0ff" stroke="#8250df"/>
+  <text class="title" x="362" y="80">Audiora</text>
+  <text class="body" x="362" y="106">Captures that audio</text>
+  <text class="body" x="362" y="124">Serves it as an uncompressed</text>
+  <text class="body" x="362" y="142">WAV stream on your network</text>
+  <text class="body" x="362" y="168">Tells the Sonos to play it</text>
+  <text class="body" x="362" y="186">(UPnP)</text>
+
+  <line x1="604" y1="128" x2="676" y2="128" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+  <text class="label" x="649" y="104" text-anchor="middle">local</text>
+  <text class="label" x="649" y="118" text-anchor="middle">network</text>
+
+  <rect x="680" y="52" width="224" height="152" rx="10" fill="#f6f8fa" stroke="#d0d7de"/>
+  <text class="title" x="696" y="80">Sonos speaker</text>
+  <text class="body" x="696" y="106">Pulls the stream from</text>
+  <text class="body" x="696" y="124">the PC and plays it</text>
+
+  <text class="label" x="32" y="248">Optional: Mute PC keeps the selected audio off the PC speakers. The audio never leaves your local network.</text>
+</svg>
