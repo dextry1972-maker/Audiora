@@ -136,11 +136,14 @@ public sealed class WavStreamServerTests
         server.TakeMaxBacklogMs();
 
         // Player stalls: 20 s of audio produced, nothing read. The kernel's socket buffers absorb part of it
-        // (~1 s on loopback); the metric reports what is left waiting in Audiora beyond that.
+        // (~1 s on loopback); the metric reports what is left waiting in Audiora beyond that. With 1 s chunks and the
+        // 1.5 s bound the queue keeps one whole chunk (1000 ms). It only shows more when the sending thread already has
+        // the next chunk in flight while this loop writes, which a busy CI runner may never schedule (measured: exactly
+        // 1000 ms on GitHub Actions). One full second waiting in Audiora is the deterministic proof that the backlog grew.
         for (int i = 0; i < 20; i++) server.Write(Frames(i * 100 * FramesPer10Ms, 100 * FramesPer10Ms));
         await Task.Delay(200);
         double stalled = server.TakeMaxBacklogMs();
-        Assert.True(stalled > 1000, $"backlog {stalled} ms (sent {Interlocked.Read(ref server.BytesSent)} B, dropped {Interlocked.Read(ref server.DroppedChunks)})");
+        Assert.True(stalled >= 1000, $"backlog {stalled} ms (sent {Interlocked.Read(ref server.BytesSent)} B, dropped {Interlocked.Read(ref server.DroppedChunks)})");
         // 20 s stalled is far beyond the queue's time bound (margin + 1 s, here 1.5 s): the OLDEST audio is dropped so the
         // player resumes near live instead of replaying stale audio — never silently: every dropped chunk is counted.
         long dropped = Interlocked.Read(ref server.DroppedChunks);
@@ -171,8 +174,11 @@ public sealed class WavStreamServerTests
 
         // Stops reading: once the socket buffers are full the server's write blocks and progress stops.
         for (int i = 0; i < 3; i++) server.Write(Frames(i * 100 * FramesPer10Ms, 100 * FramesPer10Ms));
-        await Task.Delay(1500);
-        Assert.True(server.SinceLastClientProgress > TimeSpan.FromSeconds(1), $"stalled for {server.SinceLastClientProgress}");
+        // A busy machine can finish the last socket writes late (seen on GitHub Actions: 0.3 s without progress after a fixed
+        // 1.5 s wait), so wait up to 5 s for progress to stop for over a second instead of sampling once.
+        var waited = System.Diagnostics.Stopwatch.StartNew();
+        while (server.SinceLastClientProgress <= TimeSpan.FromSeconds(1) && waited.ElapsedMilliseconds < 5000) await Task.Delay(100);
+        Assert.True(server.SinceLastClientProgress > TimeSpan.FromSeconds(1), $"stalled for {server.SinceLastClientProgress} after waiting {waited.ElapsedMilliseconds} ms");
 
         server.AbortClients(); // must also release a write blocked on the socket
         for (int i = 0; i < 100 && server.ClientCount > 0; i++) await Task.Delay(20);
